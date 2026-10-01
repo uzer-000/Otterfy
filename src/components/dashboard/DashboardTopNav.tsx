@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import AwardsModal from './AwardsModal';
 import NotificationStack from './NotificationStack';
@@ -81,12 +81,12 @@ export default function DashboardTopNav() {
     }
   };
 
+  const initialLoadedRef = useRef(false);
+
   // Fetch approved orders & handle real-time push alerts
   useEffect(() => {
     // Request permission once user interacts with dashboard
     requestPushPermission();
-
-    let isFirstLoad = true;
 
     async function checkOrdersAndAlert() {
       try {
@@ -104,11 +104,11 @@ export default function DashboardTopNav() {
         const storedNotified = JSON.parse(localStorage.getItem('otterfy_notified_orders') || '[]');
         const notifiedSet = new Set<string>(storedNotified);
 
-        // On first load, mark existing as already seen to not spam past orders
-        if (isFirstLoad) {
+        // On initial mount / first load, mark all existing past orders as already seen
+        if (!initialLoadedRef.current) {
           list.forEach((o: any) => notifiedSet.add(o.id));
           localStorage.setItem('otterfy_notified_orders', JSON.stringify(Array.from(notifiedSet)));
-          isFirstLoad = false;
+          initialLoadedRef.current = true;
         } else {
           // Check for brand new approved orders
           const newOrders = list.filter((o: any) => !notifiedSet.has(o.id));

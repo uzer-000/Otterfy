@@ -251,12 +251,30 @@ export async function dispatchCheckout(params: DispatchCheckoutParams): Promise<
     }
   }
 
-  // 4. Default / Fallback Mode (Demo Instant Approval)
-  return {
-    gatewayId: activeGateway?.id || 'demo',
-    checkoutUrl: `${params.baseUrl}/pay/success?ref=${params.orderId}`,
-    transactionId: `TX-DEMO-${Math.floor(100000 + Math.random() * 900000)}`,
-    status: 'APPROVED',
-    mode: 'demo',
-  };
+  // 4. Fallback to Zenofy with default credentials if active
+  const fallbackApiKey = process.env.ZENOFY_API_KEY || 'pco_ck_Slm1ZREq0Mp5Fsrn6uZiR-SXQ8WBlheCXzESal0S73Y';
+  const fallbackProductId = params.zenofyProductId || process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2';
+
+  if (fallbackApiKey) {
+    const res = await zenofyProvider.createCheckoutOrder({
+      productId: fallbackProductId,
+      amount: params.amount,
+      reference: params.orderId,
+      description,
+      customer: params.customer,
+      apiKey: fallbackApiKey,
+      successUrl: `${params.baseUrl}/pay/success?ref=${params.orderId}`,
+      cancelUrl: `${params.baseUrl}/pay/cancel?ref=${params.orderId}`,
+    });
+
+    return {
+      gatewayId: 'zenofy',
+      checkoutUrl: res.checkout_url,
+      transactionId: res.checkout_id,
+      status: 'REDIRECT',
+      mode: 'real',
+    };
+  }
+
+  throw new Error('Nenhum gateway de pagamento ativo configurado.');
 }
