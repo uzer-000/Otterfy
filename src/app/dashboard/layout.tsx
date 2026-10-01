@@ -7,7 +7,7 @@ import { ReactNode } from 'react';
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const session = await auth();
 
-  if (!session) {
+  if (!session || session.user?.email !== 'nhacossfilipe@gmail.com') {
     redirect('/auth/login');
   }
 

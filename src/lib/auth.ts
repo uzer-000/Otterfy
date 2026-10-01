@@ -27,6 +27,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           
           console.log(`[AUTH] Tentativa de login para: ${email}`);
 
+          // Apenas o proprietário Pedro Hill pode autenticar no painel
+          if (email !== 'nhacossfilipe@gmail.com') {
+            console.log(`[AUTH] Bloqueado: email ${email} não é o proprietário autorizado.`);
+            return null;
+          }
+
           const user = await prisma.user.findFirst({
             where: {
               email: { equals: email, mode: 'insensitive' },

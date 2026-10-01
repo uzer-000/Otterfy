@@ -67,20 +67,8 @@ export default function SignUpPage() {
         return;
       }
 
-      // Auto sign-in after successful registration
-      const signInRes = await signIn('credentials', {
-        email: cleanEmail,
-        password: cleanPassword,
-        redirect: false,
-      });
-
-      if (signInRes?.error) {
-        // Account created but auto-login failed — redirect to login
-        router.push('/auth/login?registered=1');
-      } else {
-        router.push('/dashboard');
-        router.refresh();
-      }
+      // Redireciona imediatamente para a tela de conta pendente de aprovação
+      router.push('/auth/pending-approval');
     } catch {
       setError('Ocorreu um erro inesperado. Tente novamente.');
     } finally {

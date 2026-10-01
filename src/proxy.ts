@@ -11,8 +11,10 @@ export const proxy = auth((req) => {
   const isLoggedIn = !!session;
   const isDashboard = nextUrl.pathname.startsWith('/dashboard');
 
-  if (isDashboard && !isLoggedIn) {
-    return NextResponse.redirect(new URL('/auth/login', nextUrl));
+  if (isDashboard) {
+    if (!isLoggedIn || session?.user?.email !== 'nhacossfilipe@gmail.com') {
+      return NextResponse.redirect(new URL('/auth/login', nextUrl));
+    }
   }
 
   return NextResponse.next();

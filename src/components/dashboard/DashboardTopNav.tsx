@@ -212,7 +212,7 @@ export default function DashboardTopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[#08070C]/90 backdrop-blur-md border-b border-[#1E1B26] px-4 md:px-8 py-3.5 transition-colors">
+      <header className="sticky top-0 z-30 bg-[#08070C]/90 backdrop-blur-md border-b border-[#1E1B26] px-4 md:px-8 py-3.5 transition-colors">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           {/* 50K Milestone Progress Bar (Visible in ALL TABS) */}
           <button
