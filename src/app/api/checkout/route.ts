@@ -84,6 +84,7 @@ export async function POST(req: Request) {
       productName: product.name,
       hasOrderBump,
       orderBumpTitle,
+      zenofyProductId: (product as any).zenofyProductId || (product as any).checkoutSettings?.zenofyProductId,
       customer: {
         name: customerName,
         phone: customerPhone,

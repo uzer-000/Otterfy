@@ -132,6 +132,7 @@ export interface DispatchCheckoutParams {
   productName: string;
   hasOrderBump?: boolean;
   orderBumpTitle?: string;
+  zenofyProductId?: string;
   customer: {
     name: string;
     phone: string;
@@ -158,15 +159,18 @@ export async function dispatchCheckout(params: DispatchCheckoutParams): Promise<
 
   // 1. Zenofy
   if (activeGateway?.id === 'zenofy') {
-    const creds = activeGateway.credentials;
-    const apiKey = creds.apiKey || process.env.ZENOFY_API_KEY;
+    const creds = activeGateway.credentials || {};
+    const apiKey = creds.apiKey || process.env.ZENOFY_API_KEY || 'pco_ck_Slm1ZREq0Mp5Fsrn6uZiR-SXQ8WBlheCXzESal0S73Y';
+    const targetProductId = params.zenofyProductId || creds.productId || process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2';
 
     if (apiKey) {
       const res = await zenofyProvider.createCheckoutOrder({
+        productId: targetProductId,
         amount: params.amount,
         reference: params.orderId,
         description,
         customer: params.customer,
+        apiKey,
         successUrl: `${params.baseUrl}/pay/success?ref=${params.orderId}`,
         cancelUrl: `${params.baseUrl}/pay/cancel?ref=${params.orderId}`,
       });

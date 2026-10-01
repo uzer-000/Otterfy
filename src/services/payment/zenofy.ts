@@ -7,18 +7,20 @@ export interface ZenofyCustomer {
 }
 
 export interface CreateCheckoutParams {
-  amount: number; // in MZN
+  productId?: string;
+  amount?: number; // in MZN
   reference: string;
-  description: string;
+  description?: string;
   customer: ZenofyCustomer;
-  successUrl: string;
-  cancelUrl: string;
+  apiKey?: string;
+  successUrl?: string;
+  cancelUrl?: string;
 }
 
 export interface CreateCheckoutResponse {
   checkout_id: string;
   checkout_url: string;
-  expires_at: string;
+  expires_at?: string;
 }
 
 export interface OrderStatusResponse {
@@ -29,65 +31,92 @@ export interface OrderStatusResponse {
   totalAmount: number;
 }
 
-const ZENOFY_API_KEY = process.env.ZENOFY_API_KEY || '';
-const ZENOFY_PRODUCT_ID = process.env.ZENOFY_PRODUCT_ID || '';
-const ZENOFY_WEBHOOK_SECRET = process.env.ZENOFY_WEBHOOK_SECRET || '';
+function getApiKey(customKey?: string): string {
+  return customKey || process.env.ZENOFY_API_KEY || '';
+}
+
+function normalizeMozPhone(phone: string): string {
+  let cleaned = (phone || '').replace(/[\s\-\(\)]/g, '');
+  if (!cleaned) return '+258840000000';
+  if (cleaned.startsWith('+258')) return cleaned;
+  if (cleaned.startsWith('258')) return `+${cleaned}`;
+  if (cleaned.startsWith('8') && cleaned.length === 9) return `+258${cleaned}`;
+  return cleaned.startsWith('+') ? cleaned : `+258${cleaned}`;
+}
 
 export const zenofyProvider = {
   async createCheckoutOrder(params: CreateCheckoutParams): Promise<CreateCheckoutResponse> {
-    if (!ZENOFY_API_KEY) {
+    const apiKey = getApiKey(params.apiKey);
+    if (!apiKey) {
       throw new Error('Chave da API do Zenofy não configurada.');
     }
 
-    // Convert amount to minor units (x100)
-    const amountMinorUnits = Math.round(params.amount * 100);
+    const targetProductId =
+      params.productId ||
+      process.env.ZENOFY_PRODUCT_ID ||
+      '6a14cb656c431b52f6375dc2';
+
+    const formattedPhone = normalizeMozPhone(params.customer.phone);
+    const customerName = params.customer.name?.trim() || 'Cliente';
+    const email = params.customer.email?.trim() || 'cliente@otterfy.mz';
 
     const body = {
-      productId: ZENOFY_PRODUCT_ID,
-      amount: amountMinorUnits,
-      currency: 'MZN',
-      reference: params.reference,
-      description: params.description,
-      customer: params.customer,
-      payment_methods: ['mpesa', 'emola'],
-      success_url: params.successUrl,
-      cancel_url: params.cancelUrl,
-      language: 'pt'
+      productId: targetProductId,
+      customerName,
+      email,
+      phoneNumber: formattedPhone,
     };
 
-    const response = await fetch('https://api.zenofy.io/checkout/order-api-gateway', {
+    console.log('[Zenofy API] Creating order from product:', {
+      productId: targetProductId,
+      customerName,
+      email,
+      phoneNumber: formattedPhone,
+    });
+
+    const response = await fetch('https://api.zenofy.io/checkout/order-from-product', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Api-Key': ZENOFY_API_KEY
+        'Api-Key': apiKey,
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro ao criar checkout no Zenofy:', errorText);
-      throw new Error('Erro ao processar o pagamento com Zenofy.');
+      console.error('[Zenofy API Error] Status:', response.status, errorText);
+      throw new Error(`Erro no Zenofy (${response.status}): ${errorText || 'Falha ao processar checkout'}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('[Zenofy API Success] Created order:', data);
+
+    const checkoutUrl = data.paymentUrl || `https://pay.zenofy.io/o/${data.orderId}`;
+
+    return {
+      checkout_id: data.orderId,
+      checkout_url: checkoutUrl,
+      expires_at: '',
+    };
   },
 
-  async getOrderStatus(checkoutId: string): Promise<OrderStatusResponse> {
-    if (!ZENOFY_API_KEY) {
+  async getOrderStatus(checkoutId: string, customApiKey?: string): Promise<OrderStatusResponse> {
+    const apiKey = getApiKey(customApiKey);
+    if (!apiKey) {
       throw new Error('Chave da API do Zenofy não configurada.');
     }
 
     const response = await fetch(`https://api.zenofy.io/checkout/order-status?orderId=${checkoutId}`, {
       method: 'GET',
       headers: {
-        'Api-Key': ZENOFY_API_KEY
-      }
+        'Api-Key': apiKey,
+      },
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro ao buscar status no Zenofy:', errorText);
+      console.error('[Zenofy API Error] getOrderStatus:', errorText);
       throw new Error('Erro ao verificar o status do pagamento no Zenofy.');
     }
 
@@ -95,7 +124,8 @@ export const zenofyProvider = {
   },
 
   verifyWebhookSignature(rawBody: string, signature: string): boolean {
-    if (!ZENOFY_WEBHOOK_SECRET) {
+    const webhookSecret = process.env.ZENOFY_WEBHOOK_SECRET || '';
+    if (!webhookSecret) {
       console.warn('ZENOFY_WEBHOOK_SECRET não está configurado.');
       return false;
     }
@@ -106,7 +136,7 @@ export const zenofyProvider = {
     }
 
     const hash = crypto
-      .createHmac('sha256', ZENOFY_WEBHOOK_SECRET)
+      .createHmac('sha256', webhookSecret)
       .update(rawBody)
       .digest('hex');
 
@@ -120,5 +150,6 @@ export const zenofyProvider = {
     } catch (e) {
       return false;
     }
-  }
+  },
 };
+export default zenofyProvider;
