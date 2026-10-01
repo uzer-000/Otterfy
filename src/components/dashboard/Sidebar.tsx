@@ -499,12 +499,15 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={profileAvatar} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  userEmail.substring(0, 2).toUpperCase()
+                  'PH'
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`text-xs font-semibold truncate ${isLight ? 'text-[#0F172A]' : 'text-[#F8FAFC]'}`}>Pedro Hill</p>
-                <p className="text-[10px] text-[#64748B] truncate font-mono">{userEmail}</p>
+                <p className="text-[10px] text-violet-600 dark:text-violet-400 font-medium truncate flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                  Administrador
+                </p>
               </div>
             </div>
 
