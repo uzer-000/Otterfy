@@ -180,12 +180,21 @@ export const dbStore = {
   },
 
   async getProductById(id: string): Promise<ProductItem | null> {
+    const cleanId = (id || '').trim();
+    if (!cleanId) return null;
+
     try {
-      const p = await prisma.product.findUnique({ where: { id } });
-      const store = readLocalStore();
-      const localMatch = store.products.find(lp => lp.id === id);
-      const salesCount = store.orders.filter(o => o.productId === id && o.status === 'APPROVED').length;
+      let p = await prisma.product.findUnique({ where: { id: cleanId } });
+      if (!p) {
+        p = await prisma.product.findFirst({
+          where: { id: { equals: cleanId, mode: 'insensitive' } },
+        });
+      }
+
       if (p) {
+        const store = readLocalStore();
+        const localMatch = store.products.find(lp => lp.id.toLowerCase() === cleanId.toLowerCase());
+        const salesCount = store.orders.filter(o => o.productId === p!.id && o.status === 'APPROVED').length;
         return {
           id: p.id,
           name: p.name,
@@ -205,14 +214,14 @@ export const dbStore = {
           updatedAt: p.updatedAt.toISOString(),
         };
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      console.error('Error fetching product from Prisma:', e);
     }
 
     const store = readLocalStore();
-    const prod = store.products.find(p => p.id === id);
+    const prod = store.products.find(p => p.id.toLowerCase() === cleanId.toLowerCase());
     if (!prod) return null;
-    const salesCount = store.orders.filter(o => o.productId === id && o.status === 'APPROVED').length;
+    const salesCount = store.orders.filter(o => o.productId === prod.id && o.status === 'APPROVED').length;
     return {
       ...prod,
       category: prod.category || 'SoftwareSaaS',
@@ -236,19 +245,40 @@ export const dbStore = {
     paymentMethods?: string[];
     allowAffiliation?: boolean;
   }): Promise<ProductItem> {
-    const userId = data.userId || 'admin-user-otterfy';
+    let resolvedUserId = data.userId;
     try {
+      // Garantir que o userId pertence a um usuário real do banco Neon
+      if (!resolvedUserId || resolvedUserId === 'admin-user-otterfy') {
+        const adminUser = await prisma.user.findFirst({
+          where: { email: { equals: 'nhacossfilipe@gmail.com', mode: 'insensitive' } }
+        }) || await prisma.user.findFirst();
+
+        if (adminUser) {
+          resolvedUserId = adminUser.id;
+        } else {
+          const newAdmin = await prisma.user.create({
+            data: {
+              name: 'Pedro Hill',
+              email: 'nhacossfilipe@gmail.com',
+              passwordHash: '$2a$12$NqNkfS2sP4e0Q.G3wO85z.L499GfK9w3c7kP..',
+            },
+          });
+          resolvedUserId = newAdmin.id;
+        }
+      }
+
       const p = await prisma.product.create({
         data: {
           name: data.name,
           price: data.price,
           description: data.description || null,
           imageUrl: data.imageUrl || null,
-          userId,
+          userId: resolvedUserId!,
           status: 'ACTIVE',
         },
       });
-      return {
+
+      const createdItem: ProductItem = {
         id: p.id,
         name: p.name,
         description: p.description,
@@ -266,7 +296,16 @@ export const dbStore = {
         createdAt: p.createdAt.toISOString(),
         updatedAt: p.updatedAt.toISOString(),
       };
-    } catch {
+
+      try {
+        const store = readLocalStore();
+        store.products.unshift(createdItem);
+        writeLocalStore(store);
+      } catch {}
+
+      return createdItem;
+    } catch (err) {
+      console.error('Prisma createProduct fallback error:', err);
       // Fallback
       const store = readLocalStore();
       const newProduct: ProductItem = {
@@ -275,7 +314,7 @@ export const dbStore = {
         price: data.price,
         description: data.description || null,
         imageUrl: data.imageUrl || null,
-        userId,
+        userId: resolvedUserId || 'admin-user-otterfy',
         status: 'ACTIVE',
         category: data.category || 'Outro',
         currency: data.currency || 'MZN',

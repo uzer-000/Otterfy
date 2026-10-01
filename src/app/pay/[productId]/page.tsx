@@ -14,12 +14,14 @@ interface PageProps {
 }
 
 export default async function CheckoutPage({ params }: PageProps) {
-  const { productId } = await params;
+  const resolvedParams = await params;
+  const rawId = resolvedParams?.productId || '';
+  const cleanProductId = decodeURIComponent(rawId).trim();
 
-  let product = await dbStore.getProductById(productId);
+  let product = await dbStore.getProductById(cleanProductId);
 
   // If testing with 'demo'
-  if (!product && productId === 'demo') {
+  if (!product && cleanProductId.toLowerCase() === 'demo') {
     product = {
       id: 'demo',
       name: 'Curso de Marketing Digital Pro',
@@ -34,7 +36,37 @@ export default async function CheckoutPage({ params }: PageProps) {
   }
 
   if (!product || product.status !== 'ACTIVE') {
-    notFound();
+    return (
+      <main className="min-h-screen py-16 px-4 flex flex-col items-center justify-center bg-[#09080E] text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl border border-[#1E1B26] bg-[#121016] shadow-2xl space-y-5 animate-fadeIn">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-3xl">
+            🛍️
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-bold text-white">
+              {!product ? 'Produto Não Encontrado' : 'Produto Temporariamente Indisponível'}
+            </h1>
+            <p className="text-sm text-[#94A3B8] leading-relaxed">
+              {!product
+                ? 'O link de checkout que você tentou acessar não existe ou pode ter sido removido.'
+                : 'Este produto está temporariamente desativado pelo vendedor.'}
+            </p>
+          </div>
+          <div className="pt-2">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-violet-600/20"
+            >
+              Ir para o Início
+            </a>
+          </div>
+          <div className="pt-4 border-t border-[#1E1B26] flex items-center justify-center gap-1.5 text-[#64748B] text-xs">
+            <span>Checkout seguro por</span>
+            <span className="font-bold text-[#F8FAFC]">Otterfy</span>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   const metaPixelId = product.tracking?.metaPixelId;

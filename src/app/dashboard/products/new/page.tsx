@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ImageDropzone from '@/components/ui/ImageDropzone';
 import { formatMZN } from '@/lib/utils';
 
 type ProductType = 'ebook' | 'course' | 'saas' | null;
@@ -492,39 +493,14 @@ export default function NewProductWizardPage() {
                   <span className="text-[11px] text-[#64748B]">máx. 10MB</span>
                 </div>
 
-                <div className="border-2 border-dashed border-[#1E1B26] hover:border-violet-500/50 rounded-2xl p-6 text-center bg-[#0F0E14] transition-colors relative group">
-                  {imageUrl ? (
-                    <div className="space-y-3">
-                      <img src={imageUrl} alt="Capa preview" className="w-32 h-32 object-cover rounded-xl mx-auto border border-[#1E1B26]" />
-                      <button
-                        type="button"
-                        onClick={() => setImageUrl('')}
-                        className="text-xs text-red-400 hover:underline"
-                      >
-                        Remover Imagem
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="w-12 h-12 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center mx-auto">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-xs text-[#94A3B8]">PNG, JPG, WEBP</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = prompt('Insira o link direto da imagem (URL):', 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&auto=format&fit=crop&q=60');
-                          if (url) setImageUrl(url);
-                        }}
-                        className="laser-button px-4 py-2 text-xs font-bold text-white rounded-xl"
-                      >
-                        Selecionar Imagem
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <ImageDropzone
+                  value={imageUrl}
+                  onChange={(url) => setImageUrl(url)}
+                  onRemove={() => setImageUrl('')}
+                  label="Capa do Produto"
+                  sublabel="Arraste ou clique para selecionar do computador (PNG, JPG, WEBP)"
+                  aspectRatio="square"
+                />
               </div>
 
               {/* Título do Produto */}

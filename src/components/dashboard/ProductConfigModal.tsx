@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ImageDropzone from '@/components/ui/ImageDropzone';
 
 export interface ProductConfigData {
   id: string;
@@ -786,37 +787,19 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
                 {/* Banner Customization */}
                 <div className="space-y-2 pb-4 border-b border-[#1E1B26]">
                   <label className="block text-[#F8FAFC] font-semibold">
-                    Banner de Topo do Checkout (URL da imagem)
+                    Banner de Topo do Checkout
                   </label>
                   <p className="text-[11px] text-[#94A3B8]">
-                    Personalize o visual exibindo uma imagem promocional ou cabeçalho oficial acima do formulário de checkout.
+                    Personalize o visual exibindo um banner oficial acima do formulário de checkout. Arraste ou clique para carregar.
                   </p>
-                  <input
-                    type="url"
+                  <ImageDropzone
                     value={customBannerUrl}
-                    onChange={(e) => setCustomBannerUrl(e.target.value)}
-                    placeholder="https://exemplo.com/banner-promocional.png"
-                    className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] focus:outline-none"
+                    onChange={(url) => setCustomBannerUrl(url)}
+                    onRemove={() => setCustomBannerUrl('')}
+                    label="Banner do Checkout"
+                    sublabel="Arraste ou clique para selecionar do computador (proporção retangular)"
+                    aspectRatio="banner"
                   />
-                  {customBannerUrl && (
-                    <div className="mt-2 relative rounded-xl overflow-hidden border border-[#1E1B26] bg-[#0A090D] max-h-32">
-                      <img
-                        src={customBannerUrl}
-                        alt="Preview do banner"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setCustomBannerUrl('')}
-                        className="absolute top-2 right-2 px-2 py-1 bg-black/70 hover:bg-black text-[10px] text-red-300 rounded-lg backdrop-blur-sm cursor-pointer"
-                      >
-                        Remover banner
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 {/* Scarcity Urgency Timer */}

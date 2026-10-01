@@ -4,6 +4,7 @@ import { useState, useEffect, use, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ProductConfigModal, { ModalSubview } from '@/components/dashboard/ProductConfigModal';
+import ImageDropzone from '@/components/ui/ImageDropzone';
 import { formatMZN } from '@/lib/utils';
 
 interface PageProps {
@@ -563,30 +564,13 @@ function EditProductContent({ params }: PageProps) {
                 <label className="block text-xs font-semibold text-[#94A3B8] mb-2">
                   Capa do Produto
                 </label>
-                <div className="w-full aspect-square rounded-2xl bg-[#0F0E14] border-2 border-dashed border-[#1E1B26] overflow-hidden flex flex-col items-center justify-center relative p-3">
-                  {formData.imageUrl ? (
-                    <img
-                      src={formData.imageUrl}
-                      alt="Preview da capa"
-                      className="w-full h-full object-cover rounded-xl"
-                    />
-                  ) : (
-                    <div className="text-center space-y-2">
-                      <div className="w-12 h-12 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 mx-auto flex items-center justify-center">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <span className="text-xs text-[#64748B] block">Sem imagem de capa</span>
-                    </div>
-                  )}
-                </div>
-                <input
-                  type="url"
+                <ImageDropzone
                   value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  className="w-full mt-3 bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-xs text-[#F8FAFC] focus:outline-none transition-colors"
-                  placeholder="https://exemplo.com/capa.png"
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  onRemove={() => setFormData({ ...formData, imageUrl: '' })}
+                  label="Capa do Produto"
+                  sublabel="Arraste ou clique para selecionar do computador"
+                  aspectRatio="square"
                 />
               </div>
 
