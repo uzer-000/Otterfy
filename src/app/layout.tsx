@@ -10,9 +10,21 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Otterfy — Checkout de Pagamentos",
   description: "Checkout de pagamentos para Moçambique. eMola & M-Pesa.",
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon.png",
-    apple: "/logo.png",
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    apple: [
+      { url: "/favicon.png", sizes: "192x192", type: "image/png" },
+      { url: "/logo.png", sizes: "512x512", type: "image/png" },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Otterfy",
   },
 };
 
