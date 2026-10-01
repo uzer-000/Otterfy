@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  products     Product[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  price       Float         // Price in MZN (e.g., 25.00)
+  imageUrl    String?
+  status      ProductStatus @default(ACTIVE)
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String
+  orders      Order[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String   @unique // +258XXXXXXXXX
+  email     String?
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  product     Product     @relation(fields: [productId], references: [id])
+  productId   String
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  customerId  String
+  amount      Float       // Amount in MZN
+  status      OrderStatus @default(PENDING)
+  transaction Transaction?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  REFUNDED
+  CHARGEBACK
+  CANCELLED
+  EXPIRED
+}
+
+model Transaction {
+  id                  String            @id @default(cuid())
+  order               Order             @relation(fields: [orderId], references: [id])
+  orderId             String            @unique
+  zenofyCheckoutId    String?           // checkout_id from Zenofy
+  zenofyCheckoutUrl   String?           // URL the customer was redirected to
+  zenofyTransactionId String?           // payment_id from webhook
+  method              PaymentMethod?
+  status              TransactionStatus @default(PENDING)
+  responsePayload     Json?             // Raw response from Zenofy
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+}
+
+enum PaymentMethod {
+  EMOLA
+  MPESA
+}
+
+enum TransactionStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  REFUNDED
+  CHARGEBACK
+  CANCELLED
+  EXPIRED
+}

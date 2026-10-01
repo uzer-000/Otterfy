@@ -1,0 +1,10 @@
+Coloque aqui os seus ficheiros de imagem para as premiações e metas:
+- 50k.png (Pulseira Oficial Bronze de Faturamento)
+- 100k.png (Placa Prata)
+- 500k.png (Placa Ouro)
+- 1m.png (Placa Diamante)
+- 5m.png (Placa Black)
+- 10m.png (Placa Titan)
+
+*Nota: No nível Bronze (50K), o utilizador recebe a Pulseira de Faturamento oficial Otterfy para o pulso. As placas físicas começam a partir de 100K para cima!
+Formatos suportados: PNG (.png), ICO (.ico), SVG (.svg) ou WEBP.

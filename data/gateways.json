@@ -1,0 +1,46 @@
+[
+  {
+    "id": "zenofy",
+    "name": "Zenofy APIs",
+    "status": "Ativo",
+    "environment": "Produção",
+    "credentials": {
+      "apiKey": "",
+      "productId": "",
+      "webhookSecret": ""
+    }
+  },
+  {
+    "id": "e2payment",
+    "name": "E2 Payment",
+    "status": "Inativo",
+    "environment": "Produção",
+    "credentials": {
+      "clientId": "",
+      "clientSecret": "",
+      "callbackUrl": ""
+    }
+  },
+  {
+    "id": "escalepay",
+    "name": "EscalePay API",
+    "status": "Inativo",
+    "environment": "Produção",
+    "credentials": {
+      "publicKey": "",
+      "secretKey": "",
+      "accountToken": ""
+    }
+  },
+  {
+    "id": "lojou",
+    "name": "Lojou API",
+    "status": "Inativo",
+    "environment": "Produção",
+    "credentials": {
+      "merchantId": "",
+      "accessToken": "",
+      "webhookKey": ""
+    }
+  }
+]

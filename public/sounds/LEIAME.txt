@@ -1,0 +1,7 @@
+# Pasta de Áudios da Otterfy
+
+Coloque aqui o seu ficheiro de áudio para a notificação de venda aprovada:
+- Nome recomendado: `venda-aprovada.mp3` (ou `.wav` / `.m4a`)
+- Caminho: `/public/sounds/venda-aprovada.mp3`
+
+O sistema já está 100% configurado para reproduzir este ficheiro automaticamente assim que for adicionado!
