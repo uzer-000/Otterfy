@@ -38,7 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             __html: `
               (function() {
                 try {
-                  var saved = localStorage.getItem('otterfy-theme') || 'dark';
+                  var saved = localStorage.getItem('otterfy-theme') || 'light';
                   document.documentElement.setAttribute('data-theme', saved);
                 } catch(e) {}
               })();

@@ -25,13 +25,24 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
   const [approvedSalesCount, setApprovedSalesCount] = useState<number>(0);
   const [profileAvatar, setProfileAvatar] = useState<string>('');
 
-  // Listen to profile avatar updates
+  // Listen to profile avatar updates & fetch from API
   useEffect(() => {
     const updateAvatar = () => {
       const saved = localStorage.getItem('otterfy_profile_avatar');
-      setProfileAvatar(saved || '');
+      if (saved) setProfileAvatar(saved);
     };
     updateAvatar();
+
+    fetch('/api/user/profile')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.profile?.avatarImage) {
+          setProfileAvatar(d.profile.avatarImage);
+          localStorage.setItem('otterfy_profile_avatar', d.profile.avatarImage);
+        }
+      })
+      .catch(() => {});
+
     window.addEventListener('profile_updated', updateAvatar);
     window.addEventListener('storage', updateAvatar);
     return () => {
@@ -40,10 +51,10 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
     };
   }, []);
 
-  // Listen to theme switches in real-time
+  // Listen to theme switches in real-time (Default: Light)
   useEffect(() => {
     const updateTheme = () => {
-      const current = (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
+      const current = (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'light';
       setTheme(current);
     };
     updateTheme();

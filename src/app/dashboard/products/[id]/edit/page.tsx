@@ -606,15 +606,19 @@ function EditProductContent({ params }: PageProps) {
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-[#F8FAFC]">
-                      Tabela de Preço & Gateway Zenofy <span className="text-violet-400">*</span>
+                      Tabela de Preço Oficial & Gateway Zenofy <span className="text-violet-400">*</span>
                     </label>
-                    <span className="text-[10px] text-violet-400 font-mono bg-violet-600/10 px-2 py-0.5 rounded-lg border border-violet-500/20">
-                      M-Pesa / e-Mola
+                    <span className="text-[10px] text-violet-400 font-mono bg-violet-600/10 px-2.5 py-1 rounded-full border border-violet-500/20 font-bold">
+                      M-Pesa & e-Mola
                     </span>
                   </div>
 
-                  {/* 7 Official Tiers Buttons */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                    Selecione o valor do produto para que o cliente receba a notificação de débito USSD exata no celular:
+                  </p>
+
+                  {/* Exclusive Rounded-2xl Price Rectangle Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
                     {ZENOFY_PRICE_TIERS.map((tier) => {
                       const isSelected = formData.zenofyProductId === tier.id && Math.round(Number(formData.price)) === tier.price;
                       return (
@@ -628,23 +632,25 @@ function EditProductContent({ params }: PageProps) {
                               zenofyProductId: tier.id,
                             });
                           }}
-                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${
+                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-1.5 ${
                             isSelected
-                              ? 'border-violet-500 bg-violet-600/20 text-white shadow-[0_0_15px_rgba(124,58,237,0.3)] ring-1 ring-violet-500'
+                              ? 'border-violet-500 bg-violet-600/20 text-white shadow-[0_0_20px_rgba(124,58,237,0.35)] ring-2 ring-violet-500 scale-[1.02]'
                               : 'border-[#1E1B26] bg-[#0F0E14] text-[#94A3B8] hover:border-violet-500/50 hover:bg-[#14121B]'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className={`text-xs font-bold font-mono ${isSelected ? 'text-violet-300' : 'text-[#F8FAFC]'}`}>
+                          <div className="flex items-center justify-between w-full">
+                            <span className={`text-base font-black font-mono ${isSelected ? 'text-violet-300' : 'text-[#F8FAFC]'}`}>
                               {tier.label}
                             </span>
-                            {tier.badge && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#1A1820] text-[#94A3B8] border border-[#2A2735]">
-                                {tier.badge}
-                              </span>
-                            )}
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                              isSelected
+                                ? 'bg-violet-600 text-white border-violet-400'
+                                : 'bg-[#1A1820] text-[#94A3B8] border-[#2A2735]'
+                            }`}>
+                              {tier.badge || 'Oficial'}
+                            </span>
                           </div>
-                          <span className="block text-[10px] text-[#64748B] mt-0.5 truncate">
+                          <span className="text-[11px] text-[#94A3B8] leading-tight">
                             {tier.description}
                           </span>
                         </button>
@@ -652,52 +658,33 @@ function EditProductContent({ params }: PageProps) {
                     })}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
-                        Preço Selecionado (MZN) <span className="text-violet-400">*</span>
-                      </label>
-                      <div className="flex rounded-xl bg-[#0F0E14] border border-[#1E1B26] focus-within:border-violet-500 overflow-hidden transition-colors">
-                        <span className="px-3.5 py-2.5 bg-[#16131F] text-xs font-mono font-bold text-[#94A3B8] border-r border-[#1E1B26] flex items-center">
-                          MZN
-                        </span>
-                        <input
-                          type="number"
-                          step="1"
-                          required
-                          value={formData.price}
-                          onChange={(e) => {
-                            const newP = e.target.value;
-                            const match = ZENOFY_PRICE_TIERS.find((t) => t.price === Math.round(Number(newP)));
-                            setFormData({
-                              ...formData,
-                              price: newP,
-                              zenofyProductId: match ? match.id : formData.zenofyProductId,
-                            });
-                          }}
-                          className="w-full bg-transparent px-3 py-2 text-[#F8FAFC] focus:outline-none font-mono font-bold text-sm"
-                          placeholder="297.00"
-                        />
-                      </div>
+                  {/* Selected Price Display Badge */}
+                  <div className="p-3.5 rounded-2xl bg-[#0B0A0F] border border-violet-500/30 flex items-center justify-between text-xs mt-2 shadow-inner">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[#94A3B8]">Preço Ativo: <strong className="text-white font-mono text-sm">{formData.price} MZN</strong></span>
                     </div>
+                    <span className="text-[11px] font-mono text-violet-400 font-bold bg-violet-600/10 px-2.5 py-1 rounded-xl border border-violet-500/20">
+                      ID: {formData.zenofyProductId?.substring(0, 10)}...
+                    </span>
+                  </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
-                        Categoria do Produto
-                      </label>
-                      <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2.5 text-[#F8FAFC] text-xs focus:outline-none transition-colors"
-                      >
-                        <option value="Curso Online">Curso Online</option>
-                        <option value="SoftwareSaaS">Software / SaaS</option>
-                        <option value="E-book">E-book / Material Digital</option>
-                        <option value="Mentoria">Mentoria / Consultoria</option>
-                        <option value="Evento">Ingresso / Evento</option>
-                        <option value="Outro">Outro</option>
-                      </select>
-                    </div>
+                  <div className="pt-2">
+                    <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
+                      Categoria do Produto
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2.5 text-[#F8FAFC] text-xs focus:outline-none transition-colors"
+                    >
+                      <option value="Curso Online">Curso Online</option>
+                      <option value="SoftwareSaaS">Software / SaaS</option>
+                      <option value="E-book">E-book / Material Digital</option>
+                      <option value="Mentoria">Mentoria / Consultoria</option>
+                      <option value="Evento">Ingresso / Evento</option>
+                      <option value="Outro">Outro</option>
+                    </select>
                   </div>
 
                   <div className="p-3 rounded-xl bg-[#0B0A0F] border border-[#1E1B26] flex items-center justify-between text-[11px]">

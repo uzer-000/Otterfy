@@ -26,11 +26,25 @@ export default function SettingsPage() {
   const [whatsappNotifications, setWhatsappNotifications] = useState(true);
   const [avatarImage, setAvatarImage] = useState<string>('');
 
-  // Load from localStorage
+  // Load from API & localStorage
   useEffect(() => {
     try {
       const savedAvatar = localStorage.getItem('otterfy_profile_avatar');
       if (savedAvatar) setAvatarImage(savedAvatar);
+
+      fetch('/api/user/profile')
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.profile) {
+            if (d.profile.avatarImage) {
+              setAvatarImage(d.profile.avatarImage);
+              localStorage.setItem('otterfy_profile_avatar', d.profile.avatarImage);
+            }
+            if (d.profile.name) setOwnerName(d.profile.name);
+            if (d.profile.phone) setSupportPhone(d.profile.phone);
+          }
+        })
+        .catch(() => {});
 
       const saved = localStorage.getItem('otterfy-settings-v1');
       if (saved) {
@@ -43,7 +57,6 @@ export default function SettingsPage() {
         if (data.emolaNumber) setEmolaNumber(data.emolaNumber);
         if (data.bankNib) setBankNib(data.bankNib);
         if (data.soundEnabled !== undefined) setSoundEnabled(data.soundEnabled);
-        if (data.avatarImage && !savedAvatar) setAvatarImage(data.avatarImage);
       }
     } catch {}
   }, []);
@@ -59,28 +72,44 @@ export default function SettingsPage() {
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64 = event.target?.result as string;
       setAvatarImage(base64);
       localStorage.setItem('otterfy_profile_avatar', base64);
+
+      try {
+        await fetch('/api/user/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatarImage: base64, name: ownerName, phone: supportPhone }),
+        });
+      } catch {}
+
       window.dispatchEvent(new Event('profile_updated'));
       window.dispatchEvent(new Event('storage'));
-      setToastMessage('Foto de perfil atualizada!');
+      setToastMessage('Foto de perfil salva com sucesso!');
       setTimeout(() => setToastMessage(null), 3000);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveAvatar = () => {
+  const handleRemoveAvatar = async () => {
     setAvatarImage('');
     localStorage.removeItem('otterfy_profile_avatar');
+    try {
+      await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarImage: '', name: ownerName, phone: supportPhone }),
+      });
+    } catch {}
     window.dispatchEvent(new Event('profile_updated'));
     window.dispatchEvent(new Event('storage'));
     setToastMessage('Foto de perfil removida.');
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const data = {
       storeName,
       ownerName,
@@ -99,6 +128,15 @@ export default function SettingsPage() {
     };
     localStorage.setItem('otterfy-settings-v1', JSON.stringify(data));
     localStorage.setItem('otterfy_profile_avatar', avatarImage || '');
+
+    try {
+      await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarImage, name: ownerName, phone: supportPhone }),
+      });
+    } catch {}
+
     window.dispatchEvent(new Event('profile_updated'));
     window.dispatchEvent(new Event('storage'));
     setToastMessage('Configurações salvas com sucesso!');

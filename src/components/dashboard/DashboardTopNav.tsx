@@ -15,13 +15,25 @@ export default function DashboardTopNav() {
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [profileAvatar, setProfileAvatar] = useState<string>('');
 
-  // Synchronize avatar from localStorage
+  // Synchronize avatar from localStorage & API
   useEffect(() => {
     const updateAvatar = () => {
       const saved = localStorage.getItem('otterfy_profile_avatar');
-      setProfileAvatar(saved || '');
+      if (saved) setProfileAvatar(saved);
     };
     updateAvatar();
+
+    // Fetch from API to ensure persistence across devices
+    fetch('/api/user/profile')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.profile?.avatarImage) {
+          setProfileAvatar(d.profile.avatarImage);
+          localStorage.setItem('otterfy_profile_avatar', d.profile.avatarImage);
+        }
+      })
+      .catch(() => {});
+
     window.addEventListener('profile_updated', updateAvatar);
     window.addEventListener('storage', updateAvatar);
     return () => {
@@ -30,9 +42,9 @@ export default function DashboardTopNav() {
     };
   }, []);
 
-  // Synchronize theme with DOM
+  // Synchronize theme with DOM (Default: Light)
   useEffect(() => {
-    const savedTheme = (localStorage.getItem('otterfy-theme') as 'dark' | 'light') || 'dark';
+    const savedTheme = (localStorage.getItem('otterfy-theme') as 'dark' | 'light') || 'light';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);

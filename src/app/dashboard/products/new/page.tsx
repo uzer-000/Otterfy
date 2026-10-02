@@ -66,6 +66,50 @@ export default function NewProductWizardPage() {
   const parsedPrice = parseFloat(price) || 0;
   const isPriceValid = parsedPrice >= 50;
 
+  // Step 1 Validation
+  const validateStep1 = () => {
+    if (!title.trim() || title.trim().length < 3) {
+      alert('Por favor preencha o título do produto (mínimo 3 caracteres).');
+      return false;
+    }
+    if (!price || parsedPrice < 50) {
+      alert('Por favor selecione um dos preços oficiais da tabela.');
+      return false;
+    }
+    return true;
+  };
+
+  // Step 2 Validation (Conteúdo / Entrega do Material)
+  const validateStep2 = () => {
+    if (selectedCategory === 'ebook') {
+      if (!ebookFileUrl.trim()) {
+        alert('Por favor insira o Link ou Arquivo PDF do E-book que o cliente irá receber após o pagamento.');
+        return false;
+      }
+    } else if (selectedCategory === 'course') {
+      const invalidLessons = courseLessons.filter((l) => !l.title.trim() || !l.videoUrl.trim());
+      if (courseLessons.length === 0 || invalidLessons.length > 0) {
+        alert('Por favor adicione pelo menos uma aula com título e link do vídeo para o curso.');
+        return false;
+      }
+    } else if (selectedCategory === 'saas') {
+      if (!saasDeliveryUrl.trim()) {
+        alert('Por favor insira a URL de ativação ou acesso do SaaS para o cliente.');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Step 4 Validation (Métodos de Pagamento)
+  const validateStep4 = () => {
+    if (!acceptMpesa && !acceptEmola) {
+      alert('Selecione pelo menos uma carteira móvel (M-Pesa ou e-Mola) para aceitar pagamentos.');
+      return false;
+    }
+    return true;
+  };
+
   // Category selection handler
   const handleSelectCategory = (cat: ProductType) => {
     setSelectedCategory(cat);
@@ -573,23 +617,23 @@ export default function NewProductWizardPage() {
                 </p>
               </div>
 
-              {/* Preço & Integração Zenofy */}
+              {/* Preço & Tabela Oficial Zenofy */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-[#F8FAFC]">
-                    Tabela de Preço & Gateway Zenofy <span className="text-violet-400">*</span>
+                    Tabela de Preço Oficial & Gateway Zenofy <span className="text-violet-400">*</span>
                   </label>
-                  <span className="text-[10px] text-violet-400 font-mono bg-violet-600/10 px-2 py-0.5 rounded-lg border border-violet-500/20">
-                    M-Pesa / e-Mola
+                  <span className="text-[10px] text-violet-400 font-mono bg-violet-600/10 px-2.5 py-1 rounded-full border border-violet-500/20 font-bold">
+                    M-Pesa & e-Mola
                   </span>
                 </div>
 
                 <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-                  Selecione o valor do produto cadastrado na sua conta Zenofy para que o cliente receba a cobrança exata no celular:
+                  Selecione o valor do produto para que o cliente receba a notificação de débito USSD exata no celular:
                 </p>
 
-                {/* Quick Price Buttons (7 Official Tiers) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {/* Exclusive Rounded-2xl Price Rectangle Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
                   {ZENOFY_PRICE_TIERS.map((tier) => {
                     const isSelected = zenofyProductId === tier.id && Math.round(Number(price)) === tier.price;
                     return (
@@ -600,23 +644,25 @@ export default function NewProductWizardPage() {
                           setPrice(String(tier.price) + '.00');
                           setZenofyProductId(tier.id);
                         }}
-                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${
+                        className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-1.5 ${
                           isSelected
-                            ? 'border-violet-500 bg-violet-600/20 text-white shadow-[0_0_15px_rgba(124,58,237,0.3)] ring-1 ring-violet-500'
+                            ? 'border-violet-500 bg-violet-600/20 text-white shadow-[0_0_20px_rgba(124,58,237,0.35)] ring-2 ring-violet-500 scale-[1.02]'
                             : 'border-[#1E1B26] bg-[#0F0E14] text-[#94A3B8] hover:border-violet-500/50 hover:bg-[#14121B]'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className={`text-xs font-bold font-mono ${isSelected ? 'text-violet-300' : 'text-[#F8FAFC]'}`}>
+                        <div className="flex items-center justify-between w-full">
+                          <span className={`text-base font-black font-mono ${isSelected ? 'text-violet-300' : 'text-[#F8FAFC]'}`}>
                             {tier.label}
                           </span>
-                          {tier.badge && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#1A1820] text-[#94A3B8] border border-[#2A2735]">
-                              {tier.badge}
-                            </span>
-                          )}
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                            isSelected
+                              ? 'bg-violet-600 text-white border-violet-400'
+                              : 'bg-[#1A1820] text-[#94A3B8] border-[#2A2735]'
+                          }`}>
+                            {tier.badge || 'Oficial'}
+                          </span>
                         </div>
-                        <span className="block text-[10px] text-[#64748B] mt-0.5 truncate">
+                        <span className="text-[11px] text-[#94A3B8] leading-tight">
                           {tier.description}
                         </span>
                       </button>
@@ -624,50 +670,14 @@ export default function NewProductWizardPage() {
                   })}
                 </div>
 
-                {/* Combobox Select Dropdown & Custom Price Input */}
-                <div className="pt-2">
-                  <label className="text-[11px] font-semibold text-[#94A3B8] block mb-1.5">
-                    Preço Selecionado / Valor do Checkout:
-                  </label>
-                  <div className="flex rounded-xl bg-[#0F0E14] border border-[#1E1B26] focus-within:border-violet-500 overflow-hidden">
-                    <span className="px-4 py-3 bg-[#1A1820] text-xs font-bold text-[#94A3B8] border-r border-[#1E1B26] flex items-center">
-                      MT
-                    </span>
-                    <input
-                      type="number"
-                      step="1"
-                      min="50"
-                      value={price}
-                      onChange={(e) => {
-                        const newP = e.target.value;
-                        setPrice(newP);
-                        const match = ZENOFY_PRICE_TIERS.find((t) => t.price === Math.round(Number(newP)));
-                        if (match) {
-                          setZenofyProductId(match.id);
-                        }
-                      }}
-                      placeholder="0,00"
-                      className="flex-1 px-4 py-3 text-sm font-mono font-bold text-[#F8FAFC] bg-transparent focus:outline-none"
-                    />
-                    <span className="px-4 py-3 text-xs font-mono text-[#64748B] flex items-center">
-                      MZN
-                    </span>
+                {/* Selected Price Display Badge */}
+                <div className="p-3.5 rounded-2xl bg-[#0B0A0F] border border-violet-500/30 flex items-center justify-between text-xs mt-2 shadow-inner">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[#94A3B8]">Preço Ativo: <strong className="text-white font-mono text-sm">{price} MZN</strong></span>
                   </div>
-                  {!isPriceValid && (
-                    <p className="text-[11px] text-red-400 mt-1.5 flex items-center gap-1">
-                      <span>ⓘ</span> Mínimo MT 50,00
-                    </p>
-                  )}
-                </div>
-
-                {/* Zenofy Product ID mapping info */}
-                <div className="p-3 rounded-xl bg-[#0B0A0F] border border-[#1E1B26] flex items-center justify-between text-[11px]">
-                  <div className="space-y-0.5">
-                    <span className="text-[#94A3B8] block">ID Zenofy Vinculado:</span>
-                    <span className="font-mono text-violet-400 font-semibold">{zenofyProductId || 'Nenhum selecionado'}</span>
-                  </div>
-                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 font-medium">
-                    ✓ Sincronizado
+                  <span className="text-[11px] font-mono text-violet-400 font-bold bg-violet-600/10 px-2.5 py-1 rounded-xl border border-violet-500/20">
+                    ID: {zenofyProductId.substring(0, 10)}...
                   </span>
                 </div>
               </div>
@@ -706,12 +716,12 @@ export default function NewProductWizardPage() {
             <button
               type="button"
               onClick={() => {
-                if (!title) {
-                  alert('Por favor digite o título do produto.');
+                if (!title.trim() || title.trim().length < 3) {
+                  alert('Por favor preencha o título do produto (mínimo 3 caracteres).');
                   return;
                 }
-                if (!isPriceValid) {
-                  alert('O preço mínimo é de 50 MZN.');
+                if (!price || parseFloat(price) < 50) {
+                  alert('Por favor selecione um dos preços da tabela oficial.');
                   return;
                 }
                 setCurrentStep(2);
@@ -873,8 +883,12 @@ export default function NewProductWizardPage() {
             </button>
             <button
               type="button"
-              onClick={() => setCurrentStep(3)}
-              className="laser-button px-6 py-2.5 text-xs font-bold text-white rounded-xl"
+              onClick={() => {
+                if (validateStep2()) {
+                  setCurrentStep(3);
+                }
+              }}
+              className="laser-button px-6 py-2.5 text-xs font-bold text-white rounded-xl cursor-pointer"
             >
               Avançar para Materiais →
             </button>
@@ -1051,8 +1065,12 @@ export default function NewProductWizardPage() {
             </button>
             <button
               type="button"
-              onClick={() => setCurrentStep(5)}
-              className="laser-button px-6 py-2.5 text-xs font-bold text-white rounded-xl"
+              onClick={() => {
+                if (validateStep4()) {
+                  setCurrentStep(5);
+                }
+              }}
+              className="laser-button px-6 py-2.5 text-xs font-bold text-white rounded-xl cursor-pointer"
             >
               Avançar para Revisão →
             </button>
