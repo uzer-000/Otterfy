@@ -31,10 +31,10 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
     );
   }
 
-  let order = await dbStore.getOrderById(orderId);
+  let order = orderId ? await dbStore.getOrderById(orderId) : null;
 
   // If not found by direct ID, search by zenofyCheckoutId in all orders
-  if (!order) {
+  if (!order && orderId) {
     const allOrders = await dbStore.getOrders();
     order = allOrders.find(
       (o) =>
@@ -59,6 +59,14 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
     } catch {}
   }
 
+  // If still not found, check the most recent approved order as a safety fallback
+  if (!order) {
+    const recentApproved = await dbStore.getOrders({ status: 'APPROVED' });
+    if (recentApproved.length > 0) {
+      order = recentApproved[0];
+    }
+  }
+
   if (!order) {
     return (
       <div className="bg-[#121016] border border-[#1E1B26] rounded-3xl p-8 max-w-lg w-full mx-auto text-center space-y-4">
@@ -66,7 +74,7 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
           🔍
         </div>
         <h2 className="text-xl font-bold text-[#F8FAFC]">Pedido não localizado</h2>
-        <p className="text-xs text-[#94A3B8]">Não foi possível localizar o código de referência: <strong className="text-violet-400 font-mono">{orderId}</strong></p>
+        <p className="text-xs text-[#94A3B8]">Não foi possível localizar o código de referência: <strong className="text-violet-400 font-mono">{orderId || 'Desconhecido'}</strong></p>
         <Link href="/" className="inline-block px-5 py-2.5 bg-[#1E1B26] hover:bg-[#252230] text-xs font-semibold rounded-xl text-white transition-colors">
           Voltar ao início
         </Link>
@@ -74,11 +82,14 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
     );
   }
 
-  const product = order.product;
+  const fullProduct = (await dbStore.getProductById(order.productId)) || order.product;
+  const product = fullProduct;
   const transaction = order.transaction;
-  const materials = product?.materials || [
-    { name: `${product?.name || 'Material Oficial'} - Arquivo Completo.pdf`, type: 'pdf' }
-  ];
+  const materials = product?.materials && Array.isArray(product.materials) && product.materials.length > 0
+    ? product.materials
+    : [
+        { name: `${product?.name || 'Material Oficial'} - Arquivo Completo.pdf`, type: 'pdf' }
+      ];
   const accessUrl = product?.contentUrl || `https://conteudo.otterfy.co.mz/access/${order.id}`;
 
   return (

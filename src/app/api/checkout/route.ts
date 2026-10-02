@@ -76,7 +76,15 @@ export async function POST(req: Request) {
       utmParams,
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const proto = req.headers.get('x-forwarded-proto') || 'https';
+    const origin = req.headers.get('origin');
+    const baseUrl =
+      origin && !origin.includes('localhost')
+        ? origin
+        : host && !host.includes('localhost')
+        ? `${proto}://${host}`
+        : process.env.NEXT_PUBLIC_APP_URL || (origin || `http://${host || 'localhost:3000'}`);
 
     // Dispatch payment through the currently active gateway (Zenofy, E2Payment, EscalePay, or Demo)
     const resolvedZenofyProductId =

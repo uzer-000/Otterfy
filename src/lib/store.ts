@@ -145,6 +145,7 @@ export const dbStore = {
       return dbProducts.map(p => {
         const localMatch = store.products.find(lp => lp.id === p.id);
         const salesCount = store.orders.filter(o => o.productId === p.id && o.status === 'APPROVED').length;
+        const zenId = (p as any).checkoutSettings?.zenofyProductId || (p as any).checkoutSettings?.customCheckout?.zenofyProductId || localMatch?.zenofyProductId;
         return {
           id: p.id,
           name: p.name,
@@ -157,8 +158,12 @@ export const dbStore = {
           currency: localMatch?.currency || 'MZN',
           approvalStatus: localMatch?.approvalStatus || 'Aprovado',
           salesCount: localMatch?.salesCount ?? salesCount,
+          contentDeliveryType: (p as any).contentDeliveryType || localMatch?.contentDeliveryType,
+          contentUrl: (p as any).contentUrl || localMatch?.contentUrl,
+          materials: ((p as any).materials as any) || localMatch?.materials,
+          zenofyProductId: zenId || null,
           tracking: localMatch?.tracking,
-          checkoutSettings: localMatch?.checkoutSettings,
+          checkoutSettings: ((p as any).checkoutSettings as any) || localMatch?.checkoutSettings,
           automation: localMatch?.automation,
           createdAt: p.createdAt.toISOString(),
           updatedAt: p.updatedAt.toISOString(),
@@ -198,6 +203,7 @@ export const dbStore = {
         const store = readLocalStore();
         const localMatch = store.products.find(lp => lp.id.toLowerCase() === cleanId.toLowerCase());
         const salesCount = store.orders.filter(o => o.productId === p!.id && o.status === 'APPROVED').length;
+        const zenId = (p as any).checkoutSettings?.zenofyProductId || (p as any).checkoutSettings?.customCheckout?.zenofyProductId || localMatch?.zenofyProductId;
         return {
           id: p.id,
           name: p.name,
@@ -210,9 +216,12 @@ export const dbStore = {
           currency: localMatch?.currency || 'MZN',
           approvalStatus: localMatch?.approvalStatus || 'Aprovado',
           salesCount: localMatch?.salesCount ?? salesCount,
-          zenofyProductId: localMatch?.zenofyProductId || localMatch?.checkoutSettings?.zenofyProductId || localMatch?.checkoutSettings?.customCheckout?.zenofyProductId,
+          contentDeliveryType: (p as any).contentDeliveryType || localMatch?.contentDeliveryType,
+          contentUrl: (p as any).contentUrl || localMatch?.contentUrl,
+          materials: ((p as any).materials as any) || localMatch?.materials,
+          zenofyProductId: zenId || null,
           tracking: localMatch?.tracking,
-          checkoutSettings: localMatch?.checkoutSettings,
+          checkoutSettings: ((p as any).checkoutSettings as any) || localMatch?.checkoutSettings,
           automation: localMatch?.automation,
           createdAt: p.createdAt.toISOString(),
           updatedAt: p.updatedAt.toISOString(),
@@ -283,6 +292,10 @@ export const dbStore = {
           imageUrl: data.imageUrl || null,
           userId: resolvedUserId!,
           status: 'ACTIVE',
+          contentDeliveryType: data.contentDeliveryType || null,
+          contentUrl: data.contentUrl || null,
+          materials: (data.materials as any) || null,
+          checkoutSettings: (data.checkoutSettings as any) || null,
         },
       });
 
@@ -409,6 +422,10 @@ export const dbStore = {
           ...(data.price !== undefined ? { price: data.price } : {}),
           ...(data.description !== undefined ? { description: data.description } : {}),
           ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl } : {}),
+          ...(data.contentDeliveryType !== undefined ? { contentDeliveryType: data.contentDeliveryType } : {}),
+          ...(data.contentUrl !== undefined ? { contentUrl: data.contentUrl } : {}),
+          ...(data.materials !== undefined ? { materials: data.materials as any } : {}),
+          ...(data.checkoutSettings !== undefined ? { checkoutSettings: data.checkoutSettings as any } : {}),
           ...(data.status ? { status: data.status } : {}),
         },
       });
@@ -442,6 +459,11 @@ export const dbStore = {
         customerEmail: o.customer.email,
         amount: o.amount,
         status: o.status as any,
+        hasOrderBump: o.hasOrderBump || false,
+        orderBumpTitle: o.orderBumpTitle || undefined,
+        orderBumpAmount: o.orderBumpAmount || undefined,
+        affiliateRef: o.affiliateRef || undefined,
+        utmParams: (o.utmParams as any) || undefined,
         createdAt: o.createdAt.toISOString(),
         updatedAt: o.updatedAt.toISOString(),
         product: {
@@ -450,6 +472,9 @@ export const dbStore = {
           price: o.product.price,
           status: o.product.status as any,
           userId: o.product.userId,
+          contentDeliveryType: (o.product as any).contentDeliveryType,
+          contentUrl: (o.product as any).contentUrl,
+          materials: (o.product as any).materials,
           createdAt: o.product.createdAt.toISOString(),
           updatedAt: o.product.updatedAt.toISOString(),
         },
@@ -493,6 +518,11 @@ export const dbStore = {
           customerEmail: o.customer.email,
           amount: o.amount,
           status: o.status as any,
+          hasOrderBump: o.hasOrderBump || false,
+          orderBumpTitle: o.orderBumpTitle || undefined,
+          orderBumpAmount: o.orderBumpAmount || undefined,
+          affiliateRef: o.affiliateRef || undefined,
+          utmParams: (o.utmParams as any) || undefined,
           createdAt: o.createdAt.toISOString(),
           updatedAt: o.updatedAt.toISOString(),
           product: {
@@ -501,6 +531,9 @@ export const dbStore = {
             price: o.product.price,
             status: o.product.status as any,
             userId: o.product.userId,
+            contentDeliveryType: (o.product as any).contentDeliveryType,
+            contentUrl: (o.product as any).contentUrl,
+            materials: (o.product as any).materials,
             createdAt: o.product.createdAt.toISOString(),
             updatedAt: o.product.updatedAt.toISOString(),
           },
@@ -565,6 +598,11 @@ export const dbStore = {
           customerId: customer.id,
           amount: data.amount,
           status: 'PENDING',
+          hasOrderBump: data.hasOrderBump || false,
+          orderBumpTitle: data.orderBumpTitle || null,
+          orderBumpAmount: data.orderBumpAmount || null,
+          affiliateRef: data.affiliateRef || null,
+          utmParams: (data.utmParams as any) || null,
           transaction: {
             create: {
               status: 'PENDING',

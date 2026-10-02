@@ -254,7 +254,7 @@ export default function DashboardTopNav() {
 
               // 3. Mobile / Desktop Native Push Notification
               sendSystemPushNotification(
-                '🎉 Venda Aprovada! — Otterfy',
+                'Venda Aprovada! — Otterfy',
                 `${order.customerName || 'Cliente'} comprou no valor de ${formatMZN(Number(order.amount) || 0)} via ${order.transaction?.method || 'M-Pesa'}!`,
                 `sale-${order.id}`
               );

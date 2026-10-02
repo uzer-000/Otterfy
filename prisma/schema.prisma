@@ -19,17 +19,21 @@ model User {
 }
 
 model Product {
-  id          String        @id @default(cuid())
-  name        String
-  description String?
-  price       Float         // Price in MZN (e.g., 25.00)
-  imageUrl    String?
-  status      ProductStatus @default(ACTIVE)
-  user        User          @relation(fields: [userId], references: [id])
-  userId      String
-  orders      Order[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                  String        @id @default(cuid())
+  name                String
+  description         String?
+  price               Float         // Price in MZN (e.g., 25.00)
+  imageUrl            String?
+  status              ProductStatus @default(ACTIVE)
+  user                User          @relation(fields: [userId], references: [id])
+  userId              String
+  contentDeliveryType String?
+  contentUrl          String?
+  materials           Json?
+  checkoutSettings    Json?
+  orders              Order[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 }
 
 enum ProductStatus {
@@ -47,16 +51,21 @@ model Customer {
 }
 
 model Order {
-  id          String      @id @default(cuid())
-  product     Product     @relation(fields: [productId], references: [id])
-  productId   String
-  customer    Customer    @relation(fields: [customerId], references: [id])
-  customerId  String
-  amount      Float       // Amount in MZN
-  status      OrderStatus @default(PENDING)
-  transaction Transaction?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id              String      @id @default(cuid())
+  product         Product     @relation(fields: [productId], references: [id])
+  productId       String
+  customer        Customer    @relation(fields: [customerId], references: [id])
+  customerId      String
+  amount          Float       // Amount in MZN
+  status          OrderStatus @default(PENDING)
+  hasOrderBump    Boolean?    @default(false)
+  orderBumpTitle  String?
+  orderBumpAmount Float?
+  affiliateRef    String?
+  utmParams       Json?
+  transaction     Transaction?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
 
 enum OrderStatus {
