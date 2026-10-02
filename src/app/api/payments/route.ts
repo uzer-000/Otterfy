@@ -12,37 +12,44 @@ export async function GET(req: Request) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
 
-    // Auto-sync recent PENDING Zenofy orders in background
+    // Auto-sync recent PENDING Zenofy orders in parallel (fast, non-blocking)
     try {
       const pendingOrders = await dbStore.getOrders({ status: 'PENDING' });
-      const recentPending = pendingOrders.slice(0, 5); // Check up to 5 most recent pending
+      const recentPending = pendingOrders
+        .filter((po) => po.transaction?.zenofyCheckoutId)
+        .slice(0, 5);
 
-      for (const po of recentPending) {
-        if (po.transaction?.zenofyCheckoutId) {
-          try {
-            const zStatus = await zenofyProvider.getOrderStatus(po.transaction.zenofyCheckoutId);
-            if (zStatus.status === 'PAID') {
-              // Update Prisma
-              await prisma.$transaction([
-                prisma.order.update({
-                  where: { id: po.id },
-                  data: { status: 'APPROVED' },
-                }),
-                prisma.transaction.update({
-                  where: { id: po.transaction.id },
-                  data: { status: 'APPROVED' },
-                }),
-              ]).catch(() => {});
+      if (recentPending.length > 0) {
+        await Promise.allSettled(
+          recentPending.map(async (po) => {
+            try {
+              const zStatus = await zenofyProvider.getOrderStatus(po.transaction!.zenofyCheckoutId!);
+              if (zStatus.status === 'PAID') {
+                if (po.transaction?.id) {
+                  await prisma.$transaction([
+                    prisma.order.update({
+                      where: { id: po.id },
+                      data: { status: 'APPROVED' },
+                    }),
+                    prisma.transaction.update({
+                      where: { id: po.transaction.id },
+                      data: { status: 'APPROVED' },
+                    }),
+                  ]).catch(() => {});
+                } else {
+                  await prisma.order.update({
+                    where: { id: po.id },
+                    data: { status: 'APPROVED' },
+                  }).catch(() => {});
+                }
 
-              // Update store
-              await dbStore.updateOrderTransaction(po.id, {
-                status: 'APPROVED',
-              }).catch(() => {});
-            }
-          } catch (e) {
-            // ignore individual check failures
-          }
-        }
+                await dbStore.updateOrderTransaction(po.id, {
+                  status: 'APPROVED',
+                }).catch(() => {});
+              }
+            } catch {}
+          })
+        );
       }
     } catch {}
 

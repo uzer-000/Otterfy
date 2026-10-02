@@ -32,7 +32,7 @@ export interface OrderStatusResponse {
 }
 
 function getApiKey(customKey?: string): string {
-  return customKey || process.env.ZENOFY_API_KEY || '';
+  return customKey || process.env.ZENOFY_API_KEY || 'pco_ck_Slm1ZREq0Mp5Fsrn6uZiR-SXQ8WBlheCXzESal0S73Y';
 }
 
 function normalizeMozPhone(phone: string): string {
