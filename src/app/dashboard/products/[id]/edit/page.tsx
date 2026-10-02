@@ -6,6 +6,7 @@ import Link from 'next/link';
 import ProductConfigModal, { ModalSubview } from '@/components/dashboard/ProductConfigModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { formatMZN } from '@/lib/utils';
+import { ZENOFY_PRICE_TIERS, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -37,7 +38,8 @@ function EditProductContent({ params }: PageProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    price: '',
+    price: '297.00',
+    zenofyProductId: DEFAULT_ZENOFY_PRODUCT_ID,
     imageUrl: '',
   });
 
@@ -48,10 +50,12 @@ function EditProductContent({ params }: PageProps) {
         if (res.ok) {
           const data = await res.json();
           setFullProduct(data);
+          const currentZenofyId = data.zenofyProductId || data.checkoutSettings?.zenofyProductId || data.checkoutSettings?.customCheckout?.zenofyProductId || DEFAULT_ZENOFY_PRODUCT_ID;
           setFormData({
             name: data.name || '',
             description: data.description || '',
-            price: data.price !== undefined ? String(data.price) : '',
+            price: data.price !== undefined ? String(data.price) : '297.00',
+            zenofyProductId: currentZenofyId,
             imageUrl: data.imageUrl || '',
           });
           setStatus(data.status || 'ACTIVE');
@@ -86,6 +90,15 @@ function EditProductContent({ params }: PageProps) {
       const payload = {
         ...formData,
         price: parseFloat(formData.price) || 0,
+        zenofyProductId: formData.zenofyProductId || undefined,
+        checkoutSettings: {
+          ...(fullProduct?.checkoutSettings || {}),
+          zenofyProductId: formData.zenofyProductId || undefined,
+          customCheckout: {
+            ...(fullProduct?.checkoutSettings?.customCheckout || {}),
+            zenofyProductId: formData.zenofyProductId || undefined,
+          },
+        },
         status,
         category,
       };
@@ -589,43 +602,112 @@ function EditProductContent({ params }: PageProps) {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
-                      Preço em Meticais (MZN) <span className="text-violet-400">*</span>
+                {/* Preço & Tiers Zenofy */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-[#F8FAFC]">
+                      Tabela de Preço & Gateway Zenofy <span className="text-violet-400">*</span>
                     </label>
-                    <div className="flex rounded-xl bg-[#0F0E14] border border-[#1E1B26] focus-within:border-violet-500 overflow-hidden transition-colors">
-                      <span className="px-3.5 py-2.5 bg-[#16131F] text-xs font-mono font-bold text-[#94A3B8] border-r border-[#1E1B26] flex items-center">
-                        MZN
-                      </span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="w-full bg-transparent px-3 py-2 text-[#F8FAFC] focus:outline-none font-mono font-bold text-sm"
-                        placeholder="1500.00"
-                      />
+                    <span className="text-[10px] text-violet-400 font-mono bg-violet-600/10 px-2 py-0.5 rounded-lg border border-violet-500/20">
+                      M-Pesa / e-Mola
+                    </span>
+                  </div>
+
+                  {/* 7 Official Tiers Buttons */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {ZENOFY_PRICE_TIERS.map((tier) => {
+                      const isSelected = formData.zenofyProductId === tier.id && Math.round(Number(formData.price)) === tier.price;
+                      return (
+                        <button
+                          key={tier.id}
+                          type="button"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              price: String(tier.price) + '.00',
+                              zenofyProductId: tier.id,
+                            });
+                          }}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${
+                            isSelected
+                              ? 'border-violet-500 bg-violet-600/20 text-white shadow-[0_0_15px_rgba(124,58,237,0.3)] ring-1 ring-violet-500'
+                              : 'border-[#1E1B26] bg-[#0F0E14] text-[#94A3B8] hover:border-violet-500/50 hover:bg-[#14121B]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs font-bold font-mono ${isSelected ? 'text-violet-300' : 'text-[#F8FAFC]'}`}>
+                              {tier.label}
+                            </span>
+                            {tier.badge && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#1A1820] text-[#94A3B8] border border-[#2A2735]">
+                                {tier.badge}
+                              </span>
+                            )}
+                          </div>
+                          <span className="block text-[10px] text-[#64748B] mt-0.5 truncate">
+                            {tier.description}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
+                        Preço Selecionado (MZN) <span className="text-violet-400">*</span>
+                      </label>
+                      <div className="flex rounded-xl bg-[#0F0E14] border border-[#1E1B26] focus-within:border-violet-500 overflow-hidden transition-colors">
+                        <span className="px-3.5 py-2.5 bg-[#16131F] text-xs font-mono font-bold text-[#94A3B8] border-r border-[#1E1B26] flex items-center">
+                          MZN
+                        </span>
+                        <input
+                          type="number"
+                          step="1"
+                          required
+                          value={formData.price}
+                          onChange={(e) => {
+                            const newP = e.target.value;
+                            const match = ZENOFY_PRICE_TIERS.find((t) => t.price === Math.round(Number(newP)));
+                            setFormData({
+                              ...formData,
+                              price: newP,
+                              zenofyProductId: match ? match.id : formData.zenofyProductId,
+                            });
+                          }}
+                          className="w-full bg-transparent px-3 py-2 text-[#F8FAFC] focus:outline-none font-mono font-bold text-sm"
+                          placeholder="297.00"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
+                        Categoria do Produto
+                      </label>
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2.5 text-[#F8FAFC] text-xs focus:outline-none transition-colors"
+                      >
+                        <option value="Curso Online">Curso Online</option>
+                        <option value="SoftwareSaaS">Software / SaaS</option>
+                        <option value="E-book">E-book / Material Digital</option>
+                        <option value="Mentoria">Mentoria / Consultoria</option>
+                        <option value="Evento">Ingresso / Evento</option>
+                        <option value="Outro">Outro</option>
+                      </select>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
-                      Categoria do Produto
-                    </label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2.5 text-[#F8FAFC] text-xs focus:outline-none transition-colors"
-                    >
-                      <option value="Curso Online">Curso Online</option>
-                      <option value="SoftwareSaaS">Software / SaaS</option>
-                      <option value="E-book">E-book / Material Digital</option>
-                      <option value="Mentoria">Mentoria / Consultoria</option>
-                      <option value="Evento">Ingresso / Evento</option>
-                      <option value="Outro">Outro</option>
-                    </select>
+                  <div className="p-3 rounded-xl bg-[#0B0A0F] border border-[#1E1B26] flex items-center justify-between text-[11px]">
+                    <div className="space-y-0.5">
+                      <span className="text-[#94A3B8] block">ID Zenofy Vinculado:</span>
+                      <span className="font-mono text-violet-400 font-semibold">{formData.zenofyProductId || 'Nenhum'}</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 font-medium">
+                      ✓ Sincronizado
+                    </span>
                   </div>
                 </div>
 

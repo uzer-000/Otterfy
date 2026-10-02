@@ -9,6 +9,8 @@ const createProductSchema = z.object({
   imageUrl: z.string().optional().or(z.literal('')),
   category: z.string().optional(),
   currency: z.string().optional(),
+  zenofyProductId: z.string().optional(),
+  checkoutSettings: z.any().optional(),
   contentDeliveryType: z.string().optional(),
   contentUrl: z.string().optional(),
   materials: z.array(z.object({
@@ -48,6 +50,8 @@ export async function POST(req: Request) {
       imageUrl: result.data.imageUrl || undefined,
       category: result.data.category,
       currency: result.data.currency,
+      zenofyProductId: result.data.zenofyProductId,
+      checkoutSettings: result.data.checkoutSettings,
       contentDeliveryType: result.data.contentDeliveryType,
       contentUrl: result.data.contentUrl,
       materials: result.data.materials,

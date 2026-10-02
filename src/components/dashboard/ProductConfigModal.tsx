@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import ImageDropzone from '@/components/ui/ImageDropzone';
+import { ZENOFY_PRICE_TIERS } from '@/lib/zenofyPrices';
 
 export interface ProductConfigData {
   id: string;
@@ -883,19 +884,14 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
                     Vincule a um produto específico do seu painel Zenofy ou deixe em branco para usar a chave padrão ativa.
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                    {[
-                      { id: '6a14cb656c431b52f6375dc2', label: '297 MZN' },
-                      { id: '6a20e87879226fec50937c35', label: '197 MZN' },
-                      { id: '6a14cac66c431b52f6375dc1', label: '397 MZN' },
-                      { id: '6a6110d29a4b2e7346c66262', label: '127 MZN' },
-                    ].map((item) => (
+                    {ZENOFY_PRICE_TIERS.map((item) => (
                       <button
                         key={item.id}
                         type="button"
                         onClick={() => setZenofyProductId(item.id)}
                         className={`p-2 rounded-xl border text-center transition-all text-[11px] font-medium cursor-pointer ${
                           zenofyProductId === item.id
-                            ? 'border-violet-500 bg-violet-600/25 text-white font-bold shadow-[0_0_15px_rgba(124,58,237,0.3)]'
+                            ? 'border-violet-500 bg-violet-600/25 text-white font-bold shadow-[0_0_15px_rgba(124,58,237,0.3)] ring-1 ring-violet-500'
                             : 'border-[#1E1B26] bg-[#0E0C13] text-[#94A3B8] hover:border-violet-500/50 hover:bg-[#14121B]'
                         }`}
                       >

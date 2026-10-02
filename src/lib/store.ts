@@ -14,6 +14,7 @@ export interface ProductItem {
   currency?: string;
   approvalStatus?: string;
   salesCount?: number;
+  zenofyProductId?: string | null;
   contentDeliveryType?: string | null;
   contentUrl?: string | null;
   materials?: { name: string; type: string; url?: string }[] | null;
@@ -32,6 +33,7 @@ export interface ProductItem {
     gtmId?: string;
   };
   checkoutSettings?: {
+    zenofyProductId?: string;
     coupons?: Array<{ code: string; discountPercent: number }>;
     orderBump?: {
       enabled: boolean;
@@ -47,6 +49,7 @@ export interface ProductItem {
       timerMinutes?: number;
       timerText?: string;
       bannerUrl?: string;
+      zenofyProductId?: string;
     };
     whatsappSupport?: {
       enabled: boolean;
@@ -207,6 +210,7 @@ export const dbStore = {
           currency: localMatch?.currency || 'MZN',
           approvalStatus: localMatch?.approvalStatus || 'Aprovado',
           salesCount: localMatch?.salesCount ?? salesCount,
+          zenofyProductId: localMatch?.zenofyProductId || localMatch?.checkoutSettings?.zenofyProductId || localMatch?.checkoutSettings?.customCheckout?.zenofyProductId,
           tracking: localMatch?.tracking,
           checkoutSettings: localMatch?.checkoutSettings,
           automation: localMatch?.automation,
@@ -228,6 +232,7 @@ export const dbStore = {
       currency: prod.currency || 'MZN',
       approvalStatus: prod.approvalStatus || 'Aprovado',
       salesCount: prod.salesCount !== undefined ? prod.salesCount : salesCount,
+      zenofyProductId: prod.zenofyProductId || prod.checkoutSettings?.zenofyProductId || prod.checkoutSettings?.customCheckout?.zenofyProductId,
     };
   },
 
@@ -239,6 +244,8 @@ export const dbStore = {
     userId?: string;
     category?: string;
     currency?: string;
+    zenofyProductId?: string;
+    checkoutSettings?: any;
     contentDeliveryType?: string;
     contentUrl?: string;
     materials?: { name: string; type: string; url?: string }[];
@@ -246,6 +253,7 @@ export const dbStore = {
     allowAffiliation?: boolean;
   }): Promise<ProductItem> {
     let resolvedUserId = data.userId;
+    const resolvedZenofyId = data.zenofyProductId || data.checkoutSettings?.zenofyProductId || data.checkoutSettings?.customCheckout?.zenofyProductId;
     try {
       // Garantir que o userId pertence a um usuário real do banco Neon
       if (!resolvedUserId || resolvedUserId === 'admin-user-otterfy') {
@@ -288,6 +296,15 @@ export const dbStore = {
         userId: p.userId,
         category: data.category || 'Outro',
         currency: data.currency || 'MZN',
+        zenofyProductId: resolvedZenofyId || null,
+        checkoutSettings: data.checkoutSettings ? {
+          ...data.checkoutSettings,
+          zenofyProductId: resolvedZenofyId,
+          customCheckout: {
+            ...(data.checkoutSettings?.customCheckout || {}),
+            zenofyProductId: resolvedZenofyId,
+          }
+        } : (resolvedZenofyId ? { customCheckout: { zenofyProductId: resolvedZenofyId } } : undefined),
         contentDeliveryType: data.contentDeliveryType,
         contentUrl: data.contentUrl,
         materials: data.materials,
@@ -318,6 +335,15 @@ export const dbStore = {
         status: 'ACTIVE',
         category: data.category || 'Outro',
         currency: data.currency || 'MZN',
+        zenofyProductId: resolvedZenofyId || null,
+        checkoutSettings: data.checkoutSettings ? {
+          ...data.checkoutSettings,
+          zenofyProductId: resolvedZenofyId,
+          customCheckout: {
+            ...(data.checkoutSettings?.customCheckout || {}),
+            zenofyProductId: resolvedZenofyId,
+          }
+        } : (resolvedZenofyId ? { customCheckout: { zenofyProductId: resolvedZenofyId } } : undefined),
         contentDeliveryType: data.contentDeliveryType,
         contentUrl: data.contentUrl,
         materials: data.materials,
@@ -337,12 +363,23 @@ export const dbStore = {
     const store = readLocalStore();
     const index = store.products.findIndex(p => p.id === id);
     let updatedItem: ProductItem;
+    const resolvedZenofyId = data.zenofyProductId || (data.checkoutSettings as any)?.zenofyProductId || (data.checkoutSettings as any)?.customCheckout?.zenofyProductId;
     if (index !== -1) {
       store.products[index] = {
         ...store.products[index],
         ...data,
+        zenofyProductId: resolvedZenofyId || store.products[index].zenofyProductId,
         tracking: data.tracking ? { ...store.products[index].tracking, ...data.tracking } : store.products[index].tracking,
-        checkoutSettings: data.checkoutSettings ? { ...store.products[index].checkoutSettings, ...data.checkoutSettings } : store.products[index].checkoutSettings,
+        checkoutSettings: data.checkoutSettings ? {
+          ...store.products[index].checkoutSettings,
+          ...data.checkoutSettings,
+          zenofyProductId: resolvedZenofyId || store.products[index].checkoutSettings?.zenofyProductId,
+          customCheckout: {
+            ...(store.products[index].checkoutSettings?.customCheckout || {}),
+            ...(data.checkoutSettings?.customCheckout || {}),
+            zenofyProductId: resolvedZenofyId || store.products[index].checkoutSettings?.customCheckout?.zenofyProductId,
+          }
+        } : store.products[index].checkoutSettings,
         automation: data.automation ? { ...store.products[index].automation, ...data.automation } : store.products[index].automation,
         updatedAt: new Date().toISOString(),
       };

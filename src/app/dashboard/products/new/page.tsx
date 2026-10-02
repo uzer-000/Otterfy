@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { formatMZN } from '@/lib/utils';
+import { ZENOFY_PRICE_TIERS, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
 
 type ProductType = 'ebook' | 'course' | 'saas' | null;
 
@@ -33,7 +34,8 @@ export default function NewProductWizardPage() {
   // Form Fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState<string>('150.00');
+  const [price, setPrice] = useState<string>('297.00');
+  const [zenofyProductId, setZenofyProductId] = useState<string>(DEFAULT_ZENOFY_PRODUCT_ID);
   const [currency] = useState('MZN');
   const [imageUrl, setImageUrl] = useState('');
   const [allowAffiliation, setAllowAffiliation] = useState(false);
@@ -144,6 +146,13 @@ export default function NewProductWizardPage() {
           imageUrl: imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&auto=format&fit=crop&q=60',
           category: selectedCategory ? categoryNames[selectedCategory] : 'Digital',
           currency: 'MZN',
+          zenofyProductId: zenofyProductId || undefined,
+          checkoutSettings: {
+            zenofyProductId: zenofyProductId || undefined,
+            customCheckout: {
+              zenofyProductId: zenofyProductId || undefined,
+            },
+          },
           contentDeliveryType: selectedCategory,
           contentUrl,
           materials,
@@ -564,36 +573,103 @@ export default function NewProductWizardPage() {
                 </p>
               </div>
 
-              {/* Preço MZN */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
+              {/* Preço & Integração Zenofy */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-[#F8FAFC]">
-                    Preço (MZN) <span className="text-violet-400">*</span>
+                    Tabela de Preço & Gateway Zenofy <span className="text-violet-400">*</span>
                   </label>
-                  <span className="text-[11px] text-[#94A3B8]">Mínimo MT 50,00</span>
-                </div>
-                <div className="flex rounded-xl bg-[#0F0E14] border border-[#1E1B26] focus-within:border-violet-500 overflow-hidden">
-                  <span className="px-4 py-3 bg-[#1A1820] text-xs font-bold text-[#94A3B8] border-r border-[#1E1B26] flex items-center">
-                    MT
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="50"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="0,00"
-                    className="flex-1 px-4 py-3 text-sm font-mono font-bold text-[#F8FAFC] bg-transparent focus:outline-none"
-                  />
-                  <span className="px-4 py-3 text-xs font-mono text-[#64748B] flex items-center">
-                    MZN
+                  <span className="text-[10px] text-violet-400 font-mono bg-violet-600/10 px-2 py-0.5 rounded-lg border border-violet-500/20">
+                    M-Pesa / e-Mola
                   </span>
                 </div>
-                {!isPriceValid && (
-                  <p className="text-[11px] text-red-400 mt-1.5 flex items-center gap-1">
-                    <span>ⓘ</span> Mínimo MT 50,00
-                  </p>
-                )}
+
+                <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+                  Selecione o valor do produto cadastrado na sua conta Zenofy para que o cliente receba a cobrança exata no celular:
+                </p>
+
+                {/* Quick Price Buttons (7 Official Tiers) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {ZENOFY_PRICE_TIERS.map((tier) => {
+                    const isSelected = zenofyProductId === tier.id && Math.round(Number(price)) === tier.price;
+                    return (
+                      <button
+                        key={tier.id}
+                        type="button"
+                        onClick={() => {
+                          setPrice(String(tier.price) + '.00');
+                          setZenofyProductId(tier.id);
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${
+                          isSelected
+                            ? 'border-violet-500 bg-violet-600/20 text-white shadow-[0_0_15px_rgba(124,58,237,0.3)] ring-1 ring-violet-500'
+                            : 'border-[#1E1B26] bg-[#0F0E14] text-[#94A3B8] hover:border-violet-500/50 hover:bg-[#14121B]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-bold font-mono ${isSelected ? 'text-violet-300' : 'text-[#F8FAFC]'}`}>
+                            {tier.label}
+                          </span>
+                          {tier.badge && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#1A1820] text-[#94A3B8] border border-[#2A2735]">
+                              {tier.badge}
+                            </span>
+                          )}
+                        </div>
+                        <span className="block text-[10px] text-[#64748B] mt-0.5 truncate">
+                          {tier.description}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Combobox Select Dropdown & Custom Price Input */}
+                <div className="pt-2">
+                  <label className="text-[11px] font-semibold text-[#94A3B8] block mb-1.5">
+                    Preço Selecionado / Valor do Checkout:
+                  </label>
+                  <div className="flex rounded-xl bg-[#0F0E14] border border-[#1E1B26] focus-within:border-violet-500 overflow-hidden">
+                    <span className="px-4 py-3 bg-[#1A1820] text-xs font-bold text-[#94A3B8] border-r border-[#1E1B26] flex items-center">
+                      MT
+                    </span>
+                    <input
+                      type="number"
+                      step="1"
+                      min="50"
+                      value={price}
+                      onChange={(e) => {
+                        const newP = e.target.value;
+                        setPrice(newP);
+                        const match = ZENOFY_PRICE_TIERS.find((t) => t.price === Math.round(Number(newP)));
+                        if (match) {
+                          setZenofyProductId(match.id);
+                        }
+                      }}
+                      placeholder="0,00"
+                      className="flex-1 px-4 py-3 text-sm font-mono font-bold text-[#F8FAFC] bg-transparent focus:outline-none"
+                    />
+                    <span className="px-4 py-3 text-xs font-mono text-[#64748B] flex items-center">
+                      MZN
+                    </span>
+                  </div>
+                  {!isPriceValid && (
+                    <p className="text-[11px] text-red-400 mt-1.5 flex items-center gap-1">
+                      <span>ⓘ</span> Mínimo MT 50,00
+                    </p>
+                  )}
+                </div>
+
+                {/* Zenofy Product ID mapping info */}
+                <div className="p-3 rounded-xl bg-[#0B0A0F] border border-[#1E1B26] flex items-center justify-between text-[11px]">
+                  <div className="space-y-0.5">
+                    <span className="text-[#94A3B8] block">ID Zenofy Vinculado:</span>
+                    <span className="font-mono text-violet-400 font-semibold">{zenofyProductId || 'Nenhum selecionado'}</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 font-medium">
+                    ✓ Sincronizado
+                  </span>
+                </div>
               </div>
 
               {/* Configurações Avançadas */}

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import dbStore from '@/lib/store';
 import { dispatchCheckout } from '@/services/payment/gatewayManager';
 import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@/services/tracking/dispatcher';
+import { getZenofyTierByPrice, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
 
 const checkoutSchema = z.object({
   productId: z.string(),
@@ -78,13 +79,21 @@ export async function POST(req: Request) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // Dispatch payment through the currently active gateway (Zenofy, E2Payment, EscalePay, or Demo)
+    const resolvedZenofyProductId =
+      (product as any).zenofyProductId ||
+      (product as any).checkoutSettings?.zenofyProductId ||
+      (product as any).checkoutSettings?.customCheckout?.zenofyProductId ||
+      getZenofyTierByPrice(totalAmount)?.id ||
+      getZenofyTierByPrice(product.price)?.id ||
+      DEFAULT_ZENOFY_PRODUCT_ID;
+
     const dispatchResult = await dispatchCheckout({
       orderId: order.id,
       amount: totalAmount,
       productName: product.name,
       hasOrderBump,
       orderBumpTitle,
-      zenofyProductId: (product as any).zenofyProductId || (product as any).checkoutSettings?.zenofyProductId,
+      zenofyProductId: resolvedZenofyProductId,
       customer: {
         name: customerName,
         phone: customerPhone,

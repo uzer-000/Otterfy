@@ -11,6 +11,7 @@ const updateProductSchema = z.object({
   currency: z.string().optional(),
   status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
   approvalStatus: z.string().optional(),
+  zenofyProductId: z.string().optional(),
   tracking: z.object({
     metaPixelId: z.string().optional(),
     metaApiToken: z.string().optional(),
@@ -24,6 +25,7 @@ const updateProductSchema = z.object({
     gtmId: z.string().optional(),
   }).optional(),
   checkoutSettings: z.object({
+    zenofyProductId: z.string().optional(),
     coupons: z.array(z.object({
       code: z.string(),
       discountPercent: z.number(),
@@ -33,7 +35,7 @@ const updateProductSchema = z.object({
       title: z.string(),
       price: z.number(),
       description: z.string().optional(),
-    }).optional(),
+    })?.optional(),
     customCheckout: z.object({
       enabled: z.boolean().optional(),
       themeColor: z.string().optional(),
@@ -42,6 +44,7 @@ const updateProductSchema = z.object({
       timerMinutes: z.number().optional(),
       timerText: z.string().optional(),
       bannerUrl: z.string().optional().or(z.literal('')),
+      zenofyProductId: z.string().optional(),
     }).optional(),
     whatsappSupport: z.object({
       enabled: z.boolean(),
