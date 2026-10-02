@@ -144,11 +144,59 @@ export default function DashboardTopNav() {
     }
   };
 
+  // Register Service Worker for Mobile (PWA/Chrome on Android) and Desktop Push
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.warn('Service worker registration failed:', err);
+      });
+    }
+  }, []);
+
   // Request browser/mobile push permissions
   const requestPushPermission = async () => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'default') {
-        await Notification.requestPermission();
+        try {
+          await Notification.requestPermission();
+        } catch {}
+      }
+    }
+  };
+
+  // Cross-platform push dispatcher (Mobile PWA/Android + Desktop Windows/Mac)
+  const sendSystemPushNotification = async (title: string, body: string, tag: string) => {
+    // 1. Mobile Chrome / PWA via Service Worker (MANDATORY on Android)
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && 'showNotification' in reg) {
+          await reg.showNotification(title, {
+            body,
+            icon: '/icon-192.png',
+            badge: '/logo.png',
+            tag,
+            vibrate: [200, 100, 200, 100, 300],
+            data: { url: '/dashboard' },
+          } as any);
+          return;
+        }
+      } catch (e) {
+        console.warn('SW showNotification fallback:', e);
+      }
+    }
+
+    // 2. Desktop Fallback: Window Notification API
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, {
+          body,
+          icon: '/icon-192.png',
+          badge: '/logo.png',
+          tag,
+        });
+      } catch (e) {
+        console.warn('Window Notification fallback:', e);
       }
     }
   };
@@ -188,32 +236,28 @@ export default function DashboardTopNav() {
             newOrders.forEach((order: any) => {
               notifiedSet.add(order.id);
 
-              // 1. Play sale sound
+              // 1. Play sale sound & vibrate phone
               playSaleChime();
 
-              // 2. Feed visual notification stack
+              // 2. Feed visual notification stack (acumula no sino do painel)
               if (window.NotifStack) {
                 window.NotifStack.push({
                   id: order.id,
                   title: 'Venda Aprovada!',
                   message: `${order.customerName || 'Cliente'} — ${formatMZN(Number(order.amount) || 0)}`,
-                  icon: '💰',
+                  amount: Number(order.amount) || 0,
+                  customerName: order.customerName || 'Cliente',
+                  method: order.transaction?.method || 'M-Pesa',
+                  icon: '/logo.png',
                 });
               }
 
-              // 3. Mobile / Browser Native Push Notification (ONLY for approved sales!)
-              if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-                try {
-                  new Notification('🎉 Venda Aprovada! — Otterfy', {
-                    body: `${order.customerName || 'Cliente'} comprou ${formatMZN(Number(order.amount) || 0)} via ${order.transaction?.method || 'Carteira Móvel'}!`,
-                    icon: '/logo.png',
-                    badge: '/logo.png',
-                    tag: `sale-${order.id}`,
-                  });
-                } catch {
-                  // Fallback
-                }
-              }
+              // 3. Mobile / Desktop Native Push Notification
+              sendSystemPushNotification(
+                '🎉 Venda Aprovada! — Otterfy',
+                `${order.customerName || 'Cliente'} comprou no valor de ${formatMZN(Number(order.amount) || 0)} via ${order.transaction?.method || 'M-Pesa'}!`,
+                `sale-${order.id}`
+              );
             });
 
             localStorage.setItem('otterfy_notified_orders', JSON.stringify(Array.from(notifiedSet)));
@@ -334,18 +378,8 @@ export default function DashboardTopNav() {
 
           {/* Right: Notifications + Theme Switcher + Profile */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Notification Stack (sino + fileira empilhada + lista scrollável) */}
+            {/* Notification Stack (sino de vendas aprovadas scrollável) */}
             <NotificationStack />
-
-            {/* Test Sound Button */}
-            <button
-              type="button"
-              onClick={() => playSaleChime()}
-              className="w-9 h-9 rounded-xl bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] text-[#94A3B8] hover:text-emerald-400 flex items-center justify-center transition-colors cursor-pointer"
-              title="Testar Som de Venda Aprovada (Ka-Ching)"
-            >
-              <span className="text-sm">🔔</span>
-            </button>
 
             {/* Dark / Light Theme Toggle */}
             <button
