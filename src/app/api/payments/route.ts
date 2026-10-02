@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbStore from '@/lib/store';
+import prisma from '@/lib/prisma';
+import { zenofyProvider } from '@/services/payment/zenofy';
 
 export async function GET(req: Request) {
   try {
@@ -9,6 +11,40 @@ export async function GET(req: Request) {
     const endDate = searchParams.get('endDate') || undefined;
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
+
+    // Auto-sync recent PENDING Zenofy orders in background
+    try {
+      const pendingOrders = await dbStore.getOrders({ status: 'PENDING' });
+      const recentPending = pendingOrders.slice(0, 5); // Check up to 5 most recent pending
+
+      for (const po of recentPending) {
+        if (po.transaction?.zenofyCheckoutId) {
+          try {
+            const zStatus = await zenofyProvider.getOrderStatus(po.transaction.zenofyCheckoutId);
+            if (zStatus.status === 'PAID') {
+              // Update Prisma
+              await prisma.$transaction([
+                prisma.order.update({
+                  where: { id: po.id },
+                  data: { status: 'APPROVED' },
+                }),
+                prisma.transaction.update({
+                  where: { id: po.transaction.id },
+                  data: { status: 'APPROVED' },
+                }),
+              ]).catch(() => {});
+
+              // Update store
+              await dbStore.updateOrderTransaction(po.id, {
+                status: 'APPROVED',
+              }).catch(() => {});
+            }
+          } catch (e) {
+            // ignore individual check failures
+          }
+        }
+      }
+    } catch {}
 
     const allOrders = await dbStore.getOrders({ status, startDate, endDate });
 

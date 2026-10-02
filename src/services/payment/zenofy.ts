@@ -60,11 +60,25 @@ export const zenofyProvider = {
     const customerName = params.customer.name?.trim() || 'Cliente';
     const email = params.customer.email?.trim() || 'cliente@otterfy.mz';
 
+    const successRedirectUrl =
+      params.successUrl ||
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://otterfy.vercel.app'}/pay/success?ref=${params.reference}`;
+    const cancelRedirectUrl =
+      params.cancelUrl ||
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://otterfy.vercel.app'}/pay/cancel?ref=${params.reference}`;
+    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://otterfy.vercel.app'}/api/webhooks/zenofy`;
+
     const body = {
       productId: targetProductId,
       customerName,
       email,
       phoneNumber: formattedPhone,
+      reference: params.reference,
+      redirectUrl: successRedirectUrl,
+      successUrl: successRedirectUrl,
+      returnUrl: successRedirectUrl,
+      cancelUrl: cancelRedirectUrl,
+      webhookUrl,
     };
 
     console.log('[Zenofy API] Creating order from product:', {
@@ -72,6 +86,7 @@ export const zenofyProvider = {
       customerName,
       email,
       phoneNumber: formattedPhone,
+      redirectUrl: successRedirectUrl,
     });
 
     const response = await fetch('https://api.zenofy.io/checkout/order-from-product', {

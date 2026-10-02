@@ -1,11 +1,17 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import dbStore from '@/lib/store';
+import prisma from '@/lib/prisma';
+import { zenofyProvider } from '@/services/payment/zenofy';
 import { formatMZN } from '@/lib/utils';
 
 interface PageProps {
   searchParams: Promise<{
     ref?: string;
+    orderId?: string;
+    order_id?: string;
+    id?: string;
+    checkout_id?: string;
   }>;
 }
 
@@ -25,7 +31,33 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
     );
   }
 
-  const order = await dbStore.getOrderById(orderId);
+  let order = await dbStore.getOrderById(orderId);
+
+  // If not found by direct ID, search by zenofyCheckoutId in all orders
+  if (!order) {
+    const allOrders = await dbStore.getOrders();
+    order = allOrders.find(
+      (o) =>
+        o.id === orderId ||
+        o.transaction?.zenofyCheckoutId === orderId ||
+        o.transaction?.zenofyTransactionId === orderId
+    ) || null;
+  }
+
+  // If found and status is PENDING, verify with Zenofy
+  if (order && order.status !== 'APPROVED' && order.transaction?.zenofyCheckoutId) {
+    try {
+      const zStatus = await zenofyProvider.getOrderStatus(order.transaction.zenofyCheckoutId);
+      if (zStatus.status === 'PAID') {
+        order.status = 'APPROVED';
+        await prisma.$transaction([
+          prisma.order.update({ where: { id: order.id }, data: { status: 'APPROVED' } }),
+          prisma.transaction.update({ where: { id: order.transaction.id }, data: { status: 'APPROVED' } }),
+        ]).catch(() => {});
+        await dbStore.updateOrderTransaction(order.id, { status: 'APPROVED' }).catch(() => {});
+      }
+    } catch {}
+  }
 
   if (!order) {
     return (
@@ -258,10 +290,11 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
 
 export default async function SuccessPage({ searchParams }: PageProps) {
   const params = await searchParams;
+  const resolvedOrderId = params.ref || params.orderId || params.order_id || params.id || params.checkout_id;
   return (
     <main className="min-h-screen py-10 px-4 flex flex-col items-center justify-center">
       <Suspense fallback={<div className="text-[#F8FAFC] text-sm animate-pulse">A carregar os seus conteúdos...</div>}>
-        <SuccessContent orderId={params.ref} />
+        <SuccessContent orderId={resolvedOrderId} />
       </Suspense>
     </main>
   );
