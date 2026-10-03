@@ -58,121 +58,6 @@ export default function DashboardTopNav() {
     window.dispatchEvent(new Event('storage'));
   };
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-
-  // Pre-load audio & unlock Web Audio context on user touch/click
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const audio = new Audio('/sounds/venda-aprovada.mp3');
-      audio.preload = 'auto';
-      audioRef.current = audio;
-    }
-
-    const unlock = () => {
-      // 1. Pre-warm HTML5 audio element
-      if (audioRef.current) {
-        audioRef.current.play().then(() => {
-          audioRef.current?.pause();
-          audioRef.current!.currentTime = 0;
-        }).catch(() => {});
-      }
-
-      // 2. Unlock Web Audio Context
-      try {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioCtx && !audioCtxRef.current) {
-          audioCtxRef.current = new AudioCtx();
-        }
-        if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-          audioCtxRef.current.resume();
-        }
-      } catch {}
-
-      // 3. Request push permission on interaction (Chrome Android compliant!)
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission().catch(() => {});
-      }
-    };
-
-    window.addEventListener('click', unlock, { once: false });
-    window.addEventListener('touchstart', unlock, { once: false });
-    return () => {
-      window.removeEventListener('click', unlock);
-      window.removeEventListener('touchstart', unlock);
-    };
-  }, []);
-
-  // Audio chime player for approved sales (Dual: Real audio file + Web Audio API synthesis)
-  const playSaleChime = () => {
-    try {
-      // 1. Physical vibration for mobile devices (Distinct cash-register double buzz)
-      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
-        try { navigator.vibrate([200, 100, 300]); } catch {}
-      }
-
-      // 2. Play pre-loaded HTML5 Audio
-      let played = false;
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.volume = 1.0;
-        const p = audioRef.current.play();
-        if (p !== undefined) {
-          p.then(() => { played = true; }).catch(() => {
-            // fallback synthesizer below
-          });
-        }
-      }
-
-      // 3. High quality Web Audio synthesizer fallback
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = audioCtxRef.current || new AudioCtx();
-        if (ctx.state === 'suspended') ctx.resume();
-
-        const now = ctx.currentTime;
-
-        // Oscillator 1: High crisp bell E6
-        const osc1 = ctx.createOscillator();
-        const gain1 = ctx.createGain();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(1318.51, now);
-        gain1.gain.setValueAtTime(0.4, now);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-        osc1.connect(gain1);
-        gain1.connect(ctx.destination);
-        osc1.start(now);
-        osc1.stop(now + 0.8);
-
-        // Oscillator 2: Shimmering B6
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(1975.53, now + 0.05);
-        gain2.gain.setValueAtTime(0.35, now + 0.05);
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-        osc2.connect(gain2);
-        gain2.connect(ctx.destination);
-        osc2.start(now + 0.05);
-        osc2.stop(now + 0.9);
-
-        // Oscillator 3: Coin register ring E7
-        const osc3 = ctx.createOscillator();
-        const gain3 = ctx.createGain();
-        osc3.type = 'triangle';
-        osc3.frequency.setValueAtTime(2637.02, now + 0.1);
-        gain3.gain.setValueAtTime(0.3, now + 0.1);
-        gain3.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
-        osc3.connect(gain3);
-        gain3.connect(ctx.destination);
-        osc3.start(now + 0.1);
-        osc3.stop(now + 1.1);
-      }
-    } catch {
-      // ignore
-    }
-  };
-
   // Register Service Worker for Mobile (PWA/Chrome on Android) and Desktop Push
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -265,8 +150,10 @@ export default function DashboardTopNav() {
             newOrders.forEach((order: any) => {
               notifiedSet.add(order.id);
 
-              // 1. Play sale sound & vibrate phone
-              playSaleChime();
+              // Vibrate phone on mobile if supported (silent, no audio)
+              if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate([200, 100, 300]); } catch {}
+              }
 
               // 2. Feed visual notification stack (acumula no sino do painel)
               if (window.NotifStack) {
