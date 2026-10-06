@@ -253,7 +253,7 @@ export default function NewProductWizardPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+    <div className="w-full max-w-5xl 2xl:max-w-6xl mx-auto space-y-6 pb-20">
       {/* ============================================================== */}
       {/* MODAL 1: SELETOR DE CATEGORIA (PRINT 1 NO TEMA ROXO DA OTTERFY) */}
       {/* ============================================================== */}

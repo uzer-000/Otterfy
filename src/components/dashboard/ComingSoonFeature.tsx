@@ -26,7 +26,7 @@ export default function ComingSoonFeature({
   icon,
 }: ComingSoonFeatureProps) {
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+    <div className="w-full max-w-6xl 2xl:max-w-[1800px] mx-auto space-y-6 animate-in fade-in duration-300">
       {/* Header card */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-surface)] p-6 md:p-8 backdrop-blur-sm">
         {/* Glow de fundo sutil com a cor da Otterfy */}
@@ -52,7 +52,7 @@ export default function ComingSoonFeature({
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
                 {title}
               </h1>
-              <p className="text-sm md:text-base text-[var(--text-secondary)] max-w-xl pt-1">
+              <p className="text-sm md:text-base text-[var(--text-secondary)] max-w-3xl pt-1">
                 {description}
               </p>
             </div>

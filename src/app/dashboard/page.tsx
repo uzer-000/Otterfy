@@ -97,7 +97,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+    <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-8 pb-16">
       {/* Top Greeting Banner */}
       <DashboardGreetingBanner />
 

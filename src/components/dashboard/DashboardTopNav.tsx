@@ -244,13 +244,13 @@ export default function DashboardTopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-[#08070C]/90 backdrop-blur-md border-b border-[#1E1B26] px-4 md:px-8 py-3.5 transition-colors">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-30 bg-[#08070C]/90 backdrop-blur-md border-b border-[#1E1B26] px-4 sm:px-6 lg:px-8 2xl:px-10 py-3.5 transition-colors">
+        <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto flex items-center justify-between gap-3">
           {/* 50K Milestone Progress Bar (Visible in ALL TABS) */}
           <button
             type="button"
             onClick={() => setAwardsModalOpen(true)}
-            className="flex items-center gap-2.5 sm:gap-3 p-1.5 px-2.5 sm:px-3 rounded-xl bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] hover:border-violet-500/40 transition-all text-left group cursor-pointer shadow-sm flex-1 sm:flex-initial min-w-0 max-w-[340px]"
+            className="flex items-center gap-2.5 sm:gap-3 p-1.5 px-2.5 sm:px-3 rounded-xl bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] hover:border-violet-500/40 transition-all text-left group cursor-pointer shadow-sm flex-1 sm:flex-initial min-w-0 max-w-[340px] md:max-w-[440px]"
             title="Meta atual: Pulseira Bronze (50K). Clique para ver todas as premiações."
           >
             {/* Award Badge (Pulseira Bronze 50K) */}

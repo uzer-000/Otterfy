@@ -4,7 +4,7 @@
  */
 export default function DashboardLoading() {
   return (
-    <div className="otter-loading max-w-7xl mx-auto space-y-6" aria-busy="true" aria-label="A carregar">
+    <div className="otter-loading w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-6" aria-busy="true" aria-label="A carregar">
       <div className="space-y-2">
         <div className="otter-skeleton h-7 w-56 !rounded-lg" />
         <div className="otter-skeleton h-4 w-80 max-w-full !rounded-md" />

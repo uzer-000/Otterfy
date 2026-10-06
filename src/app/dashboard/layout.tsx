@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <Sidebar userEmail={session.user?.email ?? 'admin@otterfy.co.mz'} />
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         <DashboardTopNav />
-        <main className="otter-main flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="otter-main flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 2xl:p-10 w-full min-w-0">
           {children}
         </main>
       </div>

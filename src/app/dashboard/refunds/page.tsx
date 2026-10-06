@@ -5,7 +5,7 @@ import { formatMZN } from '@/lib/utils';
 
 export function FeaturePlaceholder({ title, description, icon }: { title: string; description: string; icon: React.ReactNode }) {
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-6 pb-12">
       <div>
         <h1 className="text-3xl font-black text-[#F8FAFC] tracking-tight">{title}</h1>
         <p className="text-[#94A3B8] text-sm mt-1">{description}</p>
@@ -92,7 +92,7 @@ export default function RefundsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-6 pb-16">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-[#121016] border border-violet-500/50 shadow-2xl text-violet-200 text-sm flex items-center gap-3 animate-fadeIn">

@@ -144,7 +144,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-16">
+    <div className="w-full max-w-6xl 2xl:max-w-[1800px] mx-auto space-y-6 pb-16">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-[#121016] border border-emerald-500/50 shadow-2xl text-emerald-300 text-sm flex items-center gap-3 animate-fadeIn">

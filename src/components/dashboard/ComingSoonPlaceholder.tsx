@@ -16,7 +16,7 @@ export default function ComingSoonPlaceholder({
   icon,
 }: ComingSoonPlaceholderProps) {
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-16 animate-fadeIn">
+    <div className="w-full max-w-6xl 2xl:max-w-[1800px] mx-auto space-y-6 pb-16 animate-fadeIn">
       {/* Top Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#1E1B26]">
         <div>

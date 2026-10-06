@@ -29,7 +29,7 @@ export default function PaymentsPage() {
   }, [statusFilter]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-6 pb-12">
       <div>
         <h1 className="text-3xl font-black text-[#F8FAFC] tracking-tight">Pagamentos</h1>
         <p className="text-[#94A3B8] text-sm mt-1">Histórico completo de transações e recebimentos</p>
