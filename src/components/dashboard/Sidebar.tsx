@@ -317,6 +317,7 @@ interface NavLeaf {
   href: string;
   icon: IconName;
   exact?: boolean;
+  badge?: string;
 }
 
 interface NavGroup {
@@ -341,7 +342,7 @@ function buildSections(): NavSection[] {
       entries: [
         { kind: 'link', name: 'Dashboard', href: '/dashboard', icon: 'dashboard', exact: true },
         { kind: 'link', name: 'Pagamentos', href: '/dashboard/payments', icon: 'payments' },
-        { kind: 'link', name: 'SAC', href: '/dashboard/integrations', icon: 'sac' },
+        { kind: 'link', name: 'SAC', href: '/dashboard/sac', icon: 'sac', badge: 'Em breve' },
         {
           kind: 'group',
           id: 'produtos',
@@ -349,11 +350,11 @@ function buildSections(): NavSection[] {
           icon: 'products',
           children: [
             { kind: 'link', name: 'Visão geral', href: '/dashboard/products', icon: 'products' },
-            { kind: 'link', name: 'Cupons', href: '/dashboard/marketing', icon: 'coupons' },
+            { kind: 'link', name: 'Cupons', href: '/dashboard/coupons', icon: 'coupons', badge: 'Em breve' },
           ],
         },
-        { kind: 'link', name: 'Loja', href: '/dashboard/checkout-preview', icon: 'loja' },
-        { kind: 'link', name: 'Quiz', href: '/dashboard/automations', icon: 'quiz' },
+        { kind: 'link', name: 'Loja', href: '/dashboard/store', icon: 'loja', badge: 'Em breve' },
+        { kind: 'link', name: 'Quiz', href: '/dashboard/quiz', icon: 'quiz', badge: 'Em breve' },
         { kind: 'link', name: 'Afiliados', href: '/dashboard/affiliates', icon: 'affiliates' },
         {
           kind: 'group',
@@ -365,15 +366,15 @@ function buildSections(): NavSection[] {
             { kind: 'link', name: 'Domínios', href: '/dashboard/integrations', icon: 'domains' },
             { kind: 'link', name: 'Gateways', href: '/dashboard/gateways', icon: 'gateways' },
             { kind: 'link', name: 'Saques', href: '/dashboard/finances', icon: 'withdrawals' },
-            { kind: 'link', name: 'Logística', href: '/dashboard/integrations', icon: 'logistics' },
-            { kind: 'link', name: 'Sistema ERP', href: '/dashboard/integrations', icon: 'erp' },
-            { kind: 'link', name: 'Comunicações', href: '/dashboard/integrations', icon: 'communications' },
+            { kind: 'link', name: 'Logística', href: '/dashboard/integrations', icon: 'logistics', badge: 'Em breve' },
+            { kind: 'link', name: 'Sistema ERP', href: '/dashboard/integrations', icon: 'erp', badge: 'Em breve' },
+            { kind: 'link', name: 'Comunicações', href: '/dashboard/integrations', icon: 'communications', badge: 'Em breve' },
             { kind: 'link', name: 'Webhook', href: '/dashboard/integrations', icon: 'webhook' },
             { kind: 'link', name: 'WhatsApp', href: '/dashboard/automations', icon: 'whatsapp' },
-            { kind: 'link', name: 'Telegram Bot', href: '/dashboard/automations', icon: 'telegram' },
-            { kind: 'link', name: 'Discord Bot', href: '/dashboard/automations', icon: 'discord' },
+            { kind: 'link', name: 'Telegram Bot', href: '/dashboard/telegram-bot', icon: 'telegram', badge: 'Em breve' },
+            { kind: 'link', name: 'Discord Bot', href: '/dashboard/discord-bot', icon: 'discord', badge: 'Em breve' },
             { kind: 'link', name: 'Carrinhos Abandona...', href: '/dashboard/campaigns', icon: 'abandoned_carts' },
-            { kind: 'link', name: 'Simulador de Taxas', href: '/dashboard/finances', icon: 'tax_calc' },
+            { kind: 'link', name: 'Simulador de Taxas', href: '/dashboard/tax-simulator', icon: 'tax_calc' },
             { kind: 'link', name: 'MCP', href: '/dashboard/developer', icon: 'mcp' },
           ],
         },
@@ -383,7 +384,7 @@ function buildSections(): NavSection[] {
       title: 'GERAL',
       entries: [
         { kind: 'link', name: 'Minhas faturas', href: '/dashboard/finances', icon: 'invoices' },
-        { kind: 'link', name: 'Ajuda', href: '/dashboard/invite', icon: 'help' },
+        { kind: 'link', name: 'Ajuda', href: '/dashboard/help', icon: 'help' },
         {
           kind: 'group',
           id: 'configuracoes',
@@ -626,6 +627,11 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
       >
         <Icon name={leaf.icon} />
         <span className="truncate">{leaf.name}</span>
+        {leaf.badge && (
+          <span className="otter-sb-badge otter-sb-badge--soon ml-auto shrink-0">
+            {leaf.badge}
+          </span>
+        )}
         <PendingDot />
       </Link>
     );
@@ -641,18 +647,18 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
             onClick={() => setMobileOpen(true)}
             aria-label="Abrir menu"
             aria-expanded={mobileOpen}
-            className="w-10 h-10 rounded-xl flex items-center justify-center border border-[var(--sb-control-border)] bg-[var(--sb-control-bg)] text-[#FFFFFF] active:scale-95 transition-transform duration-150"
+            className="w-10 h-10 rounded-xl flex items-center justify-center border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-slate-100 dark:hover:bg-[#1A1820] active:scale-95 transition-transform duration-150 shadow-sm"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round">
               {ICONS.menu}
             </svg>
           </button>
 
           <Link href="/dashboard" className="flex items-center gap-2" onClick={handleNavigate('/dashboard')}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Otterfy" className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
-            <span className="text-[17px] font-bold tracking-tight text-[#FFFFFF]">
-              Otter<span className="text-[#3B82F6]">fy</span>
+            <img src="/logo.png" alt="Otterfy" className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
+            <span className="text-[17px] font-bold tracking-tight text-[var(--text-primary)]">
+              Otter<span className="text-[#7C3AED]">fy</span>
             </span>
           </Link>
 
@@ -685,15 +691,15 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
         <div className="md:hidden flex items-center justify-between px-4 pt-3.5 pb-1 relative z-10">
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Otterfy" className="w-6 h-6 object-contain" />
-            <span className="text-[16px] font-bold text-white tracking-tight">
-              Otter<span className="text-[#3B82F6]">fy</span>
+            <img src="/logo.png" alt="Otterfy" className="w-6 h-6 object-contain drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
+            <span className="text-[16px] font-bold text-[var(--sb-text)] tracking-tight">
+              Otter<span className="text-[#7C3AED]">fy</span>
             </span>
           </div>
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white active:scale-90 transition-transform"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--sb-text-muted)] hover:text-[var(--sb-text)] active:scale-90 transition-transform"
             aria-label="Fechar menu"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
@@ -747,10 +753,10 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
                   <Icon name={opt.icon} />
                   <span className="flex flex-col leading-tight">
                     <span>{opt.label}</span>
-                    <span className="text-[11.5px] font-normal text-[#94A3B8]">{opt.hint}</span>
+                    <span className="text-[11.5px] font-normal text-[var(--sb-text-muted)]">{opt.hint}</span>
                   </span>
                   {panelMode === opt.mode && (
-                    <svg className="w-4 h-4 ml-auto text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="w-4 h-4 ml-auto text-violet-600 dark:text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round">
                       {ICONS.check}
                     </svg>
                   )}
