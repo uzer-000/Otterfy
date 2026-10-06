@@ -12,7 +12,7 @@
   --color-text-primary: var(--text-primary, #F8FAFC);
   --color-text-secondary: var(--text-secondary, #94A3B8);
   --color-text-muted: var(--text-muted, #64748B);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-satoshi);
 }
 
 :root {
@@ -195,23 +195,41 @@
   background: #FFFFFF !important;
 }
 
-/* Sidebar specific light mode styles */
-[data-theme="light"] aside {
+/* Sidebar specific light mode styles (legacy asides only — the new .otter-sidebar has its own theme tokens) */
+[data-theme="light"] aside:not(.otter-sidebar) {
   background-color: #FFFFFF !important;
   border-color: #E2E8F0 !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
-[data-theme="light"] aside .border-b,
-[data-theme="light"] aside .border-t {
+[data-theme="light"] aside:not(.otter-sidebar) .border-b,
+[data-theme="light"] aside:not(.otter-sidebar) .border-t {
   border-color: #E2E8F0 !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   background: var(--bg-main);
   color: var(--text-primary);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Mobile: remove o flash azul do toque e o atraso de 300ms nos botões/links */
+a,
+button,
+[role="button"],
+summary,
+label {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Custom scrollbar */
@@ -329,4 +347,474 @@ body {
   background: var(--bg-surface);
   border-radius: calc(1rem - 1px);
   z-index: -1;
+}
+
+/* ==========================================================================
+   MOTION SYSTEM — navegação fluida (desktop + mobile)
+   ========================================================================== */
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1); /* curva estilo iOS sheet */
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-slow: 380ms;
+}
+
+/* Entrada suave de cada página (aplicado via app/dashboard/template.tsx).
+   fill-mode "backwards" => depois da animação não fica transform no wrapper,
+   então modais position:fixed dentro das páginas continuam corretos. */
+@keyframes otter-page-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.otter-page {
+  animation: otter-page-in var(--dur-slow) var(--ease-out-quint) backwards;
+}
+
+/* Utilitários usados no projeto que não existiam (modais apareciam "secos") */
+@keyframes otter-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes otter-zoom-in {
+  from { opacity: 0; transform: scale(0.96) translate3d(0, 6px, 0); }
+  to { opacity: 1; transform: scale(1) translate3d(0, 0, 0); }
+}
+
+.animate-fadeIn {
+  animation: otter-fade-in var(--dur-base) var(--ease-out-quint) backwards;
+}
+
+.animate-in {
+  animation: otter-fade-in var(--dur-base) var(--ease-out-quint) backwards;
+}
+
+.animate-in.zoom-in-95 {
+  animation-name: otter-zoom-in;
+}
+
+/* Skeletons do loading.tsx — só aparecem se a navegação demorar (>140ms) */
+@keyframes otter-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.otter-loading {
+  opacity: 0;
+  animation: otter-fade-in var(--dur-base) ease-out 140ms forwards;
+}
+
+.otter-skeleton {
+  border-radius: 1rem;
+  background-color: var(--bg-surface);
+  background-image: linear-gradient(90deg, transparent 0, rgba(255, 255, 255, 0.045) 50%, transparent 100%);
+  background-size: 800px 100%;
+  background-repeat: no-repeat;
+  animation: otter-shimmer 1.3s linear infinite;
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .otter-skeleton {
+  background-image: linear-gradient(90deg, transparent 0, rgba(79, 70, 229, 0.06) 50%, transparent 100%);
+}
+
+/* Área de conteúdo: scroll nativo suave no mobile e sem "pular" layout */
+.otter-main {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+/* ==========================================================================
+   SIDEBAR — estilo da referência (beams azuis, pill ativo, grupos colapsáveis)
+   ========================================================================== */
+.otter-sidebar {
+  --sb-bg: #060917;
+  --sb-border: rgba(59, 130, 246, 0.12);
+  --sb-text: #F1F5F9;
+  --sb-text-muted: #94A3B8;
+  --sb-label: #818CF8;
+  --sb-icon: #CBD5E1;
+  --sb-hover: rgba(59, 130, 246, 0.08);
+  --sb-pill-bg: rgba(29, 78, 216, 0.24);
+  --sb-pill-border: rgba(59, 130, 246, 0.38);
+  --sb-pill-shadow: inset 0 0 14px rgba(37, 99, 235, 0.22), 0 4px 16px rgba(0, 0, 0, 0.35);
+  --sb-sub-pill-bg: rgba(37, 99, 235, 0.26);
+  --sb-control-bg: rgba(14, 23, 46, 0.75);
+  --sb-control-border: rgba(59, 130, 246, 0.22);
+  --sb-menu-bg: rgba(10, 16, 35, 0.98);
+
+  position: relative;
+  isolation: isolate;
+  background: var(--sb-bg);
+  color: var(--sb-text);
+  border-right: 1px solid var(--sb-border);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+[data-theme="light"] .otter-sidebar {
+  --sb-bg: #F8FAFC;
+  --sb-border: #E2E8F0;
+  --sb-text: #0F172A;
+  --sb-text-muted: #64748B;
+  --sb-label: #6366F1;
+  --sb-icon: #475569;
+  --sb-hover: rgba(59, 130, 246, 0.06);
+  --sb-pill-bg: rgba(37, 99, 235, 0.1);
+  --sb-pill-border: rgba(37, 99, 235, 0.3);
+  --sb-pill-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+  --sb-sub-pill-bg: rgba(37, 99, 235, 0.08);
+  --sb-control-bg: #FFFFFF;
+  --sb-control-border: #CBD5E1;
+  --sb-menu-bg: #FFFFFF;
+}
+
+[data-theme="light"] .otter-sidebar .sidebar-bg-shards {
+  opacity: 0.06;
+}
+
+/* Rótulos de secção: MENU / GERAL */
+.otter-sb-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7A8CA5;
+}
+
+/* Ícones padrão sempre com tamanho fixo de 18px */
+svg.otter-sb-icon {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  flex-shrink: 0;
+  display: block;
+  color: var(--sb-icon);
+  transition: color var(--dur-fast) ease, transform var(--dur-base) var(--ease-out-quint);
+}
+
+/* Linha de item do menu */
+.otter-sb-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--sb-text);
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out-quint);
+}
+
+.otter-sb-item:hover {
+  background-color: var(--sb-hover);
+}
+
+.otter-sb-item:active {
+  transform: scale(0.985);
+}
+
+.otter-sb-item:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.7);
+  outline-offset: 1px;
+}
+
+.otter-sb-item[data-active="true"] {
+  background-color: transparent;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.otter-sb-item[data-active="true"] svg.otter-sb-icon {
+  color: #FFFFFF;
+}
+
+.otter-sb-item--sub {
+  height: 36px;
+  padding-left: 12px;
+  font-size: 13.5px;
+  color: #CBD5E1;
+}
+
+.otter-sb-item--sub[data-active="true"] {
+  color: #FFFFFF;
+}
+
+.otter-sb-item--sub svg.otter-sb-icon {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+}
+
+.otter-sb-chevron {
+  margin-left: auto;
+  width: 14px;
+  height: 14px;
+  color: #818CF8;
+  transition: transform var(--dur-base) var(--ease-out-quint);
+}
+
+/* Pill ativo único que desliza entre os itens com efeito suave de luz */
+.otter-sb-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: 12px;
+  background: var(--sb-pill-bg);
+  border: 1px solid var(--sb-pill-border);
+  box-shadow: var(--sb-pill-shadow);
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, width, height;
+  transition:
+    transform var(--dur-slow) var(--ease-out-expo),
+    width var(--dur-slow) var(--ease-out-expo),
+    height var(--dur-slow) var(--ease-out-expo),
+    opacity var(--dur-base) ease,
+    background-color var(--dur-base) ease,
+    border-color var(--dur-base) ease;
+}
+
+.otter-sb-highlight[data-ready="true"] {
+  opacity: 1;
+}
+
+.otter-sb-highlight[data-instant="true"] {
+  transition: opacity var(--dur-base) ease;
+}
+
+.otter-sb-highlight[data-level="sub"] {
+  background: var(--sb-sub-pill-bg);
+  border: 1px solid var(--sb-pill-border);
+  box-shadow: var(--sb-pill-shadow);
+}
+
+/* Grupo colapsável com animação de altura real (grid 0fr -> 1fr) */
+.otter-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--dur-slow) var(--ease-out-expo),
+    opacity var(--dur-base) ease;
+}
+
+.otter-collapse[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.otter-collapse > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Badges */
+.otter-sb-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: var(--sb-text-muted);
+  background: var(--sb-control-bg);
+  border: 1px solid var(--sb-control-border);
+  white-space: nowrap;
+}
+
+.otter-sb-badge--soon {
+  color: #F5C26B;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+[data-theme="light"] .otter-sb-badge--soon {
+  color: #B45309;
+  background: #FFFBEB;
+  border-color: #FDE68A;
+}
+
+/* Indicador de carregamento por link (useLinkStatus) */
+.otter-sb-pending {
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  flex-shrink: 0;
+}
+
+.otter-sb-pending[data-pending="true"] {
+  animation: otter-pending 1s ease-in-out 120ms infinite;
+}
+
+@keyframes otter-pending {
+  0%, 100% { opacity: 0.15; transform: scale(0.8); }
+  50% { opacity: 0.7; transform: scale(1); }
+}
+
+/* Selector Vendedor / Afiliado */
+.otter-sb-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 46px;
+  padding: 0 12px;
+  border-radius: 13px;
+  background: var(--sb-control-bg);
+  border: 1px solid var(--sb-control-border);
+  color: var(--sb-text);
+  font-size: 15px;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out-quint);
+}
+
+.otter-sb-control:hover {
+  border-color: var(--sb-pill-border);
+}
+
+.otter-sb-control:active {
+  transform: scale(0.99);
+}
+
+.otter-sb-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--sb-menu-bg);
+  border: 1px solid var(--sb-control-border);
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.55);
+  transform-origin: top center;
+  opacity: 0;
+  transform: translate3d(0, -4px, 0) scale(0.97);
+  pointer-events: none;
+  transition: opacity var(--dur-fast) ease, transform var(--dur-base) var(--ease-out-expo);
+}
+
+.otter-sb-menu[data-open="true"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  pointer-events: auto;
+}
+
+/* Scroll interno do menu */
+.otter-sb-scroll {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-control-border) transparent;
+}
+
+.otter-sb-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.otter-sb-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.otter-sb-scroll::-webkit-scrollbar-thumb {
+  background: var(--sb-control-border);
+  border-radius: 999px;
+}
+
+/* ---------- Mobile drawer ---------- */
+@media (max-width: 767px) {
+  .otter-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(86vw, 300px);
+    z-index: 90;
+    transform: translate3d(-100%, 0, 0);
+    transition: transform var(--dur-slow) var(--ease-drawer), box-shadow var(--dur-slow) ease;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .otter-sidebar[data-open="true"] {
+    transform: translate3d(0, 0, 0) !important;
+    box-shadow: 24px 0 60px -20px rgba(0, 0, 0, 0.6);
+  }
+
+  .otter-sidebar[data-dragging="true"] {
+    transition: none;
+  }
+}
+
+.otter-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(3, 5, 14, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  touch-action: none;
+  transition: opacity var(--dur-slow) var(--ease-drawer);
+}
+
+.otter-drawer-overlay[data-open="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+[data-theme="light"] .otter-drawer-overlay {
+  background: rgba(15, 23, 42, 0.35);
+}
+
+/* Barra superior mobile */
+.otter-mobile-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding-top: env(safe-area-inset-top);
+  background: color-mix(in srgb, var(--bg-main) 88%, transparent);
+  border-bottom: 1px solid var(--border-color);
+  backdrop-filter: saturate(160%) blur(12px);
+  -webkit-backdrop-filter: saturate(160%) blur(12px);
+}
+
+/* ==========================================================================
+   Acessibilidade: respeitar "reduzir movimento"
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

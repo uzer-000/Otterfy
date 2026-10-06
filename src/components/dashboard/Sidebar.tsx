@@ -1,541 +1,916 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  type TouchEvent as ReactTouchEvent,
+} from 'react';
+import Link, { useLinkStatus } from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { logoutAction } from '@/app/dashboard/actions';
 
-interface NavItem {
+/* -------------------------------------------------------------------------- */
+/*                                   ÍCONES                                   */
+/* -------------------------------------------------------------------------- */
+const ICONS = {
+  // Loja / Vendedor (storefront)
+  store: (
+    <>
+      <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
+      <path d="M2 7h20" />
+      <path d="M22 7v3a2 2 0 0 1-2 2 2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7" />
+    </>
+  ),
+  // Dashboard (4 squares grid)
+  dashboard: (
+    <>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+    </>
+  ),
+  // Pagamentos (checklist with checkmarks)
+  payments: (
+    <>
+      <path d="m3 7 2 2 4-4" />
+      <path d="M12 7h9" />
+      <path d="m3 17 2 2 4-4" />
+      <path d="M12 17h9" />
+    </>
+  ),
+  // SAC (headset customer service)
+  sac: (
+    <>
+      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+    </>
+  ),
+  // Produtos & Visão Geral (isometric 3D box)
+  products: (
+    <>
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
+    </>
+  ),
+  // Cupons (discount ticket with percent)
+  coupons: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m15 9-6 6" />
+      <path d="M9 9h.01" />
+      <path d="M15 15h.01" />
+    </>
+  ),
+  // Loja (storefront)
+  loja: (
+    <>
+      <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
+      <path d="M2 7h20" />
+    </>
+  ),
+  // Quiz (branch node with plus)
+  quiz: (
+    <>
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="18" cy="6" r="3" />
+      <path d="M6 15V9a3 3 0 0 1 3-3h6" />
+      <path d="M18 15v6" />
+      <path d="M15 18h6" />
+    </>
+  ),
+  // Afiliados (handshake)
+  affiliates: (
+    <>
+      <path d="m11 17 2 2a1 1 0 1 0 3-3" />
+      <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4" />
+      <path d="m21 3 1 11h-2" />
+      <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3" />
+      <path d="M3 4h8" />
+    </>
+  ),
+  // Ferramentas (pocket calculator)
+  tools: (
+    <>
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <line x1="8" x2="16" y1="6" y2="6" />
+      <line x1="16" x2="16" y1="14" y2="18" />
+      <path d="M16 10h.01" />
+      <path d="M12 10h.01" />
+      <path d="M8 10h.01" />
+      <path d="M12 14h.01" />
+      <path d="M8 14h.01" />
+      <path d="M12 18h.01" />
+      <path d="M8 18h.01" />
+    </>
+  ),
+  // Métricas (bar chart)
+  metrics: (
+    <>
+      <path d="M18 20V10" />
+      <path d="M12 20V4" />
+      <path d="M6 20v-6" />
+    </>
+  ),
+  // Domínios (globe)
+  domains: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+      <path d="M2 12h20" />
+    </>
+  ),
+  // Gateways (card)
+  gateways: (
+    <>
+      <rect width="20" height="14" x="2" y="5" rx="2" />
+      <line x1="2" x2="22" y1="10" y2="10" />
+    </>
+  ),
+  // Saques (cash banknotes)
+  withdrawals: (
+    <>
+      <rect width="20" height="12" x="2" y="6" rx="2" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M6 12h.01M18 12h.01" />
+    </>
+  ),
+  // Logística (truck)
+  logistics: (
+    <>
+      <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+      <path d="M14 8h4.5a2 2 0 0 1 1.6.8L22 12v5a1 1 0 0 1-1 1h-2" />
+      <circle cx="7" cy="18" r="2" />
+      <circle cx="17" cy="18" r="2" />
+    </>
+  ),
+  // Sistema ERP (wall power plug)
+  erp: (
+    <>
+      <path d="M12 22v-5" />
+      <path d="M9 8V2" />
+      <path d="M15 8V2" />
+      <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />
+    </>
+  ),
+  // Comunicações (envelope)
+  communications: (
+    <>
+      <rect width="20" height="16" x="2" y="4" rx="2" />
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </>
+  ),
+  // Webhook
+  webhook: (
+    <>
+      <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c0-2.21 1.79-4 4-4h.5" />
+      <circle cx="6" cy="17" r="2" />
+      <circle cx="18" cy="17" r="2" />
+      <circle cx="18" cy="7" r="2" />
+      <path d="M18 9v6" />
+      <path d="m14 13-3-3" />
+    </>
+  ),
+  // WhatsApp
+  whatsapp: (
+    <>
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </>
+  ),
+  // Telegram Bot (robot head)
+  telegram: (
+    <>
+      <rect width="18" height="12" x="3" y="8" rx="2" />
+      <path d="M12 2v4" />
+      <circle cx="8" cy="14" r="1.5" />
+      <circle cx="16" cy="14" r="1.5" />
+      <path d="M2 14h1M21 14h1" />
+    </>
+  ),
+  // Discord Bot
+  discord: (
+    <>
+      <path d="M18.89 5.86A16.03 16.03 0 0 0 15 4.5a.1.1 0 0 0-.08.05c-.37.66-.78 1.53-1.07 2.22a14.86 14.86 0 0 0-4.7 0c-.29-.69-.7-1.56-1.07-2.22a.1.1 0 0 0-.08-.05 16 16 0 0 0-3.89 1.36.08.08 0 0 0-.04.04C2.65 11.83 2 17.65 2.47 23.41a.1.1 0 0 0 .04.07 16.14 16.14 0 0 0 4.88 2.48.1.1 0 0 0 .1-.04c.38-.52.71-1.07 1-1.65a.1.1 0 0 0-.05-.13 10.6 10.6 0 0 1-1.53-.73.1.1 0 0 1 0-.15c.1-.08.2-.16.3-.24a.1.1 0 0 1 .1 0 11.5 11.5 0 0 0 9.88 0 .1.1 0 0 1 .1 0c.1.08.2.16.3.24a.1.1 0 0 1 0 .15c-.48.28-1 .52-1.53.73a.1.1 0 0 0-.05.13c.29.58.62 1.13 1 1.65a.1.1 0 0 0 .1.04 16.09 16.09 0 0 0 4.89-2.48.1.1 0 0 0 .04-.07c.56-6.66-.96-12.43-3.66-17.51a.08.08 0 0 0-.04-.04Z" />
+      <circle cx="8.5" cy="15" r="1.5" />
+      <circle cx="15.5" cy="15" r="1.5" />
+    </>
+  ),
+  // Carrinhos Abandonados... (cart)
+  abandoned_carts: (
+    <>
+      <circle cx="8" cy="21" r="1" />
+      <circle cx="19" cy="21" r="1" />
+      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+    </>
+  ),
+  // Simulador de Taxas (%)
+  tax_calc: (
+    <>
+      <line x1="19" x2="5" y1="5" y2="19" />
+      <circle cx="6.5" cy="6.5" r="2.5" />
+      <circle cx="17.5" cy="17.5" r="2.5" />
+    </>
+  ),
+  // MCP (chip / book)
+  mcp: (
+    <>
+      <rect width="16" height="16" x="4" y="4" rx="2" />
+      <rect width="6" height="6" x="9" y="9" rx="1" />
+      <path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2" />
+    </>
+  ),
+  // Minhas faturas (banknote)
+  invoices: (
+    <>
+      <rect width="20" height="12" x="2" y="6" rx="2" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M6 12h.01M18 12h.01" />
+    </>
+  ),
+  // Ajuda (?)
+  help: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <path d="M12 17h.01" />
+    </>
+  ),
+  // Configurações (gear)
+  settings: (
+    <>
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  // Minha conta (user outline)
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+    </>
+  ),
+  // Sair (exit door)
+  logout: (
+    <>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" x2="9" y1="12" y2="12" />
+    </>
+  ),
+  // Chevrons & UI
+  chevronRight: <path d="m9 18 6-6-6-6" />,
+  chevronDown: <path d="m6 9 6 6 6-6" />,
+  check: <path d="M20 6 9 17l-5-5" />,
+  close: (
+    <>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </>
+  ),
+  menu: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h10" />
+    </>
+  ),
+} satisfies Record<string, ReactNode>;
+
+type IconName = keyof typeof ICONS;
+
+function Icon({ name, className = '' }: { name: IconName; className?: string }) {
+  return (
+    <svg
+      className={`otter-sb-icon ${className}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.85}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {ICONS[name]}
+    </svg>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                    FUNDO COM FEIXES POLIGONAIS AZUIS                       */
+/* -------------------------------------------------------------------------- */
+function SidebarGeometricBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0 sidebar-bg-shards">
+      <svg
+        className="w-full h-full"
+        viewBox="0 0 260 1000"
+        preserveAspectRatio="none"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="sb-bg-dark" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#040612" />
+            <stop offset="50%" stopColor="#040714" />
+            <stop offset="100%" stopColor="#03050F" />
+          </linearGradient>
+
+          {/* Facet 1: Triângulo superior brilhante que cruza Dashboard e Pagamentos */}
+          <linearGradient id="shard-cone" x1="150" y1="0" x2="162" y2="230" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#1E5CFF" stopOpacity="0.95" />
+            <stop offset="60%" stopColor="#0D47E0" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#0730B0" stopOpacity="0.85" />
+          </linearGradient>
+
+          {/* Facet 2: Triângulo direito elétrico */}
+          <linearGradient id="shard-right" x1="260" y1="60" x2="162" y2="350" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#0066FF" stopOpacity="0.95" />
+            <stop offset="45%" stopColor="#1D4ED8" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#0B2B8F" stopOpacity="0.85" />
+          </linearGradient>
+
+          {/* Facet 3: Feixe angular longo que desce pelas Ferramentas e GERAL */}
+          <linearGradient id="shard-slice" x1="162" y1="230" x2="260" y2="760" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.9" />
+            <stop offset="40%" stopColor="#1D4ED8" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#082375" stopOpacity="0.8" />
+          </linearGradient>
+
+          {/* Facet 4: Feixe inferior profundo */}
+          <linearGradient id="shard-bottom-deep" x1="260" y1="700" x2="80" y2="980" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#1D4ED8" stopOpacity="0.85" />
+            <stop offset="50%" stopColor="#1E40AF" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#040D26" stopOpacity="0.95" />
+          </linearGradient>
+        </defs>
+
+        {/* Fundo base escuro azul-noite */}
+        <rect width="260" height="1000" fill="url(#sb-bg-dark)" />
+
+        {/* 1. Triângulo superior que atravessa MENU, Dashboard e Pagamentos exatamente como na foto */}
+        <polygon points="90,0 220,0 162,230" fill="url(#shard-cone)" />
+
+        {/* 2. Faceta direita elétrica */}
+        <polygon points="220,0 260,0 260,560 162,230" fill="url(#shard-right)" />
+
+        {/* 3. Feixe diagonal que desce ao longo da borda direita até o rodapé */}
+        <polygon points="162,230 260,560 260,820 85,940" fill="url(#shard-slice)" />
+
+        {/* 4. Feixe inferior */}
+        <polygon points="85,940 260,820 260,1000 0,1000 0,960" fill="url(#shard-bottom-deep)" />
+
+        {/* Estrelas / Brilhos no rodapé (como visto no screenshot 4) */}
+        <g opacity="0.5" fill="#93C5FD">
+          <path d="M115,920 L117,926 L123,928 L117,930 L115,936 L113,930 L107,928 L113,926 Z" />
+          <path d="M165,950 L166.5,954 L171,955.5 L166.5,957 L165,961 L163.5,957 L159,955.5 L163.5,954 Z" />
+          <path d="M52,945 L53,948 L56,949 L53,950 L52,953 L51,950 L48,949 L51,948 Z" />
+        </g>
+
+        {/* Silhuetas de Morcegos voando no fundo azul escuro */}
+        <g opacity="0.3" fill="#2563EB">
+          <path d="M142,935 C138,930 131,933 128,939 C126,936 124,936 122,939 C119,933 112,930 108,935 C113,941 121,942 125,945 C129,942 137,941 142,935 Z" />
+          <path d="M85,968 C82,964 77,966 74,971 C73,968 71,968 70,971 C67,966 62,964 59,968 C63,973 69,974 72,976 C75,974 81,973 85,968 Z" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            ESTRUTURA COMPLETA                              */
+/* -------------------------------------------------------------------------- */
+interface NavLeaf {
+  kind: 'link';
   name: string;
   href: string;
+  icon: IconName;
   exact?: boolean;
-  badge?: number | string;
-  icon: React.ReactNode;
 }
 
 interface NavGroup {
-  group: string;
-  items: NavItem[];
+  kind: 'group';
+  id: string;
+  name: string;
+  icon: IconName;
+  children: NavLeaf[];
 }
 
-export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEmail?: string }) {
-  const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [productCount, setProductCount] = useState<number>(0);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [approvedSalesCount, setApprovedSalesCount] = useState<number>(0);
-  const [profileAvatar, setProfileAvatar] = useState<string>('');
+type NavEntry = NavLeaf | NavGroup;
 
-  // Listen to profile avatar updates & fetch from API
-  useEffect(() => {
-    const updateAvatar = () => {
-      const saved = localStorage.getItem('otterfy_profile_avatar');
-      if (saved) setProfileAvatar(saved);
-    };
-    updateAvatar();
+interface NavSection {
+  title: string;
+  entries: NavEntry[];
+}
 
-    fetch('/api/user/profile')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.profile?.avatarImage) {
-          setProfileAvatar(d.profile.avatarImage);
-          localStorage.setItem('otterfy_profile_avatar', d.profile.avatarImage);
-        }
-      })
-      .catch(() => {});
-
-    window.addEventListener('profile_updated', updateAvatar);
-    window.addEventListener('storage', updateAvatar);
-    return () => {
-      window.removeEventListener('profile_updated', updateAvatar);
-      window.removeEventListener('storage', updateAvatar);
-    };
-  }, []);
-
-  // Listen to theme switches in real-time (Default: Light)
-  useEffect(() => {
-    const updateTheme = () => {
-      const current = (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'light';
-      setTheme(current);
-    };
-    updateTheme();
-
-    const observer = new MutationObserver(() => updateTheme());
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    window.addEventListener('storage', updateTheme);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('storage', updateTheme);
-    };
-  }, []);
-
-  const toggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(nextTheme);
-    localStorage.setItem('otterfy-theme', nextTheme);
-    document.documentElement.setAttribute('data-theme', nextTheme);
-    window.dispatchEvent(new Event('themechange'));
-    window.dispatchEvent(new Event('storage'));
-  };
-
-  useEffect(() => {
-    async function loadCount() {
-      try {
-        const res = await fetch('/api/products');
-        if (res.ok) {
-          const list = await res.json();
-          if (Array.isArray(list)) {
-            setProductCount(list.length);
-          }
-        }
-      } catch {
-        setProductCount(0);
-      }
-    }
-    loadCount();
-  }, [pathname]);
-
-  // Organized SaaS Skeleton: authentic Otterfy structure
-  const navGroups: NavGroup[] = [
+function buildSections(): NavSection[] {
+  return [
     {
-      group: 'Visão Geral',
-      items: [
+      title: 'MENU',
+      entries: [
+        { kind: 'link', name: 'Dashboard', href: '/dashboard', icon: 'dashboard', exact: true },
+        { kind: 'link', name: 'Pagamentos', href: '/dashboard/payments', icon: 'payments' },
+        { kind: 'link', name: 'SAC', href: '/dashboard/integrations', icon: 'sac' },
         {
-          name: 'Painel Geral',
-          href: '/dashboard',
-          exact: true,
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-            </svg>
-          ),
+          kind: 'group',
+          id: 'produtos',
+          name: 'Produtos',
+          icon: 'products',
+          children: [
+            { kind: 'link', name: 'Visão geral', href: '/dashboard/products', icon: 'products' },
+            { kind: 'link', name: 'Cupons', href: '/dashboard/marketing', icon: 'coupons' },
+          ],
         },
+        { kind: 'link', name: 'Loja', href: '/dashboard/checkout-preview', icon: 'loja' },
+        { kind: 'link', name: 'Quiz', href: '/dashboard/automations', icon: 'quiz' },
+        { kind: 'link', name: 'Afiliados', href: '/dashboard/affiliates', icon: 'affiliates' },
         {
-          name: 'Métricas & Relatórios',
-          href: '/dashboard/metrics',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-            </svg>
-          ),
+          kind: 'group',
+          id: 'ferramentas',
+          name: 'Ferramentas',
+          icon: 'tools',
+          children: [
+            { kind: 'link', name: 'Métricas', href: '/dashboard/metrics', icon: 'metrics' },
+            { kind: 'link', name: 'Domínios', href: '/dashboard/integrations', icon: 'domains' },
+            { kind: 'link', name: 'Gateways', href: '/dashboard/gateways', icon: 'gateways' },
+            { kind: 'link', name: 'Saques', href: '/dashboard/finances', icon: 'withdrawals' },
+            { kind: 'link', name: 'Logística', href: '/dashboard/integrations', icon: 'logistics' },
+            { kind: 'link', name: 'Sistema ERP', href: '/dashboard/integrations', icon: 'erp' },
+            { kind: 'link', name: 'Comunicações', href: '/dashboard/integrations', icon: 'communications' },
+            { kind: 'link', name: 'Webhook', href: '/dashboard/integrations', icon: 'webhook' },
+            { kind: 'link', name: 'WhatsApp', href: '/dashboard/automations', icon: 'whatsapp' },
+            { kind: 'link', name: 'Telegram Bot', href: '/dashboard/automations', icon: 'telegram' },
+            { kind: 'link', name: 'Discord Bot', href: '/dashboard/automations', icon: 'discord' },
+            { kind: 'link', name: 'Carrinhos Abandona...', href: '/dashboard/campaigns', icon: 'abandoned_carts' },
+            { kind: 'link', name: 'Simulador de Taxas', href: '/dashboard/finances', icon: 'tax_calc' },
+            { kind: 'link', name: 'MCP', href: '/dashboard/developer', icon: 'mcp' },
+          ],
         },
       ],
     },
     {
-      group: 'Vendas & Catálogo',
-      items: [
+      title: 'GERAL',
+      entries: [
+        { kind: 'link', name: 'Minhas faturas', href: '/dashboard/finances', icon: 'invoices' },
+        { kind: 'link', name: 'Ajuda', href: '/dashboard/invite', icon: 'help' },
         {
-          name: 'Meus Produtos',
-          href: '/dashboard/products',
-          badge: productCount > 0 ? productCount : undefined,
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-            </svg>
-          ),
-        },
-        {
-          name: 'Vendas & Pedidos',
-          href: '/dashboard/payments',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-6 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
-            </svg>
-          ),
-        },
-        {
-          name: 'Cupons & Ofertas',
-          href: '/dashboard/marketing',
-          badge: 'Em breve',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
-            </svg>
-          ),
-        },
-        {
-          name: 'Campanhas & Links',
-          href: '/dashboard/campaigns',
-          badge: 'Em breve',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.462a20.73 20.73 0 01-1.32-3.832m2.982-.38a20.472 20.472 0 001.693-.574m-1.693.574l2.428-1.4m0 0a20.475 20.475 0 001.693-.574m-1.693.574L16.5 12m-2.428-1.4a20.47 20.47 0 001.693-.574m-1.693.574l-2.428 1.4m4.121-1.974A20.473 20.473 0 0016.5 12m0 0a20.473 20.473 0 011.693-.574" />
-            </svg>
-          ),
-        },
-        {
-          name: 'Afiliados',
-          href: '/dashboard/affiliates',
-          badge: 'Em breve',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.999-3.199a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-            </svg>
-          ),
-        },
-      ],
-    },
-    {
-      group: 'Financeiro & Saques',
-      items: [
-        {
-          name: 'Finanças & Saldo',
-          href: '/dashboard/finances',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          ),
-        },
-        {
-          name: 'Reembolsos',
-          href: '/dashboard/refunds',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-          ),
-        },
-      ],
-    },
-    {
-      group: 'Ferramentas & Conexões',
-      items: [
-        {
-          name: 'Integrações',
-          href: '/dashboard/integrations',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
-            </svg>
-          ),
-        },
-        {
-          name: 'Integrar Gateways',
-          href: '/dashboard/gateways',
-          badge: '4 APIs',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-6 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
-            </svg>
-          ),
-        },
-        {
-          name: 'Automações de Vendas',
-          href: '/dashboard/automations',
-          badge: 'Em breve',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-            </svg>
-          ),
-        },
-        {
-          name: 'Desenvolvedor & API',
-          href: '/dashboard/developer',
-          badge: 'Em breve',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
-            </svg>
-          ),
-        },
-        {
+          kind: 'group',
+          id: 'configuracoes',
           name: 'Configurações',
-          href: '/dashboard/settings',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          ),
-        },
-        {
-          name: 'Convidar Amigos',
-          href: '/dashboard/invite',
-          badge: 'Em breve',
-          icon: (
-            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M21 11.25l-9-5.25-9 5.25m18 0l-9 5.25-9-5.25" />
-            </svg>
-          ),
+          icon: 'settings',
+          children: [
+            { kind: 'link', name: 'Minha conta', href: '/dashboard/settings', icon: 'user' },
+          ],
         },
       ],
     },
   ];
+}
 
-  const toggleMenu = () => setMobileMenuOpen(!mobileMenuOpen);
+function matchesPath(leaf: NavLeaf, path: string) {
+  return leaf.exact ? path === leaf.href : path === leaf.href || path.startsWith(`${leaf.href}/`);
+}
 
-  const isLight = theme === 'light';
+function PendingDot() {
+  const { pending } = useLinkStatus();
+  return <span aria-hidden className="otter-sb-pending" data-pending={pending ? 'true' : 'false'} />;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   SIDEBAR                                  */
+/* -------------------------------------------------------------------------- */
+export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEmail?: string }) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const [pending, setPending] = useState<{ href: string; from: string } | null>(null);
+  const [groupOverrides, setGroupOverrides] = useState<Record<string, boolean>>({});
+
+  const listRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef(new Map<string, HTMLElement>());
+  const asideRef = useRef<HTMLElement>(null);
+  const modeRef = useRef<HTMLDivElement>(null);
+  const firstMeasure = useRef(true);
+  const drag = useRef<{ x: number; y: number; dx: number; axis: 'x' | 'y' | null } | null>(null);
+
+  const sections = useMemo(() => buildSections(), []);
+
+  const leaves = useMemo(
+    () =>
+      sections.flatMap((s) => s.entries.flatMap((e) => (e.kind === 'group' ? e.children : [e]))),
+    [sections],
+  );
+
+  // Determina o item ativo
+  const routeActiveHref = useMemo(() => {
+    let best: NavLeaf | null = null;
+    for (const leaf of leaves) {
+      if (matchesPath(leaf, pathname) && (!best || leaf.href.length > best.href.length)) best = leaf;
+    }
+    if (!best && pathname === '/dashboard') {
+      return '/dashboard';
+    }
+    return best?.href ?? null;
+  }, [leaves, pathname]);
+
+  const activeHref = pending && pending.from === pathname ? pending.href : routeActiveHref;
+
+  const groupOf = useCallback(
+    (href: string | null) => {
+      if (!href) return null;
+      for (const s of sections) {
+        for (const e of s.entries) {
+          if (e.kind === 'group' && e.children.some((c) => c.href === href)) return e;
+        }
+      }
+      return null;
+    },
+    [sections],
+  );
+
+  const activeGroup = groupOf(activeHref);
+
+  const isGroupOpen = useCallback(
+    (g: NavGroup) => groupOverrides[g.id] ?? activeGroup?.id === g.id,
+    [groupOverrides, activeGroup],
+  );
+
+  const toggleGroup = (g: NavGroup) =>
+    setGroupOverrides((prev) => ({ ...prev, [g.id]: !isGroupOpen(g) }));
+
+  const activeGroupOpen = activeGroup ? isGroupOpen(activeGroup) : false;
+  const targetKey = activeGroup && !activeGroupOpen ? `group:${activeGroup.id}` : activeHref;
+  const targetLevel = activeGroup && activeGroupOpen ? 'sub' : 'top';
+
+  /* ------------------- Pill deslizante suave (0ms lag) ------------------- */
+  const measure = useCallback(() => {
+    const list = listRef.current;
+    const hl = highlightRef.current;
+    if (!list || !hl) return;
+    const el = targetKey ? itemRefs.current.get(targetKey) : undefined;
+    if (!el) {
+      hl.dataset.ready = 'false';
+      return;
+    }
+    const lr = list.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    if (firstMeasure.current) hl.dataset.instant = 'true';
+    hl.style.transform = `translate3d(${r.left - lr.left}px, ${r.top - lr.top}px, 0)`;
+    hl.style.width = `${r.width}px`;
+    hl.style.height = `${r.height}px`;
+    hl.dataset.level = targetLevel;
+    hl.dataset.ready = 'true';
+    if (firstMeasure.current) {
+      firstMeasure.current = false;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (highlightRef.current) highlightRef.current.dataset.instant = 'false';
+        });
+      });
+    }
+  }, [targetKey, targetLevel]);
+
+  useLayoutEffect(() => {
+    measure();
+  }, [measure]);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || typeof ResizeObserver === 'undefined') return;
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(measure);
+    });
+    ro.observe(list);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [measure]);
+
+  const setItemRef = (key: string) => (el: HTMLElement | null) => {
+    if (el) itemRefs.current.set(key, el);
+    else itemRefs.current.delete(key);
+  };
+
+  /* ------------------- Navegação otimista & instantânea ------------------- */
+  const handleNavigate = (href: string) => (e: ReactMouseEvent<HTMLAnchorElement>) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    if (href !== pathname) setPending({ href, from: pathname });
+    setMobileOpen(false);
+  };
+
+  const handlePrefetch = (href: string) => () => {
+    try {
+      router.prefetch(href);
+    } catch {}
+  };
+
+  /* ---------------------- Mobile Gestures & Drawer ----------------------- */
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
+
+  const onTouchStart = (e: ReactTouchEvent) => {
+    if (!mobileOpen) return;
+    const t = e.touches[0];
+    drag.current = { x: t.clientX, y: t.clientY, dx: 0, axis: null };
+  };
+
+  const onTouchMove = (e: ReactTouchEvent) => {
+    const d = drag.current;
+    const aside = asideRef.current;
+    if (!d || !aside) return;
+    const t = e.touches[0];
+    const dx = t.clientX - d.x;
+    const dy = t.clientY - d.y;
+    if (!d.axis) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      d.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (d.axis === 'x') aside.dataset.dragging = 'true';
+    }
+    if (d.axis !== 'x') return;
+    d.dx = Math.min(0, dx);
+    aside.style.transform = `translate3d(${d.dx}px, 0, 0)`;
+  };
+
+  const onTouchEnd = () => {
+    const d = drag.current;
+    const aside = asideRef.current;
+    drag.current = null;
+    if (!d || !aside || d.axis !== 'x') return;
+    aside.dataset.dragging = 'false';
+    aside.style.transform = '';
+    if (d.dx < -70) setMobileOpen(false);
+  };
+
+  /* ---------------------- Selector Vendedor / Afiliado -------------------- */
+  const panelMode: 'seller' | 'affiliate' = pathname.startsWith('/dashboard/become-affiliate')
+    ? 'affiliate'
+    : 'seller';
+
+  useEffect(() => {
+    if (!modeMenuOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (modeRef.current && !modeRef.current.contains(e.target as Node)) setModeMenuOpen(false);
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [modeMenuOpen]);
+
+  const switchMode = (mode: 'seller' | 'affiliate') => {
+    setModeMenuOpen(false);
+    const href = mode === 'seller' ? '/dashboard' : '/dashboard/become-affiliate';
+    if (mode !== panelMode) {
+      setPending({ href, from: pathname });
+      setMobileOpen(false);
+      router.push(href);
+    }
+  };
+
+  /* ------------------------------- Render -------------------------------- */
+  const renderLeaf = (leaf: NavLeaf, sub = false) => {
+    const isActive = activeHref === leaf.href;
+    return (
+      <Link
+        key={leaf.name}
+        href={leaf.href}
+        ref={setItemRef(leaf.href)}
+        onClick={handleNavigate(leaf.href)}
+        onMouseEnter={handlePrefetch(leaf.href)}
+        onTouchStart={handlePrefetch(leaf.href)}
+        data-active={isActive ? 'true' : 'false'}
+        aria-current={isActive ? 'page' : undefined}
+        prefetch={true}
+        className={`otter-sb-item ${sub ? 'otter-sb-item--sub' : ''}`}
+      >
+        <Icon name={leaf.icon} />
+        <span className="truncate">{leaf.name}</span>
+        <PendingDot />
+      </Link>
+    );
+  };
 
   return (
     <>
-      {/* Mobile Top Bar: Apenas os 3 tracinhos na esquerda e logo Otterfy 100% centralizado */}
-      <div className={`md:hidden w-full flex items-center justify-between p-3 px-4 border-b transition-colors z-40 ${
-        isLight ? 'bg-white border-[#E2E8F0]' : 'bg-[#100E15] border-[#1C1924]'
-      }`}>
-        {/* Left Side: Apenas os 3 tracinhos (Hamburger) */}
-        <div className="flex items-center">
-          <button 
-            onClick={toggleMenu}
-            aria-label="Abrir Menu Lateral"
-            className={`w-9 h-9 rounded-xl focus:outline-none flex items-center justify-center cursor-pointer transition-colors border ${
-              isLight
-                ? 'bg-[#F8F7FC] border-[#E2E8F0] text-[#0F172A] hover:border-violet-500/50'
-                : 'bg-[#171420] border-[#262135] text-[#F8FAFC] hover:border-violet-500/50'
-            }`}
+      {/* Mobile Top Header: Menu hambúrguer à esquerda, Logo Otterfy centralizado */}
+      <div className="otter-mobile-bar md:hidden">
+        <div className="flex items-center justify-between h-14 px-3.5">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Abrir menu"
+            aria-expanded={mobileOpen}
+            className="w-10 h-10 rounded-xl flex items-center justify-center border border-[var(--sb-control-border)] bg-[var(--sb-control-bg)] text-[#FFFFFF] active:scale-95 transition-transform duration-150"
           >
-            {mobileMenuOpen ? (
-              <svg className="w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              {ICONS.menu}
+            </svg>
+          </button>
+
+          <Link href="/dashboard" className="flex items-center gap-2" onClick={handleNavigate('/dashboard')}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Otterfy" className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+            <span className="text-[17px] font-bold tracking-tight text-[#FFFFFF]">
+              Otter<span className="text-[#3B82F6]">fy</span>
+            </span>
+          </Link>
+
+          <div className="w-10" />
+        </div>
+      </div>
+
+      {/* Backdrop overlay no mobile */}
+      <div
+        className="otter-drawer-overlay md:hidden"
+        data-open={mobileOpen ? 'true' : 'false'}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* Sidebar Principal (Design exato da foto do usuário) */}
+      <aside
+        ref={asideRef}
+        className="otter-sidebar md:w-[260px] md:min-w-[260px] md:shrink-0 flex flex-col h-full md:h-auto"
+        data-open={mobileOpen ? 'true' : 'false'}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
+        aria-label="Menu lateral"
+      >
+        {/* Feixes e polígonos angulares azuis elétricos */}
+        <SidebarGeometricBackground />
+
+        {/* Topo no Mobile: Logo + Botão Fechar */}
+        <div className="md:hidden flex items-center justify-between px-4 pt-3.5 pb-1 relative z-10">
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Otterfy" className="w-6 h-6 object-contain" />
+            <span className="text-[16px] font-bold text-white tracking-tight">
+              Otter<span className="text-[#3B82F6]">fy</span>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white active:scale-90 transition-transform"
+            aria-label="Fechar menu"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              {ICONS.close}
+            </svg>
           </button>
         </div>
 
-        {/* Center: Logo Otterfy 100% centralizado no mobile / ipad / tablet */}
-        <div className="flex-1 flex items-center justify-center">
-          <Link href="/dashboard" className="flex items-center gap-2 group">
-            <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-              <img src="/logo.png" alt="Otterfy" className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
-            </div>
-            <span className={`text-lg font-black tracking-tight ${isLight ? 'text-[#0F172A]' : 'text-[#F8FAFC]'}`}>
-              Otter<span className="text-[#7C3AED]">fy</span>
-            </span>
-            <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-600 border border-violet-500/20">
-              BETA
-            </span>
-          </Link>
-        </div>
-
-        {/* Right side balance spacer: Mantém o logo no centro absoluto */}
-        <div className="w-9" />
-      </div>
-
-      {/* Mobile Overlay */}
-      {mobileMenuOpen && (
-        <div 
-          className="md:hidden fixed inset-0 bg-black/80 backdrop-blur-md z-[80] transition-opacity animate-in fade-in duration-200" 
-          onClick={toggleMenu}
-        />
-      )}
-
-      {/* Sidebar: Fixed 260px on Desktop, Refined High-End SaaS Identity */}
-      <aside className={`
-        fixed md:static inset-y-0 left-0 z-[90]
-        w-[260px] min-w-[260px] max-w-[260px]
-        flex flex-col justify-between
-        transition-all duration-300 ease-in-out shadow-2xl md:shadow-none
-        border-r
-        ${isLight ? 'bg-white border-[#E2E8F0] text-[#0F172A]' : 'bg-[#100E15] border-[#1C1924] text-[#F8FAFC]'}
-        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
-        {/* Top: Brand Header & Quick Action */}
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Brand Header */}
-          <div className={`p-4 px-5 border-b flex items-center justify-between transition-colors ${
-            isLight ? 'bg-[#FAFAFD] border-[#E2E8F0]' : 'bg-[#121017] border-[#1C1924]'
-          }`}>
-            <Link href="/dashboard" className="flex items-center gap-3 group">
-              {/* Distinctive Otterfy Mascot Logo */}
-              <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
-                <img
-                  src="/logo.png"
-                  alt="Otterfy Logo"
-                  className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(124,58,237,0.6)] group-hover:scale-105 transition-transform duration-200"
-                />
-              </div>
-
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className={`text-lg font-black tracking-tight ${isLight ? 'text-[#0F172A]' : 'text-[#F8FAFC]'}`}>
-                    Otter<span className="text-[#7C3AED]">fy</span>
-                  </span>
-                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-violet-500/10 text-violet-600 border border-violet-500/20">
-                    BETA
-                  </span>
-                </div>
-                <span className={`text-[10px] font-medium tracking-tight ${isLight ? 'text-[#64748B]' : 'text-[#64748B]'}`}>
-                  Checkout Moçambique
-                </span>
-              </div>
-            </Link>
-
-            {/* Mobile Close Button */}
+        {/* Topo: Card "Vendedor" (como na primeira linha da foto) */}
+        <div className="relative z-10 px-3.5 pt-3 pb-2">
+          <div ref={modeRef} className="relative">
             <button
               type="button"
-              onClick={toggleMenu}
-              className="md:hidden p-1.5 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-              aria-label="Fechar menu lateral"
+              className="otter-sb-control"
+              onClick={() => setModeMenuOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={modeMenuOpen}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <Icon name={panelMode === 'seller' ? 'store' : 'affiliates'} />
+              <span className="flex-1 text-left">{panelMode === 'seller' ? 'Vendedor' : 'Afiliado'}</span>
+              <svg
+                className="w-4 h-4 text-[#94A3B8] transition-transform duration-300"
+                style={{ transform: modeMenuOpen ? 'rotate(180deg)' : undefined }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {ICONS.chevronDown}
               </svg>
             </button>
-          </div>
 
-          {/* Quick Action Button: Novo Produto */}
-          <div className="px-3 pt-3.5 pb-1">
-            <Link
-              href="/dashboard/products/new"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl text-xs font-semibold transition-all shadow-sm group border ${
-                isLight
-                  ? 'bg-[#F5F3FA] hover:bg-[#EDE9FE] border-[#E2E8F0] text-[#7C3AED]'
-                  : 'bg-[#171420] hover:bg-[#1D1929] border-[#262135] hover:border-violet-500/40 text-violet-300 hover:text-white'
-              }`}
-            >
-              <svg className="w-3.5 h-3.5 text-violet-500 group-hover:rotate-90 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              <span>Novo Produto</span>
-            </Link>
-          </div>
-
-          {/* Navigation with Delineated Gray Contour Box for Each Module */}
-          <nav className="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
-            {navGroups.map((group) => (
-              <div 
-                key={group.group} 
-                className={`rounded-2xl border p-2 space-y-1 transition-all ${
-                  isLight 
-                    ? 'bg-[#FAFAFD] border-[#E2E8F0] shadow-xs' 
-                    : 'bg-[#13111A]/60 border-[#1E1B26] shadow-xs'
-                }`}
-              >
-                {/* Refined Section Header with subtle contour separation */}
-                <div className={`px-2 pb-1.5 pt-0.5 border-b flex items-center justify-between ${
-                  isLight ? 'border-[#E2E8F0]' : 'border-[#1E1B26]/80'
-                }`}>
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${
-                    isLight ? 'text-[#94A3B8]' : 'text-[#64748B]'
-                  }`}>
-                    {group.group}
+            {/* Menu suspenso de alternância de painel */}
+            <div className="otter-sb-menu" data-open={modeMenuOpen ? 'true' : 'false'} role="listbox">
+              {(
+                [
+                  { mode: 'seller', label: 'Vendedor', hint: 'Painel do produtor', icon: 'store' },
+                  { mode: 'affiliate', label: 'Afiliado', hint: 'Promover produtos', icon: 'affiliates' },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.mode}
+                  type="button"
+                  role="option"
+                  aria-selected={panelMode === opt.mode}
+                  onClick={() => switchMode(opt.mode)}
+                  className="otter-sb-item !h-auto py-2.5"
+                >
+                  <Icon name={opt.icon} />
+                  <span className="flex flex-col leading-tight">
+                    <span>{opt.label}</span>
+                    <span className="text-[11.5px] font-normal text-[#94A3B8]">{opt.hint}</span>
                   </span>
-                </div>
+                  {panelMode === opt.mode && (
+                    <svg className="w-4 h-4 ml-auto text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round">
+                      {ICONS.check}
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
-                {/* Items within the contoured box */}
-                <div className="space-y-0.5 pt-1">
-                  {group.items.map((item) => {
-                    const isActive = item.exact
-                      ? pathname === item.href
-                      : pathname === item.href || pathname.startsWith(`${item.href}/`);
+        {/* Lista de Navegação com Pill Deslizante Fluido */}
+        <nav className="otter-sb-scroll relative z-10 flex-1 min-h-0 overflow-y-auto px-3 pb-6">
+          <div ref={listRef} className="relative">
+            {/* Pill indicador suave */}
+            <div ref={highlightRef} className="otter-sb-highlight" aria-hidden="true" data-ready="false" />
 
+            {sections.map((section, si) => (
+              <div key={section.title} className={si === 0 ? 'pt-2' : 'pt-5'}>
+                {/* Cabeçalho da Secção: MENU / GERAL */}
+                <p className="otter-sb-label px-3 pb-2">{section.title}</p>
+
+                <div className="flex flex-col gap-0.5">
+                  {section.entries.map((entry) => {
+                    if (entry.kind === 'link') return renderLeaf(entry);
+
+                    const open = isGroupOpen(entry);
+                    const containsActive = activeGroup?.id === entry.id;
                     return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`
-                          group relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-150
-                          ${isActive
-                            ? isLight
-                              ? 'bg-violet-600/10 text-violet-700 font-semibold'
-                              : 'bg-gradient-to-r from-violet-600/15 via-violet-600/5 to-transparent text-[#F8FAFC]'
-                            : isLight
-                              ? 'text-[#475569] hover:bg-[#F5F3FA] hover:text-[#0F172A]'
-                              : 'text-[#94A3B8] hover:bg-[#16141D] hover:text-[#F8FAFC]'
-                          }
-                        `}
-                      >
-                        {/* Glow left laser accent bar on active */}
-                        {isActive && (
-                          <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-gradient-to-b from-violet-400 to-violet-600 shadow-[0_0_10px_rgba(124,58,237,0.6)]" />
-                        )}
+                      <div key={entry.id}>
+                        {/* Botão do grupo expansível */}
+                        <button
+                          type="button"
+                          ref={setItemRef(`group:${entry.id}`)}
+                          onClick={() => toggleGroup(entry)}
+                          aria-expanded={open}
+                          data-active={containsActive && !open ? 'true' : 'false'}
+                          className="otter-sb-item"
+                        >
+                          <Icon name={entry.icon} />
+                          <span className="truncate">{entry.name}</span>
+                          <svg
+                            className="otter-sb-chevron"
+                            style={{ transform: open ? 'rotate(90deg)' : undefined }}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            {ICONS.chevronRight}
+                          </svg>
+                        </button>
 
-                        <div className="flex items-center gap-2.5 pl-1">
-                          <span className={`transition-colors ${isActive ? 'text-[#7C3AED]' : isLight ? 'text-[#64748B] group-hover:text-violet-600' : 'text-[#64748B] group-hover:text-violet-400'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={isActive ? (isLight ? 'font-bold text-violet-800' : 'font-semibold text-white') : ''}>
-                            {item.name}
-                          </span>
+                        {/* Accordion suave */}
+                        <div className="otter-collapse" data-open={open ? 'true' : 'false'}>
+                          <div>
+                            <div className="flex flex-col gap-0.5 pt-1 pl-4" inert={!open}>
+                              {entry.children.map((child) => renderLeaf(child, true))}
+                            </div>
+                          </div>
                         </div>
-
-                        {item.badge !== undefined && (
-                          <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-md border ${
-                            item.badge === 'Em breve'
-                              ? isLight
-                                ? 'bg-amber-50 border-amber-200 text-amber-700 font-sans text-[9px]'
-                                : 'bg-amber-500/10 border-amber-500/30 text-amber-300 font-sans text-[9px]'
-                              : isActive 
-                                ? isLight 
-                                  ? 'bg-violet-100 border-violet-300 text-violet-800' 
-                                  : 'bg-violet-950/80 border-violet-500/40 text-violet-300' 
-                                : isLight
-                                  ? 'bg-[#F1F0F7] border-[#E2E8F0] text-[#64748B]'
-                                  : 'bg-[#181522] border-[#252033] text-[#818CF8]'
-                          }`}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
+                      </div>
                     );
                   })}
+
+                  {/* Botão Sair na secção GERAL */}
+                  {section.title === 'GERAL' && (
+                    <form action={logoutAction}>
+                      <button type="submit" className="otter-sb-item" title={`Terminar sessão (${userEmail})`}>
+                        <Icon name="logout" />
+                        <span>Sair</span>
+                      </button>
+                    </form>
+                  )}
                 </div>
               </div>
             ))}
-          </nav>
-        </div>
-
-        {/* Bottom: Gateway Status & User Workspace */}
-        <div className={`p-3 border-t space-y-2.5 transition-colors ${
-          isLight ? 'bg-[#FAFAFD] border-[#E2E8F0]' : 'bg-[#0E0C13] border-[#1C1924]'
-        }`}>
-          {/* Zenofy Gateway Pulse Indicator */}
-          <div className={`px-2.5 py-1.5 rounded-xl border flex items-center justify-between text-[10px] ${
-            isLight ? 'bg-white border-[#E2E8F0]' : 'bg-[#14121B] border-[#1E1B27]'
-          }`}>
-            <div className="flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <span className={`font-medium ${isLight ? 'text-[#475569]' : 'text-[#94A3B8]'}`}>Gateway Zenofy</span>
-            </div>
-            <span className="text-emerald-500 font-bold uppercase tracking-wider text-[9px]">Ativo</span>
           </div>
-
-          {/* User Workspace Profile Card */}
-          <div className={`flex items-center justify-between p-2 rounded-xl border ${
-            isLight ? 'bg-white border-[#E2E8F0]' : 'bg-[#14121B] border-[#1E1B27]'
-          }`}>
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-[11px] font-bold text-violet-500 shrink-0 overflow-hidden shadow-xs">
-                {profileAvatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profileAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  'PH'
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-xs font-semibold truncate ${isLight ? 'text-[#0F172A]' : 'text-[#F8FAFC]'}`}>Pedro Hill</p>
-                <p className="text-[10px] text-violet-600 dark:text-violet-400 font-medium truncate flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                  Administrador
-                </p>
-              </div>
-            </div>
-
-            {/* Link to Integrations / Settings */}
-            <Link
-              href="/dashboard/integrations"
-              title="Configurações & Chaves API"
-              className={`p-1.5 rounded-lg transition-colors ${
-                isLight ? 'text-[#64748B] hover:text-violet-600 hover:bg-[#F1F0F7]' : 'text-[#64748B] hover:text-violet-400 hover:bg-[#1E1A29]'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-              </svg>
-            </Link>
-          </div>
-        </div>
+        </nav>
       </aside>
     </>
   );
