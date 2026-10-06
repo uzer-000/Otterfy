@@ -443,12 +443,13 @@ export default function CustomizableWidgets({
 
         return (
           <div key={block.id} className="space-y-6 w-full">
-            {/* DUAS CAIXAS NO TOPO:
-                1) TOTAL DE VENDAS APROVADAS (ocupa do Hoje até Esta Semana)
-                2) PRÓXIMO PRÊMIO DECRESCENTE (ao lado, com o mesmo tamanho, ocupando de Este Mês até Ticket Médio) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* TRÊS CAIXAS NO TOPO:
+                1) TOTAL DE VENDAS APROVADAS
+                2) VOLUME TOTAL (TOTAL REVENUE)
+                3) PRÓXIMA CONQUISTA / MARCO */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Widget 1: Total de Vendas Aprovadas */}
-              <div className="bg-[#121016] border border-[#1E1B26] hover:border-violet-500/40 transition-all rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between group">
+              <div className="bg-[#121016] border border-[#1E1B26] hover:border-emerald-500/40 transition-all rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between group">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -472,18 +473,48 @@ export default function CustomizableWidgets({
 
                 <div className="flex items-center justify-between text-xs pt-4 border-t border-[#1E1B26] text-[#94A3B8] mt-2">
                   <span>
-                    Volume: <strong className="text-emerald-400 font-mono font-bold">{formatMZN(totalRevenue)}</strong>
+                    Conversão: <strong className="text-emerald-400 font-mono font-bold">{conversionRate}%</strong>
                   </span>
-                  <span className="text-violet-400 font-semibold">
-                    {conversionRate}% conversão
+                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> 100% liquidação
                   </span>
                 </div>
               </div>
 
-              {/* Widget 2: Faltam quanto para o próximo prêmio (decrescente) */}
+              {/* Widget 2: Volume Total (Total Revenue) */}
+              <div className="bg-[#121016] border border-[#1E1B26] hover:border-violet-500/40 transition-all rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between group">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-violet-400 animate-pulse" />
+                    <h3 className="text-[#94A3B8] text-xs font-extrabold uppercase tracking-wider group-hover:text-[#F8FAFC] transition-colors">
+                      Volume Total (Faturamento)
+                    </h3>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black font-mono">
+                    MT
+                  </div>
+                </div>
+
+                <div className="my-2 flex items-baseline gap-2.5">
+                  <span className="text-3xl sm:text-4xl font-black text-emerald-400 tracking-tight font-mono">
+                    {formatMZN(totalRevenue)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-4 border-t border-[#1E1B26] text-[#94A3B8] mt-2">
+                  <span>
+                    Ticket Médio: <strong className="text-violet-400 font-mono font-bold">{formatMZN(averageTicket)}</strong>
+                  </span>
+                  <span className="text-[#94A3B8]">
+                    {approvedCount} {approvedCount === 1 ? 'transação' : 'transações'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Widget 3: Próxima Conquista (Faltam quanto para o próximo prêmio) */}
               <div 
                 onClick={() => setAwardsModalOpen(true)}
-                className="bg-[#121016] border border-[#1E1B26] hover:border-violet-500/50 transition-all rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between cursor-pointer group"
+                className="bg-[#121016] border border-[#1E1B26] hover:border-violet-500/50 transition-all rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between cursor-pointer group md:col-span-2 lg:col-span-1"
                 title="Clique para ver os marcos e placas oficiais"
               >
                 <div className="flex items-center justify-between mb-3">
