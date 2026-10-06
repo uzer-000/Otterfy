@@ -306,86 +306,7 @@ function Icon({ name, className = '' }: { name: IconName; className?: string }) 
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*                    FUNDO COM FEIXES POLIGONAIS AZUIS                       */
-/* -------------------------------------------------------------------------- */
-function SidebarGeometricBackground() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0 sidebar-bg-shards">
-      <svg
-        className="w-full h-full"
-        viewBox="0 0 260 1000"
-        preserveAspectRatio="none"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <linearGradient id="sb-bg-dark" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#040612" />
-            <stop offset="50%" stopColor="#040714" />
-            <stop offset="100%" stopColor="#03050F" />
-          </linearGradient>
 
-          {/* Facet 1: Triângulo superior brilhante que cruza Dashboard e Pagamentos */}
-          <linearGradient id="shard-cone" x1="150" y1="0" x2="162" y2="230" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#1E5CFF" stopOpacity="0.95" />
-            <stop offset="60%" stopColor="#0D47E0" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#0730B0" stopOpacity="0.85" />
-          </linearGradient>
-
-          {/* Facet 2: Triângulo direito elétrico */}
-          <linearGradient id="shard-right" x1="260" y1="60" x2="162" y2="350" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#0066FF" stopOpacity="0.95" />
-            <stop offset="45%" stopColor="#1D4ED8" stopOpacity="0.95" />
-            <stop offset="100%" stopColor="#0B2B8F" stopOpacity="0.85" />
-          </linearGradient>
-
-          {/* Facet 3: Feixe angular longo que desce pelas Ferramentas e GERAL */}
-          <linearGradient id="shard-slice" x1="162" y1="230" x2="260" y2="760" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.9" />
-            <stop offset="40%" stopColor="#1D4ED8" stopOpacity="0.95" />
-            <stop offset="100%" stopColor="#082375" stopOpacity="0.8" />
-          </linearGradient>
-
-          {/* Facet 4: Feixe inferior profundo */}
-          <linearGradient id="shard-bottom-deep" x1="260" y1="700" x2="80" y2="980" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#1D4ED8" stopOpacity="0.85" />
-            <stop offset="50%" stopColor="#1E40AF" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#040D26" stopOpacity="0.95" />
-          </linearGradient>
-        </defs>
-
-        {/* Fundo base escuro azul-noite */}
-        <rect width="260" height="1000" fill="url(#sb-bg-dark)" />
-
-        {/* 1. Triângulo superior que atravessa MENU, Dashboard e Pagamentos exatamente como na foto */}
-        <polygon points="90,0 220,0 162,230" fill="url(#shard-cone)" />
-
-        {/* 2. Faceta direita elétrica */}
-        <polygon points="220,0 260,0 260,560 162,230" fill="url(#shard-right)" />
-
-        {/* 3. Feixe diagonal que desce ao longo da borda direita até o rodapé */}
-        <polygon points="162,230 260,560 260,820 85,940" fill="url(#shard-slice)" />
-
-        {/* 4. Feixe inferior */}
-        <polygon points="85,940 260,820 260,1000 0,1000 0,960" fill="url(#shard-bottom-deep)" />
-
-        {/* Estrelas / Brilhos no rodapé (como visto no screenshot 4) */}
-        <g opacity="0.5" fill="#93C5FD">
-          <path d="M115,920 L117,926 L123,928 L117,930 L115,936 L113,930 L107,928 L113,926 Z" />
-          <path d="M165,950 L166.5,954 L171,955.5 L166.5,957 L165,961 L163.5,957 L159,955.5 L163.5,954 Z" />
-          <path d="M52,945 L53,948 L56,949 L53,950 L52,953 L51,950 L48,949 L51,948 Z" />
-        </g>
-
-        {/* Silhuetas de Morcegos voando no fundo azul escuro */}
-        <g opacity="0.3" fill="#2563EB">
-          <path d="M142,935 C138,930 131,933 128,939 C126,936 124,936 122,939 C119,933 112,930 108,935 C113,941 121,942 125,945 C129,942 137,941 142,935 Z" />
-          <path d="M85,968 C82,964 77,966 74,971 C73,968 71,968 70,971 C67,966 62,964 59,968 C63,973 69,974 72,976 C75,974 81,973 85,968 Z" />
-        </g>
-      </svg>
-    </div>
-  );
-}
 
 /* -------------------------------------------------------------------------- */
 /*                            ESTRUTURA COMPLETA                              */
@@ -758,8 +679,7 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
         onTouchCancel={onTouchEnd}
         aria-label="Menu lateral"
       >
-        {/* Feixes e polígonos angulares azuis elétricos */}
-        <SidebarGeometricBackground />
+
 
         {/* Topo no Mobile: Logo + Botão Fechar */}
         <div className="md:hidden flex items-center justify-between px-4 pt-3.5 pb-1 relative z-10">

@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+Otterfy/
 
 # debug
 npm-debug.log*
