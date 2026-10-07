@@ -53,7 +53,7 @@ export default function HourlyCartsLineChart({
   const taxaMedia = totalIniciados > 0 ? ((totalAprovados / totalIniciados) * 100).toFixed(1) : '0';
 
   return (
-    <div className="bg-[#121016] border border-[#1E1B26] rounded-2xl p-6 flex flex-col justify-between shadow-xl w-full">
+    <div className="otter-widget-card rounded-2xl p-6 flex flex-col justify-between shadow-xl w-full">
       {/* Top Header: Title, 24h summary badges & interactive toggles */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div>

@@ -435,6 +435,47 @@ label {
 }
 
 /* ==========================================================================
+   OTTERFY WIDGET CARD GRADIENT (Ambient Fade Grading)
+   Gradiente suave e gradual no topo de cada widget da Otterfy (inspirado no print).
+   Destaque roxo/violeta signature, com calibragem premium para Dark & Light mode.
+   ========================================================================== */
+.otter-widget-card {
+  position: relative;
+  background-color: var(--bg-surface, #121016);
+  border: 1px solid var(--border-color, #1E1B26);
+  border-top-color: rgba(167, 139, 250, 0.42) !important;
+  background-image: 
+    radial-gradient(120% 90% at 50% 0%, rgba(139, 92, 246, 0.22) 0%, rgba(124, 58, 237, 0.08) 38%, transparent 75%),
+    linear-gradient(180deg, rgba(124, 58, 237, 0.12) 0%, rgba(124, 58, 237, 0.02) 28%, transparent 55%);
+  background-repeat: no-repeat;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(167, 139, 250, 0.18);
+  transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease;
+}
+
+.otter-widget-card:hover {
+  border-color: rgba(124, 58, 237, 0.45);
+  border-top-color: rgba(196, 181, 253, 0.72) !important;
+  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(196, 181, 253, 0.3), 0 0 25px -4px rgba(124, 58, 237, 0.22);
+}
+
+/* Light Mode: Iluminação sutil e limpa sobre fundo branco */
+[data-theme="light"] .otter-widget-card {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  border-top-color: rgba(124, 58, 237, 0.45) !important;
+  background-image: 
+    radial-gradient(120% 90% at 50% 0%, rgba(139, 92, 246, 0.13) 0%, rgba(124, 58, 237, 0.035) 40%, transparent 75%),
+    linear-gradient(180deg, rgba(237, 233, 254, 0.8) 0%, rgba(245, 243, 255, 0.3) 25%, transparent 55%) !important;
+  box-shadow: 0 2px 12px -2px rgba(124, 58, 237, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+[data-theme="light"] .otter-widget-card:hover {
+  border-color: rgba(124, 58, 237, 0.4) !important;
+  border-top-color: rgba(124, 58, 237, 0.8) !important;
+  box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.16), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+
+/* ==========================================================================
    SIDEBAR — Otterfy Clean Fintech (sem shards/imagens, alto contraste)
    ========================================================================== */
 .otter-sidebar {

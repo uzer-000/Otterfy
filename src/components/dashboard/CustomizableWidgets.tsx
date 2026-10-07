@@ -315,7 +315,7 @@ export default function CustomizableWidgets({
           <Link
             key={id}
             href="/dashboard/payments?status=PENDING"
-            className="bg-[#121016] border border-[#1E1B26] hover:border-amber-500/40 transition-all rounded-2xl p-6 relative overflow-hidden group block shadow-sm"
+            className="otter-widget-card rounded-2xl p-6 relative overflow-hidden group block shadow-sm"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-1.5">
@@ -348,7 +348,7 @@ export default function CustomizableWidgets({
 
       case 'lost':
         return (
-          <div key={id} className="bg-[#121016] border border-[#1E1B26] rounded-2xl p-6 relative overflow-hidden">
+          <div key={id} className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[#94A3B8] text-sm font-semibold">Vendas Perdidas</h3>
               <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center">
@@ -373,7 +373,7 @@ export default function CustomizableWidgets({
 
       case 'refunds':
         return (
-          <div key={id} className="bg-[#121016] border border-[#1E1B26] rounded-2xl p-6 relative overflow-hidden">
+          <div key={id} className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[#94A3B8] text-sm font-semibold">Reembolsos</h3>
               <div className="w-9 h-9 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
@@ -398,7 +398,7 @@ export default function CustomizableWidgets({
 
       case 'ticket':
         return (
-          <div key={id} className="bg-[#121016] border border-[#1E1B26] rounded-2xl p-6 relative overflow-hidden">
+          <div key={id} className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[#94A3B8] text-sm font-semibold">Valor Médio por Compra</h3>
               <div className="w-9 h-9 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
@@ -449,7 +449,7 @@ export default function CustomizableWidgets({
                 3) PRÓXIMA CONQUISTA / MARCO */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Widget 1: Total de Vendas Aprovadas */}
-              <div className="bg-[#121016] border border-[#1E1B26] hover:border-emerald-500/40 transition-all rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between group">
+              <div className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between group">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -482,7 +482,7 @@ export default function CustomizableWidgets({
               </div>
 
               {/* Widget 2: Volume Total (Total Revenue) */}
-              <div className="bg-[#121016] border border-[#1E1B26] hover:border-violet-500/40 transition-all rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between group">
+              <div className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between group">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-violet-400 animate-pulse" />
@@ -514,7 +514,7 @@ export default function CustomizableWidgets({
               {/* Widget 3: Próxima Conquista (Faltam quanto para o próximo prêmio) */}
               <div 
                 onClick={() => setAwardsModalOpen(true)}
-                className="bg-[#121016] border border-[#1E1B26] hover:border-violet-500/50 transition-all rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between cursor-pointer group md:col-span-2 lg:col-span-1"
+                className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between cursor-pointer group md:col-span-2 lg:col-span-1"
                 title="Clique para ver os marcos e placas oficiais"
               >
                 <div className="flex items-center justify-between mb-3">

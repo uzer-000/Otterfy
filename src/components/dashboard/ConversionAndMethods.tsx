@@ -31,7 +31,7 @@ export default function ConversionAndMethods({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Bloco 1 — Conversão */}
-      <div className="bg-[#121016] border border-[#1E1B26] rounded-2xl p-6 flex flex-col justify-between">
+      <div className="otter-widget-card rounded-2xl p-6 flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8]">
@@ -80,7 +80,7 @@ export default function ConversionAndMethods({
       </div>
 
       {/* Bloco 2 — Métodos de Pagamento */}
-      <div className="bg-[#121016] border border-[#1E1B26] rounded-2xl p-6 flex flex-col justify-between">
+      <div className="otter-widget-card rounded-2xl p-6 flex flex-col justify-between">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-bold text-[#F8FAFC]">Vendas por Método</h3>

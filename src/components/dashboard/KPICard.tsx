@@ -14,7 +14,7 @@ export default function KPICard({ title, revenue, salesCount, percentChange, ico
   const isNegative = percentChange < 0;
   
   return (
-    <div className="bg-[#121016] border border-[#1E1B26] hover:border-[#2E283A] transition-all rounded-2xl p-6 relative overflow-hidden group">
+    <div className="otter-widget-card rounded-2xl p-6 relative overflow-hidden group">
       {/* Top Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[#94A3B8] text-sm font-semibold">{title}</h3>

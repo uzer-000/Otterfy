@@ -73,7 +73,7 @@ export default function CensoredTransactionsTable({ transactions }: CensoredTran
         </div>
       </div>
 
-      <div className="bg-[#121016] border border-[#1E1B26] rounded-2xl overflow-hidden shadow-xl">
+      <div className="otter-widget-card rounded-2xl overflow-hidden shadow-xl">
         {displayedTransactions.length === 0 ? (
           <div className="p-12 text-center text-[#94A3B8]">
             Nenhuma transação recente encontrada.
@@ -81,7 +81,7 @@ export default function CensoredTransactionsTable({ transactions }: CensoredTran
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#0F0E14] text-[#94A3B8] border-b border-[#1E1B26]">
+              <thead className="bg-[#0F0E14]/70 backdrop-blur-sm text-[#94A3B8] border-b border-[#1E1B26]">
                 <tr>
                   <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Referência</th>
                   <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Produto</th>

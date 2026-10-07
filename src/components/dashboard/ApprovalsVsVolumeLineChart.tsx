@@ -43,7 +43,7 @@ export default function ApprovalsVsVolumeLineChart({ data = defaultData }: Appro
   const [showVolume, setShowVolume] = useState(true);
 
   return (
-    <div className="bg-[#121016] border border-[#1E1B26] rounded-2xl p-6 flex flex-col justify-between">
+    <div className="otter-widget-card rounded-2xl p-6 flex flex-col justify-between">
       {/* Header with Title and Interactive Toggles in Top Right */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
         <div>

@@ -27,7 +27,7 @@ const defaultWeeklyData = [
 
 export default function WeeklySalesBarChart({ data = defaultWeeklyData }: WeeklySalesBarChartProps) {
   return (
-    <div className="bg-[#121016] border border-[#1E1B26] rounded-2xl p-6 flex flex-col justify-between">
+    <div className="otter-widget-card rounded-2xl p-6 flex flex-col justify-between">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-lg font-bold text-[#F8FAFC]">Vendas por Dia</h3>
