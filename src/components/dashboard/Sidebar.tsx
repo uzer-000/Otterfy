@@ -709,8 +709,8 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
         </div>
 
         {/* Topo: Card "Vendedor" (como na primeira linha da foto) */}
-        <div className="relative z-10 px-3.5 pt-3 pb-2">
-          <div ref={modeRef} className="relative">
+        <div className={`relative px-3.5 pt-3 pb-2 transition-all ${modeMenuOpen ? 'z-50' : 'z-20'}`}>
+          <div ref={modeRef} className="relative z-50">
             <button
               type="button"
               className="otter-sb-control"
@@ -734,8 +734,12 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
               </svg>
             </button>
 
-            {/* Menu suspenso de alternância de painel */}
-            <div className="otter-sb-menu" data-open={modeMenuOpen ? 'true' : 'false'} role="listbox">
+            {/* Menu suspenso de alternância de painel (Opaco, z-50, sem transparência) */}
+            <div
+              className="otter-sb-menu z-50 shadow-2xl"
+              data-open={modeMenuOpen ? 'true' : 'false'}
+              role="listbox"
+            >
               {(
                 [
                   { mode: 'seller', label: 'Vendedor', hint: 'Painel do produtor', icon: 'store' },
@@ -748,15 +752,19 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
                   role="option"
                   aria-selected={panelMode === opt.mode}
                   onClick={() => switchMode(opt.mode)}
-                  className="otter-sb-item !h-auto py-2.5"
+                  className={`otter-sb-item !h-auto py-2.5 transition-colors ${
+                    panelMode === opt.mode
+                      ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 font-semibold'
+                      : 'hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
                 >
                   <Icon name={opt.icon} />
                   <span className="flex flex-col leading-tight">
-                    <span>{opt.label}</span>
-                    <span className="text-[11.5px] font-normal text-[var(--sb-text-muted)]">{opt.hint}</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{opt.label}</span>
+                    <span className="text-[11.5px] font-normal text-gray-500 dark:text-gray-400">{opt.hint}</span>
                   </span>
                   {panelMode === opt.mode && (
-                    <svg className="w-4 h-4 ml-auto text-violet-600 dark:text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="w-4 h-4 ml-auto text-violet-600 dark:text-violet-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round">
                       {ICONS.check}
                     </svg>
                   )}
