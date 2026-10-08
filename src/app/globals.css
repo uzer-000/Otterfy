@@ -208,8 +208,13 @@
 }
 
 html {
+  scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+* {
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -219,20 +224,35 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Mobile: remove o flash azul do toque e o atraso de 300ms nos botões/links */
+/* Mobile & PC: remove atraso de 300ms, sem flash de toque cinza e resposta tátil rápida */
 a,
 button,
 [role="button"],
+input,
+select,
+textarea,
 summary,
 label {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
-/* Custom scrollbar */
+button:not(:disabled),
+a:not([aria-disabled="true"]),
+[role="button"]:not([aria-disabled="true"]) {
+  transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.14s ease, background-color 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+button:not(:disabled):active,
+a:not([aria-disabled="true"]):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.98) translateZ(0);
+}
+
+/* Custom scrollbar ultra leve */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -257,7 +277,7 @@ label {
   color: #F8FAFC;
 }
 
-/* Animated Laser Beam Border Effect */
+/* Animated Laser Beam Border Effect com aceleração de GPU isolada */
 @keyframes laser-rotate {
   0% {
     transform: rotate(0deg);
@@ -275,7 +295,10 @@ label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .laser-button::before {
@@ -296,6 +319,11 @@ label {
   );
   animation: laser-rotate 3.2s linear infinite;
   z-index: -2;
+  will-change: transform;
+  transform: translateZ(0);
+  contain: strict;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .laser-button::after {
@@ -305,7 +333,7 @@ label {
   background: #7C3AED;
   border-radius: calc(0.75rem - 1.5px);
   z-index: -1;
-  transition: background 0.2s ease;
+  transition: background 0.16s ease;
 }
 
 .laser-button:hover::after {
@@ -318,6 +346,9 @@ label {
   overflow: hidden;
   border-radius: 1rem;
   z-index: 1;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .laser-card::before {
@@ -338,6 +369,11 @@ label {
   );
   animation: laser-rotate 4.5s linear infinite;
   z-index: -2;
+  will-change: transform;
+  transform: translateZ(0);
+  contain: strict;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .laser-card::after {
@@ -350,24 +386,25 @@ label {
 }
 
 /* ==========================================================================
-   MOTION SYSTEM — navegação fluida (desktop + mobile)
+   MOTION SYSTEM — navegação ultra fluida 60/120 FPS (desktop + mobile)
    ========================================================================== */
 :root {
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1); /* curva estilo iOS sheet */
-  --dur-fast: 160ms;
-  --dur-base: 240ms;
-  --dur-slow: 380ms;
+  --ease-spring: cubic-bezier(0.2, 0.9, 0.28, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1); /* curva estilo iOS sheet nativo */
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 300ms;
 }
 
-/* Entrada suave de cada página (aplicado via app/dashboard/template.tsx).
-   fill-mode "backwards" => depois da animação não fica transform no wrapper,
-   então modais position:fixed dentro das páginas continuam corretos. */
+/* Entrada suave e instantânea de cada página (app/dashboard/template.tsx).
+   fill-mode "backwards" => depois da animação não deixa transform residual,
+   permitindo GPU compositing perfeito sem quebrar modais fixos. */
 @keyframes otter-page-in {
   from {
     opacity: 0;
-    transform: translate3d(0, 10px, 0);
+    transform: translate3d(0, 8px, 0);
   }
   to {
     opacity: 1;
@@ -376,62 +413,79 @@ label {
 }
 
 .otter-page {
-  animation: otter-page-in var(--dur-slow) var(--ease-out-quint) backwards;
+  will-change: opacity, transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation: otter-page-in var(--dur-base) var(--ease-out-expo) backwards;
 }
 
-/* Utilitários usados no projeto que não existiam (modais apareciam "secos") */
+/* Utilitários suaves de fade e zoom com aceleração de hardware */
 @keyframes otter-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
 @keyframes otter-zoom-in {
-  from { opacity: 0; transform: scale(0.96) translate3d(0, 6px, 0); }
+  from { opacity: 0; transform: scale(0.97) translate3d(0, 4px, 0); }
   to { opacity: 1; transform: scale(1) translate3d(0, 0, 0); }
 }
 
 .animate-fadeIn {
-  animation: otter-fade-in var(--dur-base) var(--ease-out-quint) backwards;
+  will-change: opacity;
+  animation: otter-fade-in var(--dur-base) var(--ease-out-expo) backwards;
 }
 
 .animate-in {
-  animation: otter-fade-in var(--dur-base) var(--ease-out-quint) backwards;
+  will-change: opacity, transform;
+  animation: otter-fade-in var(--dur-base) var(--ease-out-expo) backwards;
 }
 
 .animate-in.zoom-in-95 {
   animation-name: otter-zoom-in;
 }
 
-/* Skeletons do loading.tsx — só aparecem se a navegação demorar (>140ms) */
+/* Skeletons do loading.tsx com animação suave via GPU */
 @keyframes otter-shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% { transform: translate3d(-100%, 0, 0); }
+  100% { transform: translate3d(100%, 0, 0); }
 }
 
 .otter-loading {
   opacity: 0;
-  animation: otter-fade-in var(--dur-base) ease-out 140ms forwards;
+  animation: otter-fade-in var(--dur-base) ease-out 120ms forwards;
 }
 
 .otter-skeleton {
+  position: relative;
+  overflow: hidden;
   border-radius: 1rem;
   background-color: var(--bg-surface);
-  background-image: linear-gradient(90deg, transparent 0, rgba(255, 255, 255, 0.045) 50%, transparent 100%);
-  background-size: 800px 100%;
-  background-repeat: no-repeat;
-  animation: otter-shimmer 1.3s linear infinite;
   border: 1px solid var(--border-color);
+  transform: translateZ(0);
 }
 
-[data-theme="light"] .otter-skeleton {
-  background-image: linear-gradient(90deg, transparent 0, rgba(79, 70, 229, 0.06) 50%, transparent 100%);
+.otter-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translate3d(-100%, 0, 0);
+  background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+  animation: otter-shimmer 1.4s ease-in-out infinite;
+  will-change: transform;
 }
 
-/* Área de conteúdo: scroll nativo suave no mobile e sem "pular" layout */
+[data-theme="light"] .otter-skeleton::after {
+  background-image: linear-gradient(90deg, transparent 0%, rgba(124, 58, 237, 0.08) 50%, transparent 100%);
+}
+
+/* Área de conteúdo: scroll nativo ultra fluido, aceleração por GPU no mobile e PC */
 .otter-main {
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+  transform: translateZ(0);
 }
 
 /* ==========================================================================
@@ -449,13 +503,19 @@ label {
     linear-gradient(180deg, rgba(124, 58, 237, 0.12) 0%, rgba(124, 58, 237, 0.02) 28%, transparent 55%);
   background-repeat: no-repeat;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(167, 139, 250, 0.18);
-  transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform, box-shadow;
+  contain: layout style;
+  transition: border-color 0.22s var(--ease-out-expo), box-shadow 0.22s var(--ease-out-expo), transform 0.22s var(--ease-out-expo);
 }
 
 .otter-widget-card:hover {
+  transform: translateY(-2px) translateZ(0);
   border-color: rgba(124, 58, 237, 0.45);
   border-top-color: rgba(196, 181, 253, 0.72) !important;
-  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(196, 181, 253, 0.3), 0 0 25px -4px rgba(124, 58, 237, 0.22);
+  box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(196, 181, 253, 0.3), 0 0 25px -4px rgba(124, 58, 237, 0.22);
 }
 
 /* Light Mode: Iluminação sutil e limpa sobre fundo branco */
@@ -470,9 +530,10 @@ label {
 }
 
 [data-theme="light"] .otter-widget-card:hover {
+  transform: translateY(-2px) translateZ(0);
   border-color: rgba(124, 58, 237, 0.4) !important;
   border-top-color: rgba(124, 58, 237, 0.8) !important;
-  box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.16), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 10px 28px -4px rgba(124, 58, 237, 0.16), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
 }
 
 /* ==========================================================================
@@ -661,14 +722,17 @@ svg.otter-sb-icon {
   box-shadow: var(--sb-pill-shadow);
   pointer-events: none;
   opacity: 0;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   will-change: transform, width, height;
   transition:
-    transform var(--dur-slow) var(--ease-out-expo),
-    width var(--dur-slow) var(--ease-out-expo),
-    height var(--dur-slow) var(--ease-out-expo),
-    opacity var(--dur-base) ease,
-    background-color var(--dur-base) ease,
-    border-color var(--dur-base) ease;
+    transform var(--dur-base) var(--ease-out-expo),
+    width var(--dur-base) var(--ease-out-expo),
+    height var(--dur-base) var(--ease-out-expo),
+    opacity var(--dur-fast) ease,
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease;
 }
 
 .otter-sb-highlight[data-ready="true"] {
@@ -834,7 +898,7 @@ svg.otter-sb-icon {
   border-radius: 999px;
 }
 
-/* ---------- Mobile drawer ---------- */
+/* ---------- Mobile drawer (Ultra smooth iOS spring physics) ---------- */
 @media (max-width: 767px) {
   .otter-sidebar {
     position: fixed;
@@ -844,18 +908,21 @@ svg.otter-sb-icon {
     width: min(86vw, 300px);
     z-index: 90;
     transform: translate3d(-100%, 0, 0);
-    transition: transform var(--dur-slow) var(--ease-drawer), box-shadow var(--dur-slow) ease;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
+    transition: transform 260ms var(--ease-drawer), box-shadow 260ms ease;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
 
   .otter-sidebar[data-open="true"] {
     transform: translate3d(0, 0, 0) !important;
-    box-shadow: 24px 0 60px -20px rgba(0, 0, 0, 0.6);
+    box-shadow: 24px 0 60px -20px rgba(0, 0, 0, 0.65);
   }
 
   .otter-sidebar[data-dragging="true"] {
-    transition: none;
+    transition: none !important;
   }
 }
 
@@ -864,10 +931,13 @@ svg.otter-sb-icon {
   inset: 0;
   z-index: 80;
   background: rgba(3, 5, 14, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   opacity: 0;
   pointer-events: none;
   touch-action: none;
-  transition: opacity var(--dur-slow) var(--ease-drawer);
+  will-change: opacity;
+  transition: opacity 240ms var(--ease-drawer);
 }
 
 .otter-drawer-overlay[data-open="true"] {
@@ -889,6 +959,8 @@ svg.otter-sb-icon {
   border-bottom: 1px solid var(--border-color);
   backdrop-filter: saturate(160%) blur(12px);
   -webkit-backdrop-filter: saturate(160%) blur(12px);
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 [data-theme="light"] .otter-mobile-bar {

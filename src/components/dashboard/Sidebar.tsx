@@ -640,7 +640,7 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
   return (
     <>
       {/* Mobile Top Header: Menu hambúrguer à esquerda, Logo Otterfy centralizado */}
-      <div className="otter-mobile-bar md:hidden">
+      <div className="otter-mobile-bar md:hidden transform-gpu">
         <div className="flex items-center justify-between h-14 px-3.5">
           <button
             type="button"
