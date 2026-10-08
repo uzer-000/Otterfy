@@ -146,7 +146,7 @@ export default function CheckoutPreviewPage() {
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3" />
             </svg>
-            <span>Desktop (2 Colunas)</span>
+            <span>Desktop</span>
           </button>
 
           <button
@@ -169,16 +169,25 @@ export default function CheckoutPreviewPage() {
       {/* Simulator Container */}
       <div className="w-full flex justify-center py-4">
         <div
-          className={`transition-all duration-300 ${
+          className={`transition-all duration-300 overflow-hidden ${
             deviceMode === 'mobile'
-              ? 'w-full max-w-[420px] rounded-[40px] border-8 border-[#1A1820] shadow-[0_0_50px_rgba(0,0,0,0.8)] p-4 bg-[#0A090E]'
-              : 'w-full max-w-5xl rounded-3xl border border-[#1E1B26] p-6 sm:p-8 bg-[#0A090E] shadow-2xl'
+              ? 'w-full max-w-[420px] rounded-[40px] border-8 border-[#1A1820] shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-[#F8F9FA]'
+              : 'w-full max-w-[560px] rounded-3xl border border-[#1E1B26] shadow-2xl bg-[#F8F9FA]'
           }`}
         >
-          <div className="space-y-6">
+          {/* Urgency Scarcity Timer */}
+          {isUrgencyTimerEnabled && (
+            <CheckoutUrgencyTimer
+              productId={activeProduct.id}
+              timerMinutes={timerMinutes}
+              timerText={timerText}
+            />
+          )}
+
+          <div className="p-4 sm:p-6 space-y-5">
             {/* Banner */}
             {bannerUrl && (
-              <div className="w-full rounded-2xl overflow-hidden border border-[#1E1B26] shadow-xl bg-[#121016]">
+              <div className="w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white">
                 <img
                   src={bannerUrl}
                   alt="Banner do Checkout"
@@ -187,17 +196,8 @@ export default function CheckoutPreviewPage() {
               </div>
             )}
 
-            {/* Urgency Scarcity Timer */}
-            {isUrgencyTimerEnabled && (
-              <CheckoutUrgencyTimer
-                productId={activeProduct.id}
-                timerMinutes={timerMinutes}
-                timerText={timerText}
-              />
-            )}
-
             {/* Full Unified Checkout (Holding the Product & Form) */}
-            <Suspense fallback={<div className="p-8 text-center text-xs text-[#94A3B8]">Carregando formulário de checkout...</div>}>
+            <Suspense fallback={<div className="p-8 text-center text-xs text-gray-500 font-medium">Carregando formulário de checkout...</div>}>
               <CheckoutForm
                 productId={activeProduct.id}
                 productName={activeProduct.name}
@@ -208,6 +208,13 @@ export default function CheckoutPreviewPage() {
                 checkoutSettings={activeProduct.checkoutSettings}
               />
             </Suspense>
+
+            {/* Branding */}
+            <div className="text-center pb-2 flex items-center justify-center gap-1.5 text-gray-500 text-xs font-medium">
+              <span>Powered by</span>
+              <img src="/logo.png" alt="Otterfy" className="w-4 h-4 object-contain inline-block align-middle" />
+              <span className="font-bold text-gray-800">Otterfy</span>
+            </div>
           </div>
         </div>
       </div>

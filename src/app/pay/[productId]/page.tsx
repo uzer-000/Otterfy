@@ -37,16 +37,16 @@ export default async function CheckoutPage({ params }: PageProps) {
 
   if (!product || product.status !== 'ACTIVE') {
     return (
-      <main className="min-h-screen py-16 px-4 flex flex-col items-center justify-center bg-[#09080E] text-center">
-        <div className="max-w-md w-full p-8 rounded-3xl border border-[#1E1B26] bg-[#121016] shadow-2xl space-y-5 animate-fadeIn">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-3xl">
+      <main className="min-h-screen py-16 px-4 flex flex-col items-center justify-center bg-[#F8F9FA] text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl border border-gray-200 bg-white shadow-xl space-y-5 animate-fadeIn">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto text-3xl">
             🛍️
           </div>
           <div className="space-y-2">
-            <h1 className="text-xl font-bold text-white">
+            <h1 className="text-xl font-bold text-gray-900">
               {!product ? 'Produto Não Encontrado' : 'Produto Temporariamente Indisponível'}
             </h1>
-            <p className="text-sm text-[#94A3B8] leading-relaxed">
+            <p className="text-sm text-gray-600 leading-relaxed">
               {!product
                 ? 'O link de checkout que você tentou acessar não existe ou pode ter sido removido.'
                 : 'Este produto está temporariamente desativado pelo vendedor.'}
@@ -55,14 +55,14 @@ export default async function CheckoutPage({ params }: PageProps) {
           <div className="pt-2">
             <a
               href="/"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-violet-600/20"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-semibold text-xs transition-colors shadow-md"
             >
               Ir para o Início
             </a>
           </div>
-          <div className="pt-4 border-t border-[#1E1B26] flex items-center justify-center gap-1.5 text-[#64748B] text-xs">
+          <div className="pt-4 border-t border-gray-100 flex items-center justify-center gap-1.5 text-gray-500 text-xs">
             <span>Checkout seguro por</span>
-            <span className="font-bold text-[#F8FAFC]">Otterfy</span>
+            <span className="font-bold text-gray-900">Otterfy</span>
           </div>
         </div>
       </main>
@@ -75,7 +75,7 @@ export default async function CheckoutPage({ params }: PageProps) {
   const bannerUrl = product.checkoutSettings?.customCheckout?.bannerUrl;
   const isUrgencyTimerEnabled = product.checkoutSettings?.customCheckout?.urgencyTimer !== false;
   const timerMinutes = product.checkoutSettings?.customCheckout?.timerMinutes || 6;
-  const timerText = product.checkoutSettings?.customCheckout?.timerText || 'Esta oferta especial termina em:';
+  const timerText = product.checkoutSettings?.customCheckout?.timerText || 'Oferta expira em';
 
   return (
     <>
@@ -111,11 +111,20 @@ export default async function CheckoutPage({ params }: PageProps) {
         />
       )}
 
-      <main className="min-h-screen py-10 px-4 flex flex-col items-center">
-        <div className="w-full max-w-5xl space-y-6">
+      <main className="min-h-screen flex flex-col items-center bg-[#F8F9FA]">
+        {/* Urgency Scarcity Timer across top if enabled */}
+        {isUrgencyTimerEnabled && (
+          <CheckoutUrgencyTimer
+            productId={product.id}
+            timerMinutes={timerMinutes}
+            timerText={timerText}
+          />
+        )}
+
+        <div className="w-full max-w-[500px] py-6 sm:py-8 px-4 space-y-6">
           {/* Custom Banner if configured */}
           {bannerUrl && (
-            <div className="w-full rounded-2xl overflow-hidden border border-[#1E1B26] shadow-2xl bg-[#121016] animate-fadeIn">
+            <div className="w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white animate-fadeIn">
               <img
                 src={bannerUrl}
                 alt="Banner promocional"
@@ -124,17 +133,8 @@ export default async function CheckoutPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* Urgency Scarcity Timer */}
-          {isUrgencyTimerEnabled && (
-            <CheckoutUrgencyTimer
-              productId={product.id}
-              timerMinutes={timerMinutes}
-              timerText={timerText}
-            />
-          )}
-
           {/* Unified High-Converting Checkout (Holding the Product & Payment) */}
-          <Suspense fallback={<div className="p-8 text-center text-xs text-[#94A3B8]">Carregando checkout...</div>}>
+          <Suspense fallback={<div className="p-8 text-center text-xs text-gray-500 font-medium">Carregando checkout...</div>}>
             <CheckoutForm
               productId={product.id}
               productName={product.name}
@@ -147,10 +147,10 @@ export default async function CheckoutPage({ params }: PageProps) {
           </Suspense>
 
           {/* Branding */}
-          <div className="text-center pb-8 flex items-center justify-center gap-1.5 text-[#64748B] text-xs">
+          <div className="text-center pb-8 flex items-center justify-center gap-1.5 text-gray-500 text-xs font-medium">
             <span>Powered by</span>
             <img src="/logo.png" alt="Otterfy" className="w-4 h-4 object-contain inline-block align-middle" />
-            <span className="font-bold text-[#F8FAFC]">Otterfy</span>
+            <span className="font-bold text-gray-800">Otterfy</span>
           </div>
         </div>
       </main>
