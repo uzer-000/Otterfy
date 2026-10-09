@@ -22,7 +22,9 @@ export function useGlobalLoading() {
   return useContext(GlobalLoadingContext);
 }
 
-const DEBOUNCE_DELAY_MS = 300;
+// O usuário especificou exatamente:
+// "quando eu clicar em algum lugar do site e demorar mais de 1.90 segundo para abrir, nesse 1.90s entra a logo e boom o lugar onde cliquei abriu"
+const DEBOUNCE_DELAY_MS = 1900;
 
 function RouteTracker({ onRouteFinish }: { onRouteFinish: () => void }) {
   const pathname = usePathname();
@@ -38,7 +40,7 @@ function RouteTracker({ onRouteFinish }: { onRouteFinish: () => void }) {
 export default function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // Conjunto de chaves de operações ativas (rotas, APIs, forms)
+  // Chaves de operações em andamento
   const activeKeys = useRef<Set<string>>(new Set());
   const [isActive, setIsActive] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -50,7 +52,7 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
 
     if (hasActive) {
       if (!debounceTimer.current && !isVisible) {
-        // Só exibe o loader se demorar mais de 300ms para evitar piscar em operações rápidas
+        // Só exibe se demorar mais de 1.90s (1900ms) para não piscar em navegações rápidas
         debounceTimer.current = setTimeout(() => {
           setIsVisible(true);
         }, DEBOUNCE_DELAY_MS);
@@ -64,63 +66,88 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
     }
   }, [isVisible]);
 
-  const startLoading = useCallback((key: string = 'op-default') => {
-    activeKeys.current.add(key);
-    updateActiveState();
-  }, [updateActiveState]);
+  const startLoading = useCallback(
+    (key: string = 'op-default') => {
+      activeKeys.current.add(key);
+      updateActiveState();
+    },
+    [updateActiveState]
+  );
 
-  const stopLoading = useCallback((key: string = 'op-default') => {
-    activeKeys.current.delete(key);
-    updateActiveState();
-  }, [updateActiveState]);
+  const stopLoading = useCallback(
+    (key: string = 'op-default') => {
+      activeKeys.current.delete(key);
+      updateActiveState();
+    },
+    [updateActiveState]
+  );
 
-  const withLoading = useCallback(async <T,>(promise: Promise<T>, key: string = `op-${Date.now()}`): Promise<T> => {
-    startLoading(key);
-    try {
-      return await promise;
-    } finally {
-      stopLoading(key);
-    }
-  }, [startLoading, stopLoading]);
-
-  // Limpa as rotas pendentes quando a navegação termina
-  const handleRouteFinish = useCallback(() => {
-    Array.from(activeKeys.current).forEach((key) => {
-      if (key.startsWith('route-')) {
-        activeKeys.current.delete(key);
+  const withLoading = useCallback(
+    async <T,>(promise: Promise<T>, key: string = `op-${Date.now()}`): Promise<T> => {
+      startLoading(key);
+      try {
+        return await promise;
+      } finally {
+        stopLoading(key);
       }
-    });
-    updateActiveState();
+    },
+    [startLoading, stopLoading]
+  );
+
+  // Conclusão de rota (quando o pathname/searchParams muda no cliente)
+  const handleRouteFinish = useCallback(() => {
+    if (activeKeys.current.size > 0) {
+      Array.from(activeKeys.current).forEach((key) => {
+        if (key.startsWith('route-')) {
+          activeKeys.current.delete(key);
+        }
+      });
+      updateActiveState();
+    }
   }, [updateActiveState]);
 
+  // 1. Detectar cliques em links internos e disparar verificação de 1.90s
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Detectar cliques em links internos para iniciar o tracking de navegação
     const handleLinkClick = (e: MouseEvent) => {
-      const target = (e.target as HTMLElement)?.closest('a');
-      if (!target) return;
+      // Ignorar cliques com modificadores (abrir em nova aba, etc.)
+      if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
+        return;
+      }
 
-      const href = target.getAttribute('href');
-      const isInternal =
-        href &&
-        href.startsWith('/') &&
-        !href.startsWith('//') &&
-        !target.getAttribute('target') &&
-        !target.getAttribute('download') &&
-        !e.ctrlKey &&
-        !e.metaKey &&
-        !e.shiftKey &&
-        !e.altKey;
+      const anchor = (e.target as HTMLElement)?.closest('a');
+      if (!anchor) return;
 
-      if (isInternal && href !== pathname) {
-        const routeKey = `route-${href}-${Date.now()}`;
+      const href = anchor.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+      if (anchor.getAttribute('target') === '_blank' || anchor.hasAttribute('download')) return;
+
+      try {
+        const currentUrl = new URL(window.location.href);
+        const targetUrl = new URL(href, window.location.href);
+
+        // Somente links internos do mesmo domínio
+        if (targetUrl.origin !== currentUrl.origin) return;
+
+        // Se for a exata mesma página com mesma query e hash, não dispara navegação
+        if (
+          targetUrl.pathname === currentUrl.pathname &&
+          targetUrl.search === currentUrl.search &&
+          targetUrl.hash
+        ) {
+          return;
+        }
+
+        const routeKey = `route-${targetUrl.pathname}-${Date.now()}`;
         startLoading(routeKey);
 
-        // Fallback de segurança se a navegação falhar ou for cancelada
+        // Fallback de segurança se o navegador cancelar ou se for navegação rápida abortada
         setTimeout(() => {
           stopLoading(routeKey);
-        }, 10000);
+        }, 12000);
+      } catch {
+        // Ignora URLs com formato desconhecido
       }
     };
 
@@ -139,46 +166,7 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
     };
   }, [pathname, startLoading, stopLoading]);
 
-  // 2. Interceptação Global de Chamadas de API (fetch)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const originalFetch = window.fetch;
-    let fetchCounter = 0;
-
-    window.fetch = async (...args) => {
-      const input = args[0];
-      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : '';
-
-      // Ignora requisições de background que não bloqueiam a tela (SW, manifest, polling em segundo plano)
-      const isSilent =
-        url.includes('/sw.js') ||
-        url.includes('/manifest') ||
-        url.includes('_next/static') ||
-        url.includes('cdn.utmify.com') ||
-        url.includes('connect.facebook.net') ||
-        (args[1]?.headers && (args[1].headers as any)['x-silent']);
-
-      if (isSilent) {
-        return originalFetch.apply(window, args);
-      }
-
-      const fetchKey = `api-${++fetchCounter}-${Date.now()}`;
-      startLoading(fetchKey);
-
-      try {
-        return await originalFetch.apply(window, args);
-      } finally {
-        stopLoading(fetchKey);
-      }
-    };
-
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, [startLoading, stopLoading]);
-
-  // 3. Interceptação de Formulários (Submit)
+  // 2. Interceptação de Formulários (Submit)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -189,10 +177,10 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
       const formKey = `form-${Date.now()}`;
       startLoading(formKey);
 
-      // Desativa após um tempo de segurança (caso o form seja validado via JS e não dispare fetch ou navegação)
+      // Desativa após um tempo de segurança
       setTimeout(() => {
         stopLoading(formKey);
-      }, 7000);
+      }, 8000);
     };
 
     document.addEventListener('submit', handleSubmit, { capture: true });
@@ -201,6 +189,11 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
     };
   }, [startLoading, stopLoading]);
 
+  // ATENÇÃO: NÃO interceptamos window.fetch de forma global e indiscriminada!
+  // Isso causava flashes na tela a cada 4 segundos no PC por causa do polling em segundo plano de /api/payments.
+  // O loader global agora responde exclusivamente a ações do usuário (cliques em links e envios de formulários)
+  // que demorarem mais de 1.90 segundos, conforme solicitado.
+
   return (
     <GlobalLoadingContext.Provider value={{ startLoading, stopLoading, isLoading: isActive, withLoading }}>
       <Suspense fallback={null}>
@@ -208,15 +201,15 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
       </Suspense>
       {children}
 
-      {/* Overlay Global de Processamento — Só visível se demorar > 300ms */}
+      {/* Overlay Global de Processamento — Só visível se demorar > 1.90s */}
       <div
-        className={`fixed inset-0 z-[9990] flex flex-col items-center justify-center transition-all duration-300 ease-out select-none otter-splash-container ${
+        className={`fixed inset-0 z-[9990] flex flex-col items-center justify-center transition-opacity duration-300 ease-out select-none otter-splash-container ${
           isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         style={{
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          backgroundColor: 'color-mix(in srgb, var(--otter-bg) 82%, transparent)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          backgroundColor: 'var(--otter-overlay-bg, rgba(14, 11, 18, 0.85))',
         }}
         aria-hidden={!isVisible}
         role="status"

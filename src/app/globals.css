@@ -990,6 +990,7 @@ svg.otter-sb-icon {
   --otter-bg: #0e0b12;
   --otter-ink: #a64bd6;
   --otter-track: rgba(166, 75, 214, 0.2);
+  --otter-overlay-bg: rgba(14, 11, 18, 0.88);
 }
 
 @media (prefers-color-scheme: light) {
@@ -997,6 +998,7 @@ svg.otter-sb-icon {
     --otter-bg: #f4f2ee;
     --otter-ink: #7b1fa2;
     --otter-track: rgba(123, 31, 162, 0.14);
+    --otter-overlay-bg: rgba(244, 242, 238, 0.92);
   }
 }
 
@@ -1005,6 +1007,7 @@ svg.otter-sb-icon {
   --otter-bg: #f4f2ee;
   --otter-ink: #7b1fa2;
   --otter-track: rgba(123, 31, 162, 0.14);
+  --otter-overlay-bg: rgba(244, 242, 238, 0.92);
 }
 
 :root[data-theme="dark"],
@@ -1012,6 +1015,7 @@ svg.otter-sb-icon {
   --otter-bg: #0e0b12;
   --otter-ink: #a64bd6;
   --otter-track: rgba(166, 75, 214, 0.2);
+  --otter-overlay-bg: rgba(14, 11, 18, 0.88);
 }
 
 .otter-splash-container {

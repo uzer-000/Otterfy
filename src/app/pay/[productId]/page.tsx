@@ -5,6 +5,7 @@ import Script from 'next/script';
 import dbStore from '@/lib/store';
 import CheckoutForm from '@/components/checkout/CheckoutForm';
 import CheckoutUrgencyTimer from '@/components/checkout/CheckoutUrgencyTimer';
+import OtterLoadingAnimation from '@/components/ui/OtterLoadingAnimation';
 import { formatMZN } from '@/lib/utils';
 
 interface PageProps {
@@ -134,7 +135,16 @@ export default async function CheckoutPage({ params }: PageProps) {
           )}
 
           {/* Unified High-Converting Checkout (Holding the Product & Payment) */}
-          <Suspense fallback={<div className="p-8 text-center text-xs text-gray-500 font-medium">Carregando checkout...</div>}>
+          <Suspense
+            fallback={
+              <div className="py-12 flex flex-col items-center justify-center gap-4 bg-white rounded-3xl border border-gray-100 shadow-xl p-8">
+                <OtterLoadingAnimation size="compact" idPrefix="pay-suspense" />
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Carregando checkout seguro...
+                </span>
+              </div>
+            }
+          >
             <CheckoutForm
               productId={product.id}
               productName={product.name}

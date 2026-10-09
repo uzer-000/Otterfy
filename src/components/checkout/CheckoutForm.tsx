@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { formatMZN } from '@/lib/utils';
+import OtterLoadingAnimation from '@/components/ui/OtterLoadingAnimation';
 
 interface Props {
   productId: string;
@@ -455,6 +456,24 @@ export default function CheckoutForm({
           </div>
         )}
       </form>
+
+      {/* Overlay de Processamento com Mascote Otterfy durante submissão do checkout */}
+      {status === 'submitting' && (
+        <div
+          className="fixed inset-0 z-[9995] flex flex-col items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn select-none"
+          role="status"
+          aria-live="polite"
+          aria-label="Processando pagamento..."
+        >
+          <div className="bg-white rounded-3xl p-7 sm:p-8 max-w-sm w-full mx-auto flex flex-col items-center text-center shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
+            <OtterLoadingAnimation size="compact" idPrefix="pay-submitting-otter" />
+            <h4 className="text-base font-bold text-gray-900 mt-5">Gerando Pagamento</h4>
+            <p className="text-xs text-gray-500 mt-1.5 max-w-[260px] leading-relaxed">
+              Conectando com segurança ao gateway de pagamento (M-Pesa / e-Mola)...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
