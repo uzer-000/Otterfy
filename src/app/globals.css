@@ -981,3 +981,217 @@ svg.otter-sb-icon {
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   OTTERFY ANIMATED MASCOT LOADING SYSTEM (Splash & Global Loader)
+   Fiel a Animação de carregamento.html: curvas, tempos, cores e safe areas
+   ========================================================================== */
+:root {
+  --otter-bg: #0e0b12;
+  --otter-ink: #a64bd6;
+  --otter-track: rgba(166, 75, 214, 0.2);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --otter-bg: #f4f2ee;
+    --otter-ink: #7b1fa2;
+    --otter-track: rgba(123, 31, 162, 0.14);
+  }
+}
+
+:root[data-theme="light"],
+[data-theme="light"] {
+  --otter-bg: #f4f2ee;
+  --otter-ink: #7b1fa2;
+  --otter-track: rgba(123, 31, 162, 0.14);
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --otter-bg: #0e0b12;
+  --otter-ink: #a64bd6;
+  --otter-track: rgba(166, 75, 214, 0.2);
+}
+
+.otter-splash-container {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.otter-ink {
+  fill: var(--otter-ink);
+}
+
+.otter-cut {
+  fill: var(--otter-bg);
+}
+
+.otter-draw {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 58;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.otter-d1 {
+  animation: otter-draw 0.7s 0.85s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+}
+
+.otter-d2 {
+  animation: otter-draw 0.8s 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+}
+
+@keyframes otter-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.otter-top {
+  animation: otter-fromTop 0.85s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.otter-bot {
+  animation: otter-fromBot 0.85s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes otter-fromTop {
+  from {
+    transform: translateY(-300px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes otter-fromBot {
+  from {
+    transform: translateY(300px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.otter-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: otter-pop 0.5s 1.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes otter-pop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.otter-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation:
+    otter-eye 0.4s 1.45s cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    otter-blink 4s 3.2s infinite;
+}
+
+@keyframes otter-eye {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes otter-blink {
+  0%, 94%, 100% {
+    transform: scaleY(1);
+  }
+  97% {
+    transform: scaleY(0.08);
+  }
+}
+
+.otter-shine {
+  opacity: 0;
+  animation: otter-shine 2.8s 2.4s ease-in-out infinite;
+}
+
+@keyframes otter-shine {
+  0% {
+    opacity: 0;
+    transform: translateX(-700px);
+  }
+  15% {
+    opacity: 0.26;
+  }
+  65% {
+    opacity: 0.26;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(1300px);
+  }
+}
+
+.otter-bar {
+  width: 112px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--otter-track);
+  overflow: hidden;
+  opacity: 0;
+  animation: otter-fade 0.5s 1s forwards;
+}
+
+.otter-bar i {
+  display: block;
+  height: 100%;
+  width: 40%;
+  background: var(--otter-ink);
+  border-radius: 2px;
+  animation: otter-run 1.3s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes otter-run {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
+@keyframes otter-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otter-draw,
+  .otter-d1,
+  .otter-d2,
+  .otter-top,
+  .otter-bot,
+  .otter-pop,
+  .otter-eye,
+  .otter-shine,
+  .otter-bar,
+  .otter-bar i {
+    animation-duration: 0.01s !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+

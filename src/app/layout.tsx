@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
+import OtterSplashScreen from "@/components/ui/OtterSplashScreen";
+import GlobalLoadingProvider from "@/components/ui/GlobalLoadingProvider";
+
 // Satoshi (Fontshare, licença gratuita) — fonte geométrica usada no novo menu lateral
 const satoshi = localFont({
   src: "./fonts/Satoshi-Variable.woff2",
@@ -15,7 +18,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#07091A",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f2ee" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e0b12" },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -44,6 +50,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt" className={`${satoshi.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              html, body {
+                background-color: #0e0b12;
+              }
+              [data-theme="light"],
+              [data-theme="light"] body {
+                background-color: #f4f2ee;
+              }
+            `,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -57,8 +76,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-[#08070C] text-[#F8FAFC] font-sans">
-        {children}
+      <body className="min-h-full flex flex-col bg-[#0e0b12] text-[#F8FAFC] font-sans">
+        <OtterSplashScreen />
+        <GlobalLoadingProvider>
+          {children}
+        </GlobalLoadingProvider>
       </body>
     </html>
   );

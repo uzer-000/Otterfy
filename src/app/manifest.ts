@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Gerencie suas vendas M-Pesa & e-Mola e receba notificações em tempo real.',
     start_url: '/dashboard',
     display: 'standalone',
-    background_color: '#08070C',
-    theme_color: '#7C3AED',
+    background_color: '#0e0b12',
+    theme_color: '#0e0b12',
     orientation: 'portrait',
     icons: [
       {

@@ -6,3 +6,6 @@ export * from './Spinner';
 export * from './Modal';
 export * from './Select';
 export * from './EmptyState';
+export { default as OtterLoadingAnimation } from './OtterLoadingAnimation';
+export { default as OtterSplashScreen } from './OtterSplashScreen';
+export { default as GlobalLoadingProvider, useGlobalLoading } from './GlobalLoadingProvider';
