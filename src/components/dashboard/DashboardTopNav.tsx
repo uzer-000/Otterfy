@@ -5,7 +5,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AwardsModal from './AwardsModal';
 import NotificationStack from './NotificationStack';
-import { formatMZN } from '@/lib/utils';
+import { formatMZN, formatSaleNotificationMessage } from '@/lib/utils';
+
+declare global {
+  interface Window {
+    triggerSaleNotification?: (amount?: number) => void;
+  }
+}
 
 export default function DashboardTopNav() {
   const pathname = usePathname();
@@ -116,6 +122,27 @@ export default function DashboardTopNav() {
     }
   };
 
+  // Helper to trigger test notification from any UI or DevTools
+  useEffect(() => {
+    window.triggerSaleNotification = (amount: number = 197) => {
+      const msg = formatSaleNotificationMessage(amount);
+      if (window.NotifStack) {
+        window.NotifStack.push({
+          id: `test-${Date.now()}`,
+          title: 'Venda Aprovada',
+          message: msg,
+          amount,
+          icon: '/logo.png',
+        });
+        window.NotifStack.open();
+      }
+      sendSystemPushNotification('Venda Aprovada', msg, `test-${Date.now()}`);
+    };
+    return () => {
+      delete window.triggerSaleNotification;
+    };
+  }, []);
+
   const initialLoadedRef = useRef(false);
 
   const isFetchingRef = useRef(false);
@@ -168,12 +195,14 @@ export default function DashboardTopNav() {
                 try { navigator.vibrate([200, 100, 300]); } catch {}
               }
 
+              const saleMsg = formatSaleNotificationMessage(order.amount);
+
               // 2. Feed visual notification stack (acumula no sino do painel)
               if (window.NotifStack) {
                 window.NotifStack.push({
                   id: order.id,
-                  title: 'Venda Aprovada!',
-                  message: `${order.customerName || 'Cliente'} — ${formatMZN(Number(order.amount) || 0)}`,
+                  title: 'Venda Aprovada',
+                  message: saleMsg,
                   amount: Number(order.amount) || 0,
                   customerName: order.customerName || 'Cliente',
                   method: order.transaction?.method || 'M-Pesa',
@@ -183,8 +212,8 @@ export default function DashboardTopNav() {
 
               // 3. Mobile / Desktop Native Push Notification
               sendSystemPushNotification(
-                'Venda Aprovada! — Otterfy',
-                `${order.customerName || 'Cliente'} comprou no valor de ${formatMZN(Number(order.amount) || 0)} via ${order.transaction?.method || 'M-Pesa'}!`,
+                'Venda Aprovada',
+                saleMsg,
                 `sale-${order.id}`
               );
             });

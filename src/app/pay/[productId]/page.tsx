@@ -123,6 +123,16 @@ export default async function CheckoutPage({ params }: PageProps) {
         )}
 
         <div className="w-full max-w-[500px] py-6 sm:py-8 px-4 space-y-6">
+          {/* Brand Header */}
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+              <img src="/logo.png" alt="Otterfy" className="w-full h-full object-contain" />
+            </div>
+            <span className="font-extrabold text-xl tracking-tight text-gray-900">
+              Otter<span className="text-purple-600">fy</span>
+            </span>
+          </div>
+
           {/* Custom Banner if configured */}
           {bannerUrl && (
             <div className="w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white animate-fadeIn">

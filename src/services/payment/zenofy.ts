@@ -89,14 +89,20 @@ export const zenofyProvider = {
       redirectUrl: successRedirectUrl,
     });
 
-    const response = await fetch('https://api.zenofy.io/checkout/order-from-product', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Api-Key': apiKey,
-      },
-      body: JSON.stringify(body),
-    });
+    let response: Response;
+    try {
+      response = await fetch('https://api.zenofy.io/checkout/order-from-product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Api-Key': apiKey,
+        },
+        body: JSON.stringify(body),
+      });
+    } catch (netErr: any) {
+      console.error('[Zenofy API Network Error]:', netErr);
+      throw new Error('Falha de conexão com a API de pagamento. Verifique sua conexão com a internet.');
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -119,23 +125,46 @@ export const zenofyProvider = {
   async getOrderStatus(checkoutId: string, customApiKey?: string): Promise<OrderStatusResponse> {
     const apiKey = getApiKey(customApiKey);
     if (!apiKey) {
-      throw new Error('Chave da API do Zenofy não configurada.');
+      return {
+        success: false,
+        orderId: checkoutId,
+        status: 'PENDING',
+        currency: 'MZN',
+        totalAmount: 0,
+      };
     }
 
-    const response = await fetch(`https://api.zenofy.io/checkout/order-status?orderId=${checkoutId}`, {
-      method: 'GET',
-      headers: {
-        'Api-Key': apiKey,
-      },
-    });
+    try {
+      const response = await fetch(`https://api.zenofy.io/checkout/order-status?orderId=${checkoutId}`, {
+        method: 'GET',
+        headers: {
+          'Api-Key': apiKey,
+        },
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[Zenofy API Error] getOrderStatus:', errorText);
-      throw new Error('Erro ao verificar o status do pagamento no Zenofy.');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Zenofy API Error] getOrderStatus:', errorText);
+        return {
+          success: false,
+          orderId: checkoutId,
+          status: 'PENDING',
+          currency: 'MZN',
+          totalAmount: 0,
+        };
+      }
+
+      return await response.json();
+    } catch (err: any) {
+      console.warn('[Zenofy getOrderStatus Fetch Error]:', err?.message || err);
+      return {
+        success: false,
+        orderId: checkoutId,
+        status: 'PENDING',
+        currency: 'MZN',
+        totalAmount: 0,
+      };
     }
-
-    return response.json();
   },
 
   verifyWebhookSignature(rawBody: string, signature: string): boolean {

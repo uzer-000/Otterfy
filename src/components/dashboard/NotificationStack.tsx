@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { formatMZN } from '@/lib/utils';
+import { formatMZN, formatSaleNotificationMessage } from '@/lib/utils';
 
 export interface NotifItem {
   id?: string;
@@ -44,7 +44,13 @@ function loadFromStorage(): NotifItem[] {
   try {
     const raw: NotifItem[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     const now = Date.now();
-    const fresh = raw.filter((n) => now - n.ts < MAX_AGE_MS && !n.id?.startsWith('seed-') && !n.id?.startsWith('sale-197-'));
+    const fresh = raw
+      .filter((n) => now - n.ts < MAX_AGE_MS && !n.id?.startsWith('seed-') && !n.id?.startsWith('sale-197-'))
+      .map((n) => ({
+        ...n,
+        title: 'Venda Aprovada',
+        message: formatSaleNotificationMessage(n.amount),
+      }));
     return fresh;
   } catch {
     return [];
@@ -123,7 +129,7 @@ export default function NotificationStack() {
           const mapped: NotifItem[] = list.map((s: any) => ({
             id: s.id,
             title: 'Venda Aprovada',
-            message: `${s.customerName || 'Cliente'} — ${formatMZN(Number(s.amount) || 0)}`,
+            message: formatSaleNotificationMessage(s.amount),
             amount: Number(s.amount) || 0,
             customerName: s.customerName || 'Cliente',
             method: s.transaction?.method || 'M-Pesa',
@@ -152,7 +158,7 @@ export default function NotificationStack() {
           const entry: NotifItem = {
             id: n.id,
             title: n.title || 'Venda Aprovada',
-            message: n.message || '',
+            message: n.message || formatSaleNotificationMessage(n.amount),
             amount: n.amount,
             customerName: n.customerName,
             method: n.method,

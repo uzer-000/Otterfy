@@ -7,6 +7,15 @@ export function formatMZN(amount: number): string {
   }).format(amount).replace('MZN', 'MT');
 }
 
+export function formatSaleNotificationMessage(amount?: number | string | null): string {
+  if (amount === undefined || amount === null || isNaN(Number(amount)) || Number(amount) <= 0) {
+    return 'Valor : Mzn 197';
+  }
+  const num = Number(amount);
+  const formatted = Number.isInteger(num) ? `${num}` : num.toFixed(2);
+  return `Valor : Mzn ${formatted}`;
+}
+
 export function toMinorUnits(amount: number): number {
   return Math.round(amount * 100);
 }

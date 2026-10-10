@@ -185,6 +185,16 @@ export default function CheckoutPreviewPage() {
           )}
 
           <div className="p-4 sm:p-6 space-y-5">
+            {/* Brand Header */}
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+                <img src="/logo.png" alt="Otterfy" className="w-full h-full object-contain" />
+              </div>
+              <span className="font-extrabold text-xl tracking-tight text-gray-900">
+                Otter<span className="text-purple-600">fy</span>
+              </span>
+            </div>
+
             {/* Banner */}
             {bannerUrl && (
               <div className="w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white">

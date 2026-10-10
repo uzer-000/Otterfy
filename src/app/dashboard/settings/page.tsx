@@ -564,14 +564,32 @@ export default function AccountSettingsPage() {
                   {devices.length} {devices.length === 1 ? 'dispositivo recebendo notificações' : 'dispositivos recebendo notificações'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => showToast('Lista de dispositivos atualizada!')}
-                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
-                title="Atualizar"
-              >
-                🔄
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && (window as any).triggerSaleNotification) {
+                      (window as any).triggerSaleNotification(197);
+                      showToast('Notificação enviada: Venda Aprovada | Valor : Mzn 197');
+                    } else {
+                      showToast('Notificação enviada!');
+                    }
+                  }}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-violet-600/10 hover:bg-violet-600/20 text-violet-400 border border-violet-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                  title="Testar notificação no dispositivo"
+                >
+                  <span>🔔</span>
+                  <span>Testar Notificação</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => showToast('Lista de dispositivos atualizada!')}
+                  className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                  title="Atualizar"
+                >
+                  🔄
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">
