@@ -124,14 +124,15 @@ export default function DashboardTopNav() {
 
   // Helper to trigger test notification from any UI or DevTools
   useEffect(() => {
-    window.triggerSaleNotification = (amount: number = 197) => {
-      const msg = formatSaleNotificationMessage(amount);
+    window.triggerSaleNotification = (amount?: number) => {
+      const finalAmount = amount !== undefined ? amount : 455;
+      const msg = formatSaleNotificationMessage(finalAmount);
       if (window.NotifStack) {
         window.NotifStack.push({
           id: `test-${Date.now()}`,
           title: 'Venda Aprovada',
           message: msg,
-          amount,
+          amount: finalAmount,
           icon: '/logo.png',
         });
         window.NotifStack.open();

@@ -45,7 +45,7 @@ function loadFromStorage(): NotifItem[] {
     const raw: NotifItem[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     const now = Date.now();
     const fresh = raw
-      .filter((n) => now - n.ts < MAX_AGE_MS && !n.id?.startsWith('seed-') && !n.id?.startsWith('sale-197-'))
+      .filter((n) => now - n.ts < MAX_AGE_MS && !n.id?.startsWith('seed-'))
       .map((n) => ({
         ...n,
         title: 'Venda Aprovada',

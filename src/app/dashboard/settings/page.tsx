@@ -568,9 +568,10 @@ export default function AccountSettingsPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    const testAmount = 455;
                     if (typeof window !== 'undefined' && (window as any).triggerSaleNotification) {
-                      (window as any).triggerSaleNotification(197);
-                      showToast('Notificação enviada: Venda Aprovada | Valor : Mzn 197');
+                      (window as any).triggerSaleNotification(testAmount);
+                      showToast(`Notificação enviada: Venda Aprovada | Valor : Mzn ${testAmount}`);
                     } else {
                       showToast('Notificação enviada!');
                     }

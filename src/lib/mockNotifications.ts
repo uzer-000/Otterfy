@@ -33,7 +33,7 @@ const mozCustomers = [
 ];
 
 const products = [
-  'Método Renda Digital 197 MT',
+  'Método Renda Digital',
   'Pack Tráfego Turbo MZN',
   'E-book Vendas Automáticas',
   'Comunidade VIP Otterfy',
@@ -42,6 +42,8 @@ const products = [
   'Mini-Curso Criativos que Vendem',
   'Scripts de Conversão WhatsApp'
 ];
+
+const sampleAmounts = [455, 197, 850, 1200, 350, 455, 990, 600, 1500, 455];
 
 export const NOTIFICATIONS_100: SaleNotification[] = mozCustomers.map((name, index) => {
   // Realistic timestamps for today
@@ -58,10 +60,12 @@ export const NOTIFICATIONS_100: SaleNotification[] = mozCustomers.map((name, ind
     timeAgo = 'ontem';
   }
 
+  const amount = sampleAmounts[index % sampleAmounts.length];
+
   return {
-    id: `sale-197-${index + 1}`,
+    id: `sale-${index + 1}`,
     customerName: name,
-    amount: 197, // Exactly 197 MZN
+    amount,
     productName: products[index % products.length],
     method: index % 2 === 0 ? 'M-Pesa' : 'eMola',
     createdAt: date.toISOString(),

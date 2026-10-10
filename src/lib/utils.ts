@@ -8,8 +8,8 @@ export function formatMZN(amount: number): string {
 }
 
 export function formatSaleNotificationMessage(amount?: number | string | null): string {
-  if (amount === undefined || amount === null || isNaN(Number(amount)) || Number(amount) <= 0) {
-    return 'Valor : Mzn 197';
+  if (amount === undefined || amount === null || isNaN(Number(amount))) {
+    return 'Valor : Mzn 0';
   }
   const num = Number(amount);
   const formatted = Number.isInteger(num) ? `${num}` : num.toFixed(2);
