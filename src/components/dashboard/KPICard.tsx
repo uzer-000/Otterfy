@@ -45,7 +45,8 @@ export default function KPICard({ title, revenue, salesCount, percentChange, ico
             : 'text-[#64748B] bg-[#0F0E14] border border-[#1E1B26]'
           }
         `}>
-          <span>{isPositive ? '↑' : isNegative ? '↓' : '•'}</span>
+          {isPositive && <span>↑</span>}
+          {isNegative && <span>↓</span>}
           <span>{percentChange === 0 ? '0%' : `${Math.abs(percentChange)}%`}</span>
         </span>
       </div>

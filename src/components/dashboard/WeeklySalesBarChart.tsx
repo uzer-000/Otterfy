@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 
 interface WeeklySalesBarChartProps {
-  data?: { day: string; vendas: number }[];
+  data?: { day: string; vendas: number; date?: string }[];
 }
 
 const defaultWeeklyData = [
@@ -70,9 +70,11 @@ export default function WeeklySalesBarChart({ data = defaultWeeklyData }: Weekly
                   const item = payload[0].payload;
                   return (
                     <div className="bg-[#0F0E14] border border-[#1E1B26] p-3 rounded-xl shadow-2xl text-xs">
-                      <p className="font-semibold text-[#F8FAFC]">{item.day}</p>
+                      <p className="font-semibold text-[#F8FAFC]">
+                        {item.day} {item.date ? `(${item.date})` : ''}
+                      </p>
                       <p className="text-violet-400 font-bold mt-1 text-sm">
-                        {item.vendas} vendas
+                        {item.vendas} {item.vendas === 1 ? 'venda' : 'vendas'}
                       </p>
                     </div>
                   );

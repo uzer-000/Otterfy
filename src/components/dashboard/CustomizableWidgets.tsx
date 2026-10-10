@@ -69,8 +69,8 @@ interface CustomizableWidgetsProps {
   totalRevenue?: number;
   approvedCount?: number;
   hourlyData?: { hour: string; iniciados: number; aprovados: number }[];
-  weeklyData?: { day: string; vendas: number }[];
-  approvalsVsVolumeData?: { date: string; aprovados: number; volume: number }[];
+  weeklyData?: { day: string; vendas: number; date?: string }[];
+  approvalsVsVolumeData?: { date: string; dayName?: string; fullDate?: string; aprovados: number; volume: number }[];
 }
 
 export default function CustomizableWidgets({
@@ -609,6 +609,7 @@ export default function CustomizableWidgets({
               conversionRate={conversionRate}
               emolaAmount={emolaTotal}
               mpesaAmount={mpesaTotal}
+              sparklineData={weeklyData?.map((w) => ({ val: w.vendas }))}
             />
           </div>
         );

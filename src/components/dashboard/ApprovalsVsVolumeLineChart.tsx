@@ -15,20 +15,31 @@ import { formatMZN } from '@/lib/utils';
 interface ApprovalsVsVolumeLineChartProps {
   data?: {
     date: string;
+    dayName?: string;
+    fullDate?: string;
     aprovados: number;
     volume: number;
   }[];
 }
 
-const generate30DayData = () => {
+const generate7DayData = () => {
   const result = [];
-  const days = 30;
-  for (let i = days; i >= 1; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
+  const weekDayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+  const weekDayShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+  const now = new Date();
+  const currentJsDay = now.getDay();
+  const diffToMonday = currentJsDay === 0 ? 6 : currentJsDay - 1;
+  const startOfThisWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startOfThisWeek);
+    d.setDate(startOfThisWeek.getDate() + i);
     const dateLabel = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
     result.push({
-      date: dateLabel,
+      date: weekDayShort[i],
+      dayName: weekDayNames[i],
+      fullDate: dateLabel,
       aprovados: 0,
       volume: 0,
     });
@@ -36,7 +47,7 @@ const generate30DayData = () => {
   return result;
 };
 
-const defaultData = generate30DayData();
+const defaultData = generate7DayData();
 
 export default function ApprovalsVsVolumeLineChart({ data = defaultData }: ApprovalsVsVolumeLineChartProps) {
   const [showAprovados, setShowAprovados] = useState(true);
@@ -47,11 +58,16 @@ export default function ApprovalsVsVolumeLineChart({ data = defaultData }: Appro
       {/* Header with Title and Interactive Toggles in Top Right */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
         <div>
-          <h3 className="text-lg font-bold text-[#F8FAFC]">
-            Carrinhos Aprovados vs Total de Carrinhos
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold text-[#F8FAFC]">
+              Carrinhos Aprovados vs Total de Carrinhos
+            </h3>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-600/10 text-violet-400 border border-violet-500/20">
+              7 Dias
+            </span>
+          </div>
           <p className="text-xs text-[#94A3B8] mt-0.5">
-            Evolução diária dos últimos 30 dias (Meticais)
+            Evolução diária da semana atual (Segunda a Domingo em Meticais)
           </p>
         </div>
 
@@ -96,24 +112,31 @@ export default function ApprovalsVsVolumeLineChart({ data = defaultData }: Appro
               fontSize={11}
               tickLine={false}
               axisLine={{ stroke: '#1E1B26' }}
-              interval="preserveStartEnd"
+              interval={0}
             />
             <YAxis
               stroke="#64748B"
               fontSize={11}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+              tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`)}
             />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
+                  const item = payload[0].payload;
+                  const titleLabel = item?.dayName
+                    ? `${item.dayName} (${item.fullDate})`
+                    : item?.fullDate
+                    ? `${label} (${item.fullDate})`
+                    : `Dia ${label}`;
+
                   return (
                     <div className="bg-[#0F0E14] border border-[#1E1B26] p-3 rounded-xl shadow-2xl text-xs space-y-1.5">
                       <p className="font-semibold text-[#F8FAFC] pb-1 border-b border-[#1E1B26]">
-                        Dia {label}
+                        {titleLabel}
                       </p>
-                      {payload.map((entry, idx) => (
+                      {payload.map((entry: any, idx: number) => (
                         <div key={idx} className="flex items-center justify-between gap-4">
                           <span className="flex items-center gap-1.5 text-[#94A3B8]">
                             <span

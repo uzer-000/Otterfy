@@ -7,9 +7,10 @@ interface ConversionAndMethodsProps {
   conversionRate?: number;
   emolaAmount?: number;
   mpesaAmount?: number;
+  sparklineData?: { val: number }[];
 }
 
-const sparklineData = [
+const defaultSparklineData = [
   { val: 0 },
   { val: 0 },
   { val: 0 },
@@ -23,6 +24,7 @@ export default function ConversionAndMethods({
   conversionRate = 0,
   emolaAmount = 0,
   mpesaAmount = 0,
+  sparklineData = defaultSparklineData,
 }: ConversionAndMethodsProps) {
   const total = emolaAmount + mpesaAmount;
   const emolaPercentage = total > 0 ? Math.round((emolaAmount / total) * 100) : 0;

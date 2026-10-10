@@ -742,9 +742,15 @@ export const dbStore = {
     const approvedOrders = orders.filter(o => o.status === 'APPROVED');
 
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfThisWeek = new Date(startOfToday.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const startOfThisMonth = new Date(startOfToday.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+    // Current calendar week (Segunda-feira às 00:00:00)
+    const currentJsDay = now.getDay();
+    const diffToMonday = currentJsDay === 0 ? 6 : currentJsDay - 1;
+    const startOfThisWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
+
+    // Current calendar month (Dia 1 às 00:00:00)
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
 
     const todayOrders = approvedOrders.filter(o => new Date(o.createdAt) >= startOfToday);
     const weekOrders = approvedOrders.filter(o => new Date(o.createdAt) >= startOfThisWeek);
@@ -758,7 +764,7 @@ export const dbStore = {
       today: { revenue: todayRev, salesCount: todayOrders.length, percentChange: 0 },
       thisWeek: { revenue: weekRev, salesCount: weekOrders.length, percentChange: 0 },
       thisMonth: { revenue: monthRev, salesCount: monthOrders.length, percentChange: 0 },
-      recentTransactions: orders.slice(0, 5).map(o => ({
+      recentTransactions: orders.slice(0, 6).map(o => ({
         id: o.id,
         reference: o.id,
         amount: o.amount,

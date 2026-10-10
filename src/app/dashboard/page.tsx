@@ -33,19 +33,29 @@ export default async function DashboardPage() {
 
   const totalApprovedRev = approvedOrders.reduce((sum, o) => sum + o.amount, 0);
   const averageTicket = approvedOrders.length > 0 ? Math.round(totalApprovedRev / approvedOrders.length) : 0;
-
-  const emolaOrders = allOrders.filter((o) => o.transaction?.method === 'EMOLA');
-  const mpesaOrders = allOrders.filter((o) => o.transaction?.method === 'MPESA');
-  const emolaTotal = emolaOrders.reduce((sum, o) => sum + o.amount, 0);
-  const mpesaTotal = mpesaOrders.reduce((sum, o) => sum + o.amount, 0);
-
   const finalTotalRevenue = totalApprovedRev;
   const finalApprovedCount = approvedOrders.length;
-  const conversionRate = allOrders.length > 0 ? Number(((approvedOrders.length / allOrders.length) * 100).toFixed(1)) : 0;
 
-  // Real synchronized chart data based on actual orders
+  // Real synchronized chart data and metrics for current week (Segunda a Domingo)
   const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const currentJsDay = now.getDay();
+  const diffToMonday = currentJsDay === 0 ? 6 : currentJsDay - 1;
+  const startOfThisWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
+
+  // 7-day / This week orders & conversion metrics
+  const thisWeekOrders = allOrders.filter(o => new Date(o.createdAt) >= startOfThisWeek);
+  const thisWeekApproved = thisWeekOrders.filter(o => o.status === 'APPROVED');
+  const thisWeekEmola = thisWeekOrders.filter(o => o.transaction?.method === 'EMOLA');
+  const thisWeekMpesa = thisWeekOrders.filter(o => o.transaction?.method === 'MPESA');
+
+  const conversionRate = thisWeekOrders.length > 0
+    ? Number(((thisWeekApproved.length / thisWeekOrders.length) * 100).toFixed(1))
+    : 0;
+
+  const emolaTotal = thisWeekEmola.reduce((sum, o) => sum + o.amount, 0);
+  const mpesaTotal = thisWeekMpesa.reduce((sum, o) => sum + o.amount, 0);
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   const todayOrders = allOrders.filter(o => new Date(o.createdAt) >= startOfToday);
 
   const hours = [
@@ -67,34 +77,40 @@ export default async function DashboardPage() {
     };
   });
 
-  const weekDays = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-  const weeklyData = weekDays.map((day, idx) => {
-    const targetJsDay = (idx + 1) % 7;
-    const count = approvedOrders.filter(o => {
-      const d = new Date(o.createdAt);
-      return d.getDay() === targetJsDay && (now.getTime() - d.getTime()) <= 7 * 24 * 60 * 60 * 1000;
-    }).length;
-    return { day, vendas: count };
+  const weekDayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+  const weekDayShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+  // Synchronized weekly sales (Segunda a Domingo of current week)
+  const weeklyData = weekDayNames.map((day, idx) => {
+    const dayDate = new Date(startOfThisWeek);
+    dayDate.setDate(startOfThisWeek.getDate() + idx);
+    const dayStr = dayDate.toISOString().split('T')[0];
+    const dateLabel = `${dayDate.getDate().toString().padStart(2, '0')}/${(dayDate.getMonth() + 1).toString().padStart(2, '0')}`;
+
+    const count = approvedOrders.filter(o => o.createdAt.startsWith(dayStr)).length;
+    return { day, vendas: count, date: dateLabel };
   });
 
-  const approvalsVsVolumeData = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const dayStr = d.toISOString().split('T')[0];
-    const dateLabel = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-    
+  // Synchronized approvals vs volume (Strictly 7 days of the week, Segunda a Domingo)
+  const approvalsVsVolumeData = weekDayShort.map((dayShort, idx) => {
+    const dayDate = new Date(startOfThisWeek);
+    dayDate.setDate(startOfThisWeek.getDate() + idx);
+    const dayStr = dayDate.toISOString().split('T')[0];
+    const dateLabel = `${dayDate.getDate().toString().padStart(2, '0')}/${(dayDate.getMonth() + 1).toString().padStart(2, '0')}`;
+
     const dayOrders = allOrders.filter(o => o.createdAt.startsWith(dayStr));
     const dayApproved = dayOrders.filter(o => o.status === 'APPROVED');
     const dayVolume = dayOrders.reduce((sum, o) => sum + o.amount, 0);
     const dayApprovedAmount = dayApproved.reduce((sum, o) => sum + o.amount, 0);
 
-    approvalsVsVolumeData.push({
-      date: dateLabel,
+    return {
+      date: dayShort,
+      dayName: weekDayNames[idx],
+      fullDate: dateLabel,
       aprovados: dayApprovedAmount,
       volume: dayVolume,
-    });
-  }
+    };
+  });
 
   return (
     <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-8 pb-16">
