@@ -245,14 +245,14 @@ export default function DashboardTopNav() {
     };
   }, [pathname]);
 
-  // Dynamic Milestone calculation (7-step journey)
+  // Dynamic Milestone calculation (6 marcos oficiais Otterfy)
   const getNextMilestone = (rev: number) => {
-    if (rev < 5000) return { name: 'Grupo Network', target: 5000, tag: '2/7', image: '/awards/50k.png' };
-    if (rev < 10000) return { name: 'Pulseira Otterfy', target: 10000, tag: '3/7', image: '/awards/50k.png' };
-    if (rev < 50000) return { name: 'Placa 50K', target: 50000, tag: '4/7', image: '/awards/50k.png' };
-    if (rev < 100000) return { name: 'Placa 100K', target: 100000, tag: '5/7', image: '/awards/100k.png' };
-    if (rev < 500000) return { name: 'Placa 500K', target: 500000, tag: '6/7', image: '/awards/500k.png' };
-    return { name: 'Placa 1M', target: 1000000, tag: '7/7', image: '/awards/1m.png' };
+    if (rev < 50000) return { name: 'Pulseira Bronze', target: 50000, tag: '1/6', image: '/awards/50k.png' };
+    if (rev < 100000) return { name: 'Placa Prata', target: 100000, tag: '2/6', image: '/awards/100k.png' };
+    if (rev < 500000) return { name: 'Placa Ouro', target: 500000, tag: '3/6', image: '/awards/500k.png' };
+    if (rev < 1000000) return { name: 'Placa Diamante', target: 1000000, tag: '4/6', image: '/awards/1m.png' };
+    if (rev < 5000000) return { name: 'Placa Black', target: 5000000, tag: '5/6', image: '/awards/5m.png' };
+    return { name: 'Placa Titan', target: 10000000, tag: '6/6', image: '/awards/10m.png' };
   };
   const nextMilestone = getNextMilestone(totalRevenue);
   const milestoneProgress = Math.min(100, Math.round((totalRevenue / nextMilestone.target) * 100));

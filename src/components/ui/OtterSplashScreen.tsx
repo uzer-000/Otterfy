@@ -14,8 +14,8 @@ export default function OtterSplashScreen() {
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Tempo para exibir o ciclo da animação do mascote (1.3s)
-    const minDisplayMs = 1300;
+    // Tempo para completar 100% o ciclo da animação oficial (montagem, contornos, olhos, nariz e reflexo)
+    const minDisplayMs = 2600;
     const startTime = Date.now();
 
     const finishSplash = () => {
@@ -26,7 +26,7 @@ export default function OtterSplashScreen() {
         setIsFadingOut(true);
         setTimeout(() => {
           setMounted(false);
-        }, 350);
+        }, 500);
       }, remaining);
     };
 
@@ -34,7 +34,7 @@ export default function OtterSplashScreen() {
       finishSplash();
     } else {
       window.addEventListener('load', finishSplash, { once: true });
-      const safety = setTimeout(finishSplash, 2600);
+      const safety = setTimeout(finishSplash, 3600);
       return () => {
         window.removeEventListener('load', finishSplash);
         clearTimeout(safety);

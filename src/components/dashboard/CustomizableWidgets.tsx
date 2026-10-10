@@ -107,12 +107,12 @@ export default function CustomizableWidgets({
   const [awardsModalOpen, setAwardsModalOpen] = useState(false);
 
   const getNextMilestone = (rev: number) => {
-    if (rev < 5000) return { name: 'Grupo WhatsApp (5K)', target: 5000, level: '5K', imageSrc: '/awards/50k.png' };
-    if (rev < 10000) return { name: 'Pulseira Otterfy (10K)', target: 10000, level: '10K', imageSrc: '/awards/50k.png' };
-    if (rev < 50000) return { name: 'Placa 50K', target: 50000, level: '50K', imageSrc: '/awards/50k.png' };
-    if (rev < 100000) return { name: 'Placa 100K', target: 100000, level: '100K', imageSrc: '/awards/100k.png' };
-    if (rev < 500000) return { name: 'Placa 500K', target: 500000, level: '500K', imageSrc: '/awards/500k.png' };
-    return { name: 'Placa 1M (Final)', target: 1000000, level: '1M', imageSrc: '/awards/1m.png' };
+    if (rev < 50000) return { name: 'Pulseira Bronze (50K)', target: 50000, level: '50K', imageSrc: '/awards/50k.png' };
+    if (rev < 100000) return { name: 'Placa Prata (100K)', target: 100000, level: '100K', imageSrc: '/awards/100k.png' };
+    if (rev < 500000) return { name: 'Placa Ouro (500K)', target: 500000, level: '500K', imageSrc: '/awards/500k.png' };
+    if (rev < 1000000) return { name: 'Placa Diamante (1M)', target: 1000000, level: '1M', imageSrc: '/awards/1m.png' };
+    if (rev < 5000000) return { name: 'Placa Black (5M)', target: 5000000, level: '5M', imageSrc: '/awards/5m.png' };
+    return { name: 'Placa Titan (10M)', target: 10000000, level: '10M', imageSrc: '/awards/10m.png' };
   };
 
   // Synchronize theme with html data-theme

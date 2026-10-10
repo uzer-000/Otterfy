@@ -11,76 +11,69 @@ export interface Milestone {
   target: number;
   description: string;
   tag: string;
-  imageSrc?: string;
-  type?: 'community' | 'whatsapp' | 'bracelet' | 'plaque';
+  imageSrc: string;
+  type: 'bracelet' | 'plaque';
 }
 
 export const MILESTONES: Milestone[] = [
   {
     id: 1,
-    level: 'Comunidade',
-    name: 'Comunidade Otterfy',
-    target: 0,
-    tag: '1/7',
-    description: 'WhatsApp e Discord abertos, com gente vendendo todo dia. Você já tem acesso.',
-    type: 'community',
-  },
-  {
-    id: 2,
-    level: '5K',
-    name: 'Grupo Network WhatsApp',
-    target: 5000,
-    tag: '2/7',
-    description: 'Sala fechada no WhatsApp com os outros sellers verificados da plataforma.',
-    type: 'whatsapp',
-  },
-  {
-    id: 3,
-    level: '10K',
-    name: 'Pulseira Otterfy',
-    target: 10000,
-    tag: '3/7',
-    description: 'Peça de identidade exclusiva da comunidade, entregue no seu endereço.',
+    level: '50K',
+    name: 'Pulseira Bronze',
+    target: 50000,
+    tag: '1/6',
+    description: 'Pulseira oficial de faturamento Otterfy para o pulso, entregue no seu endereço.',
+    imageSrc: '/awards/50k.png',
     type: 'bracelet',
   },
   {
-    id: 4,
-    level: '50K',
-    name: 'Placa 50K',
-    target: 50000,
-    tag: '4/7',
-    description: 'Acrílico maciço com o seu marco gravado, entregue no seu endereço.',
-    imageSrc: '/awards/50k.png',
-    type: 'plaque',
-  },
-  {
-    id: 5,
+    id: 2,
     level: '100K',
-    name: 'Placa 100K',
+    name: 'Placa Prata',
     target: 100000,
-    tag: '5/7',
-    description: 'Acrílico maciço com o seu marco gravado, entregue no seu endereço.',
+    tag: '2/6',
+    description: 'Troféu em acrílico maciço com o seu marco de 100.000 MT gravado, entregue no seu endereço.',
     imageSrc: '/awards/100k.png',
     type: 'plaque',
   },
   {
-    id: 6,
+    id: 3,
     level: '500K',
-    name: 'Placa 500K',
+    name: 'Placa Ouro',
     target: 500000,
-    tag: '6/7',
-    description: 'Acrílico maciço com o seu marco gravado, entregue no seu endereço.',
+    tag: '3/6',
+    description: 'Troféu em acrílico maciço com o seu marco de 500.000 MT gravado, entregue no seu endereço.',
     imageSrc: '/awards/500k.png',
     type: 'plaque',
   },
   {
-    id: 7,
+    id: 4,
     level: '1M',
-    name: 'Placa 1M',
+    name: 'Placa Diamante',
     target: 1000000,
-    tag: '7/7',
-    description: 'A última parada. Acrílico maciço, entregue no seu endereço.',
+    tag: '4/6',
+    description: 'Clube do Milhão Otterfy. Acrílico maciço exclusivo, entregue no seu endereço.',
     imageSrc: '/awards/1m.png',
+    type: 'plaque',
+  },
+  {
+    id: 5,
+    level: '5M',
+    name: 'Placa Black',
+    target: 5000000,
+    tag: '5/6',
+    description: 'Operação de alta escala nacional. Acrílico maciço escurecido de alta densidade.',
+    imageSrc: '/awards/5m.png',
+    type: 'plaque',
+  },
+  {
+    id: 6,
+    level: '10M',
+    name: 'Placa Titan',
+    target: 10000000,
+    tag: '6/6',
+    description: 'A última parada e premiação máxima de escala digital da Otterfy.',
+    imageSrc: '/awards/10m.png',
     type: 'plaque',
   },
 ];
@@ -117,7 +110,7 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
   if (!isOpen) return null;
 
   const nextMilestone = MILESTONES.find((m) => m.target > currentRevenue) || MILESTONES[MILESTONES.length - 1];
-  const targetAmount = nextMilestone.target > 0 ? nextMilestone.target : 5000;
+  const targetAmount = nextMilestone.target;
   const remainingAmount = Math.max(0, targetAmount - currentRevenue);
   const progressPercent = Math.min(100, Math.round((currentRevenue / targetAmount) * 100));
 
@@ -152,10 +145,10 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
             </div>
             <div>
               <h2 className={`text-xl font-black ${isLight ? 'text-[#0F172A]' : 'text-[#F8FAFC]'}`}>
-                Sua Jornada de Conquistas
+                Premiações Oficiais Otterfy
               </h2>
               <p className={`text-xs ${isLight ? 'text-[#64748B]' : 'text-[#94A3B8]'}`}>
-                7 marcos oficiais para celebrar cada etapa do seu faturamento
+                6 marcos oficiais para celebrar a sua escala de faturamento
               </p>
             </div>
           </div>
@@ -182,7 +175,7 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
             <div>
               <span className="text-xs uppercase font-semibold tracking-wider text-violet-600 dark:text-violet-400">
-                Próxima Parada: {nextMilestone.name} ({nextMilestone.tag})
+                Próxima Meta: {nextMilestone.name} ({nextMilestone.tag})
               </span>
               <p className={`text-2xl font-black mt-0.5 ${isLight ? 'text-[#0F172A]' : 'text-[#F8FAFC]'}`}>
                 {formatMZN(currentRevenue)}{' '}
@@ -209,7 +202,7 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
               }`}
             >
               <div
-                className="h-full bg-gradient-to-r from-violet-600 to-fuchsia-500 rounded-full transition-all duration-700"
+                className="h-full bg-gradient-to-r from-violet-600 to-sky-500 rounded-full transition-all duration-700"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -225,21 +218,21 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
         <div className="p-6 overflow-y-auto space-y-3.5 max-h-[440px] custom-scrollbar">
           <div className="flex items-center justify-between mb-1">
             <h3 className={`text-xs uppercase tracking-wider font-semibold ${isLight ? 'text-[#475569]' : 'text-[#94A3B8]'}`}>
-              Marcos & Premiações Físicas:
+              Troféus & Pulseiras Físicas:
             </h3>
             <Link
               href="/dashboard/awards"
               onClick={onClose}
               className="text-xs text-violet-600 dark:text-violet-400 hover:underline font-bold flex items-center gap-1"
             >
-              Ver página completa de premiações →
+              Abrir página de premiações completa →
             </Link>
           </div>
 
           {MILESTONES.map((m) => {
-            const isUnlocked = m.target === 0 || currentRevenue >= m.target;
-            const isCurrent = m.id === nextMilestone.id;
-            const itemPercent = m.target === 0 ? 100 : Math.min(100, Math.round((currentRevenue / m.target) * 100));
+            const isUnlocked = currentRevenue >= m.target;
+            const isCurrent = m.id === nextMilestone.id && !isUnlocked;
+            const itemPercent = Math.min(100, Math.round((currentRevenue / m.target) * 100));
             const diff = Math.max(0, m.target - currentRevenue);
             const hasError = imageErrors[m.level];
 
@@ -269,25 +262,17 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
                         : 'bg-[#171420] border-[#2A2538] shadow-inner hover:border-violet-500/50'
                     }`}
                   >
-                    {m.type === 'community' ? (
-                      <div className="w-10 h-10 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-500 font-bold text-xl">
-                        👥
-                      </div>
-                    ) : m.type === 'whatsapp' ? (
-                      <div className="w-10 h-10 rounded-xl bg-emerald-600/10 flex items-center justify-center text-emerald-500 font-bold text-xl">
-                        💬
-                      </div>
-                    ) : m.type === 'bracelet' ? (
-                      <div className="w-10 h-10 rounded-xl bg-amber-600/10 flex items-center justify-center text-amber-500 font-bold text-xl">
-                        🎗️
-                      </div>
-                    ) : !hasError && m.imageSrc ? (
+                    {!hasError && m.imageSrc ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={m.imageSrc}
                         alt={`Premiação ${m.name}`}
                         onError={() => handleImageError(m.level)}
-                        className="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform duration-300"
+                        className={
+                          m.type === 'bracelet'
+                            ? "w-full h-full object-cover scale-125"
+                            : "w-full h-full object-contain p-1 group-hover:scale-110 transition-transform duration-300"
+                        }
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-center p-1">
@@ -332,29 +317,27 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
                     </p>
 
                     {/* Progress to this milestone */}
-                    {m.target > 0 && (
-                      <div className="mt-2 flex items-center gap-3">
+                    <div className="mt-2 flex items-center gap-3">
+                      <div
+                        className={`h-1.5 flex-1 rounded-full overflow-hidden ${
+                          isLight ? 'bg-[#E2E8F0]' : 'bg-[#1A1820]'
+                        }`}
+                      >
                         <div
-                          className={`h-1.5 flex-1 rounded-full overflow-hidden ${
-                            isLight ? 'bg-[#E2E8F0]' : 'bg-[#1A1820]'
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            isUnlocked ? 'bg-emerald-500' : 'bg-violet-600'
                           }`}
-                        >
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              isUnlocked ? 'bg-emerald-500' : 'bg-violet-600'
-                            }`}
-                            style={{ width: `${itemPercent}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] font-mono text-[#64748B]">{itemPercent}%</span>
+                          style={{ width: `${itemPercent}%` }}
+                        />
                       </div>
-                    )}
+                      <span className="text-[11px] font-mono text-[#64748B]">{itemPercent}%</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="text-right sm:w-36 shrink-0">
                   <span className={`text-xs block ${isLight ? 'text-[#64748B]' : 'text-[#94A3B8]'}`}>
-                    Meta: {m.target === 0 ? 'Acesso Livre' : formatMZN(m.target)}
+                    Meta: {formatMZN(m.target)}
                   </span>
                   {!isUnlocked ? (
                     <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
@@ -382,7 +365,7 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
             onClick={onClose}
             className="text-xs text-violet-600 dark:text-violet-400 hover:underline font-bold"
           >
-            Abrir página de premiações detalhada →
+            Ver timeline oficial completa →
           </Link>
           <button
             onClick={onClose}

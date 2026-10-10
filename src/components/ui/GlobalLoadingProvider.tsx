@@ -48,6 +48,8 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const activeCount = useRef(0);
 
+  const visibleSinceRef = useRef<number | null>(null);
+
   const clearTimer = useCallback(() => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
@@ -61,25 +63,41 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
       // Só torna visível se a ação do usuário demorar mais de 1.90s
       debounceTimer.current = setTimeout(() => {
         if (activeCount.current > 0) {
+          visibleSinceRef.current = Date.now();
           setIsVisible(true);
         }
       }, DEBOUNCE_DELAY_MS);
     }
   }, []);
 
+  const dismissVisibleOverlay = useCallback(() => {
+    if (!visibleSinceRef.current) {
+      setIsVisible(false);
+      return;
+    }
+    // Garante que a animação da lontra complete seu ciclo de 2.5s sem ser cortada
+    const elapsed = Date.now() - visibleSinceRef.current;
+    const minAnimationMs = 2500;
+    const remaining = Math.max(0, minAnimationMs - elapsed);
+    setTimeout(() => {
+      setIsVisible(false);
+      visibleSinceRef.current = null;
+    }, remaining);
+  }, []);
+
   const endLoading = useCallback(() => {
     activeCount.current = Math.max(0, activeCount.current - 1);
     if (activeCount.current === 0) {
       clearTimer();
-      setIsVisible(false);
+      dismissVisibleOverlay();
     }
-  }, [clearTimer]);
+  }, [clearTimer, dismissVisibleOverlay]);
 
   const forceEndAll = useCallback(() => {
     activeCount.current = 0;
     clearTimer();
-    setIsVisible(false);
-  }, [clearTimer]);
+    dismissVisibleOverlay();
+  }, [clearTimer, dismissVisibleOverlay]);
 
   const startLoading = useCallback(
     (_key?: string) => {

@@ -38,49 +38,49 @@ export default function TotalRevenueHeroCard({
 
   const isLight = theme === 'light';
 
-  // Determine Milestone Level & Info (7 marcos oficiais da jornada Otterfy)
+  // Determine Milestone Level & Info (6 marcos oficiais da Otterfy)
   const getMilestoneInfo = (revenue: number) => {
-    if (revenue < 5000) {
+    if (revenue < 50000) {
       return {
-        levelName: 'Marco 1/7',
-        plaqueName: 'Grupo WhatsApp (5K)',
-        nextTarget: 5000,
-        imageSrc: '/awards/50k.png',
-      };
-    } else if (revenue < 10000) {
-      return {
-        levelName: 'Marco 2/7',
-        plaqueName: 'Pulseira Otterfy (10K)',
-        nextTarget: 10000,
-        imageSrc: '/awards/50k.png',
-      };
-    } else if (revenue < 50000) {
-      return {
-        levelName: 'Marco 3/7',
-        plaqueName: 'Placa 50K',
+        levelName: 'Marco 1/6',
+        plaqueName: 'Pulseira Bronze (50K)',
         nextTarget: 50000,
         imageSrc: '/awards/50k.png',
       };
     } else if (revenue < 100000) {
       return {
-        levelName: 'Marco 4/7',
-        plaqueName: 'Placa 100K',
+        levelName: 'Marco 2/6',
+        plaqueName: 'Placa Prata (100K)',
         nextTarget: 100000,
         imageSrc: '/awards/100k.png',
       };
     } else if (revenue < 500000) {
       return {
-        levelName: 'Marco 5/7',
-        plaqueName: 'Placa 500K',
+        levelName: 'Marco 3/6',
+        plaqueName: 'Placa Ouro (500K)',
         nextTarget: 500000,
         imageSrc: '/awards/500k.png',
       };
-    } else {
+    } else if (revenue < 1000000) {
       return {
-        levelName: 'Marco 6/7',
-        plaqueName: 'Placa 1M (Final)',
+        levelName: 'Marco 4/6',
+        plaqueName: 'Placa Diamante (1M)',
         nextTarget: 1000000,
         imageSrc: '/awards/1m.png',
+      };
+    } else if (revenue < 5000000) {
+      return {
+        levelName: 'Marco 5/6',
+        plaqueName: 'Placa Black (5M)',
+        nextTarget: 5000000,
+        imageSrc: '/awards/5m.png',
+      };
+    } else {
+      return {
+        levelName: 'Marco 6/6',
+        plaqueName: 'Placa Titan (10M)',
+        nextTarget: 10000000,
+        imageSrc: '/awards/10m.png',
       };
     }
   };
