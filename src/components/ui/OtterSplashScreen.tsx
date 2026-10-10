@@ -4,28 +4,18 @@ import React, { useEffect, useState } from 'react';
 import OtterLoadingAnimation from './OtterLoadingAnimation';
 
 /**
- * Splash Screen de inicialização.
- * Executa estritamente UMA ÚNICA VEZ por sessão no carregamento inicial (cold boot).
- * Nunca é exibido novamente durante navegação interna para garantir que nada pisque.
+ * Splash Screen inicial ao abrir o site ou aplicativo PWA.
+ * Renderiza imediatamente no boot/carregamento inicial com a animação oficial da lontra,
+ * com fade de saída suave assim que a aplicação estiver pronta.
+ * Como fica no RootLayout, não reaparece durante a navegação normal entre abas.
  */
 export default function OtterSplashScreen() {
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Verifica se já foi exibido nesta sessão do navegador
-    try {
-      if (sessionStorage.getItem('otterfy_splash_shown') === 'true') {
-        return;
-      }
-      sessionStorage.setItem('otterfy_splash_shown', 'true');
-    } catch {
-      // Ignora erro em modo privado
-    }
-
-    setMounted(true);
-
-    const minDisplayMs = 1200;
+    // Tempo para exibir o ciclo da animação do mascote (1.3s)
+    const minDisplayMs = 1300;
     const startTime = Date.now();
 
     const finishSplash = () => {
@@ -44,7 +34,7 @@ export default function OtterSplashScreen() {
       finishSplash();
     } else {
       window.addEventListener('load', finishSplash, { once: true });
-      const safety = setTimeout(finishSplash, 2500);
+      const safety = setTimeout(finishSplash, 2600);
       return () => {
         window.removeEventListener('load', finishSplash);
         clearTimeout(safety);
