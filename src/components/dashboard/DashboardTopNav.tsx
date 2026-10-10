@@ -117,22 +117,34 @@ export default function DashboardTopNav() {
 
   const initialLoadedRef = useRef(false);
 
+  const isFetchingRef = useRef(false);
+
   // Fetch approved orders & handle real-time push alerts
   useEffect(() => {
     // Request permission once user interacts with dashboard
     requestPushPermission();
 
     async function checkOrdersAndAlert() {
+      if (isFetchingRef.current) return;
+      if (typeof document !== 'undefined' && document.hidden) return;
+
+      isFetchingRef.current = true;
       try {
         const res = await fetch('/api/payments?status=APPROVED');
         if (!res.ok) return;
 
         const json = await res.json();
         const list = json.data || [];
-        setApprovedOrders(list);
+
+        setApprovedOrders((prev) => {
+          if (prev.length === list.length && prev[0]?.id === list[0]?.id) {
+            return prev;
+          }
+          return list;
+        });
 
         const sum = list.reduce((acc: number, o: any) => acc + (Number(o.amount) || 0), 0);
-        setTotalRevenue(sum);
+        setTotalRevenue((prev) => (prev === sum ? prev : sum));
 
         // Track already notified IDs in localStorage
         const storedNotified = JSON.parse(localStorage.getItem('otterfy_notified_orders') || '[]');
@@ -209,6 +221,8 @@ export default function DashboardTopNav() {
 
       } catch {
         // keep fallback
+      } finally {
+        isFetchingRef.current = false;
       }
     }
 
@@ -216,7 +230,18 @@ export default function DashboardTopNav() {
 
     // Poll every 4 seconds in real time for instant mobile push & sound ping
     const interval = setInterval(checkOrdersAndAlert, 4000);
-    return () => clearInterval(interval);
+
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        checkOrdersAndAlert();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [pathname]);
 
   // 50K Milestone calculation (0 / 50k)

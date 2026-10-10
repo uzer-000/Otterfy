@@ -42,6 +42,26 @@
   color: var(--text-primary) !important;
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+}
+
 /* Base surface overrides in Light Mode */
 [data-theme="light"] .bg-\[\#08070C\],
 [data-theme="light"] .bg-\[\#09080E\],

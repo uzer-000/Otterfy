@@ -50,6 +50,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt" className={`${satoshi.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
+        <link rel="dns-prefetch" href="https://connect.facebook.net" />
+        <link rel="dns-prefetch" href="https://cdn.utmify.com.br" />
         <style
           dangerouslySetInnerHTML={{
             __html: `

@@ -108,24 +108,36 @@ interface StoreData {
 
 const STORE_PATH = path.join(process.cwd(), 'data', 'store.json');
 
+let memoryCache: StoreData | null = null;
+let lastMtime = 0;
+
 function readLocalStore(): StoreData {
   try {
     if (!fs.existsSync(STORE_PATH)) {
       const initial: StoreData = { products: [], orders: [] };
       fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
       fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), 'utf-8');
+      memoryCache = initial;
       return initial;
     }
+    const stat = fs.statSync(STORE_PATH);
+    if (memoryCache && stat.mtimeMs <= lastMtime) {
+      return memoryCache;
+    }
     const content = fs.readFileSync(STORE_PATH, 'utf-8');
-    return JSON.parse(content);
+    memoryCache = JSON.parse(content);
+    lastMtime = stat.mtimeMs;
+    return memoryCache!;
   } catch (e) {
     console.error('Error reading local store:', e);
-    return { products: [], orders: [] };
+    return memoryCache || { products: [], orders: [] };
   }
 }
 
 function writeLocalStore(data: StoreData) {
   try {
+    memoryCache = data;
+    lastMtime = Date.now();
     fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
     fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), 'utf-8');
   } catch (e) {
@@ -725,8 +737,8 @@ export const dbStore = {
   },
 
   // KPIS
-  async getKPIs() {
-    const orders = await this.getOrders();
+  async getKPIs(cachedOrders?: OrderItem[]) {
+    const orders = cachedOrders || (await this.getOrders());
     const approvedOrders = orders.filter(o => o.status === 'APPROVED');
 
     const now = new Date();

@@ -12,46 +12,48 @@ export async function GET(req: Request) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
 
-    // Auto-sync recent PENDING Zenofy orders in parallel (fast, non-blocking)
-    try {
-      const pendingOrders = await dbStore.getOrders({ status: 'PENDING' });
-      const recentPending = pendingOrders
-        .filter((po) => po.transaction?.zenofyCheckoutId)
-        .slice(0, 5);
+    // Auto-sync recent PENDING Zenofy orders in parallel only when querying PENDING or ALL
+    if (!status || status === 'PENDING') {
+      try {
+        const pendingOrders = await dbStore.getOrders({ status: 'PENDING' });
+        const recentPending = pendingOrders
+          .filter((po) => po.transaction?.zenofyCheckoutId)
+          .slice(0, 5);
 
-      if (recentPending.length > 0) {
-        await Promise.allSettled(
-          recentPending.map(async (po) => {
-            try {
-              const zStatus = await zenofyProvider.getOrderStatus(po.transaction!.zenofyCheckoutId!);
-              if (zStatus.status === 'PAID') {
-                if (po.transaction?.id) {
-                  await prisma.$transaction([
-                    prisma.order.update({
+        if (recentPending.length > 0) {
+          await Promise.allSettled(
+            recentPending.map(async (po) => {
+              try {
+                const zStatus = await zenofyProvider.getOrderStatus(po.transaction!.zenofyCheckoutId!);
+                if (zStatus.status === 'PAID') {
+                  if (po.transaction?.id) {
+                    await prisma.$transaction([
+                      prisma.order.update({
+                        where: { id: po.id },
+                        data: { status: 'APPROVED' },
+                      }),
+                      prisma.transaction.update({
+                        where: { id: po.transaction.id },
+                        data: { status: 'APPROVED' },
+                      }),
+                    ]).catch(() => {});
+                  } else {
+                    await prisma.order.update({
                       where: { id: po.id },
                       data: { status: 'APPROVED' },
-                    }),
-                    prisma.transaction.update({
-                      where: { id: po.transaction.id },
-                      data: { status: 'APPROVED' },
-                    }),
-                  ]).catch(() => {});
-                } else {
-                  await prisma.order.update({
-                    where: { id: po.id },
-                    data: { status: 'APPROVED' },
+                    }).catch(() => {});
+                  }
+
+                  await dbStore.updateOrderTransaction(po.id, {
+                    status: 'APPROVED',
                   }).catch(() => {});
                 }
-
-                await dbStore.updateOrderTransaction(po.id, {
-                  status: 'APPROVED',
-                }).catch(() => {});
-              }
-            } catch {}
-          })
-        );
-      }
-    } catch {}
+              } catch {}
+            })
+          );
+        }
+      } catch {}
+    }
 
     const allOrders = await dbStore.getOrders({ status, startDate, endDate });
 
@@ -66,7 +68,7 @@ export async function GET(req: Request) {
         page,
         limit,
         totalPages: Math.ceil(total / limit) || 1,
-      }
+      },
     });
   } catch (error) {
     console.error('Erro ao buscar pagamentos:', error);

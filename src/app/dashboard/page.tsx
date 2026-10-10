@@ -4,8 +4,8 @@ import DashboardGreetingBanner from '@/components/dashboard/DashboardGreetingBan
 import dbStore from '@/lib/store';
 
 export default async function DashboardPage() {
-  const data = await dbStore.getKPIs();
   const allOrders = await dbStore.getOrders();
+  const data = await dbStore.getKPIs(allOrders);
 
   // Filter approved orders for notifications
   const approvedOrders = allOrders
