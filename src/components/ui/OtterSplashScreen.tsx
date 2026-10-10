@@ -4,53 +4,50 @@ import React, { useEffect, useState } from 'react';
 import OtterLoadingAnimation from './OtterLoadingAnimation';
 
 /**
- * Splash Screen inicial ao abrir o site ou aplicativo PWA.
- * Renderiza imediatamente no boot, respeitando o tema (dark/light),
- * safe-areas do celular e preferências de movimento reduzido.
- * Desaparece com um fade-out suave assim que os recursos essenciais carregam.
+ * Splash Screen de inicialização.
+ * Executa estritamente UMA ÚNICA VEZ por sessão no carregamento inicial (cold boot).
+ * Nunca é exibido novamente durante navegação interna para garantir que nada pisque.
  */
 export default function OtterSplashScreen() {
-  const [mounted, setMounted] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Remove qualquer splash estático de fallback que possa ter sido injetado no HTML SSR
-    const fallback = document.getElementById('otter-ssr-splash');
-    if (fallback) {
-      fallback.remove();
+    // Verifica se já foi exibido nesta sessão do navegador
+    try {
+      if (sessionStorage.getItem('otterfy_splash_shown') === 'true') {
+        return;
+      }
+      sessionStorage.setItem('otterfy_splash_shown', 'true');
+    } catch {
+      // Ignora erro em modo privado
     }
 
-    // Tempo mínimo para a animação do mascote completar sua montagem (1.4s)
-    // ou aguardar window.onload se demorar mais.
-    const startTime = Date.now();
-    const minDisplayMs = 1400;
+    setMounted(true);
 
-    const handleReady = () => {
+    const minDisplayMs = 1200;
+    const startTime = Date.now();
+
+    const finishSplash = () => {
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, minDisplayMs - elapsed);
 
       setTimeout(() => {
         setIsFadingOut(true);
-        // Desmonta após a transição de fade-out (450ms)
         setTimeout(() => {
           setMounted(false);
-          // Marca no sessionStorage para conhecimento da sessão
-          try {
-            sessionStorage.setItem('otterfy_splash_shown', 'true');
-          } catch {}
-        }, 450);
+        }, 350);
       }, remaining);
     };
 
     if (document.readyState === 'complete') {
-      handleReady();
+      finishSplash();
     } else {
-      window.addEventListener('load', handleReady, { once: true });
-      // Fallback de segurança se o evento load demorar
-      const safetyTimer = setTimeout(handleReady, 3500);
+      window.addEventListener('load', finishSplash, { once: true });
+      const safety = setTimeout(finishSplash, 2500);
       return () => {
-        window.removeEventListener('load', handleReady);
-        clearTimeout(safetyTimer);
+        window.removeEventListener('load', finishSplash);
+        clearTimeout(safety);
       };
     }
   }, []);
@@ -60,7 +57,7 @@ export default function OtterSplashScreen() {
   return (
     <div
       id="otter-splash-screen"
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-[450ms] ease-out select-none otter-splash-container ${
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-300 ease-out select-none otter-splash-container ${
         isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
       style={{

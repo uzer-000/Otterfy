@@ -1104,9 +1104,7 @@ svg.otter-sb-icon {
 .otter-eye {
   transform-box: fill-box;
   transform-origin: center;
-  animation:
-    otter-eye 0.4s 1.45s cubic-bezier(0.2, 0.8, 0.2, 1) both,
-    otter-blink 4s 3.2s infinite;
+  animation: otter-eye 0.4s 1.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @keyframes otter-eye {
@@ -1115,15 +1113,6 @@ svg.otter-sb-icon {
   }
   to {
     transform: scaleY(1);
-  }
-}
-
-@keyframes otter-blink {
-  0%, 94%, 100% {
-    transform: scaleY(1);
-  }
-  97% {
-    transform: scaleY(0.08);
   }
 }
 
