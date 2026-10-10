@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { formatMZN } from '@/lib/utils';
 import AwardsModal from './AwardsModal';
 
@@ -37,49 +38,49 @@ export default function TotalRevenueHeroCard({
 
   const isLight = theme === 'light';
 
-  // Determine Milestone Level & Info
+  // Determine Milestone Level & Info (7 marcos oficiais da jornada Otterfy)
   const getMilestoneInfo = (revenue: number) => {
-    if (revenue < 50000) {
+    if (revenue < 5000) {
       return {
-        levelName: 'Nível Bronze',
-        plaqueName: 'Pulseira Bronze',
+        levelName: 'Marco 1/7',
+        plaqueName: 'Grupo WhatsApp (5K)',
+        nextTarget: 5000,
+        imageSrc: '/awards/50k.png',
+      };
+    } else if (revenue < 10000) {
+      return {
+        levelName: 'Marco 2/7',
+        plaqueName: 'Pulseira Otterfy (10K)',
+        nextTarget: 10000,
+        imageSrc: '/awards/50k.png',
+      };
+    } else if (revenue < 50000) {
+      return {
+        levelName: 'Marco 3/7',
+        plaqueName: 'Placa 50K',
         nextTarget: 50000,
         imageSrc: '/awards/50k.png',
       };
     } else if (revenue < 100000) {
       return {
-        levelName: 'Nível Prata',
-        plaqueName: 'Placa Prata',
+        levelName: 'Marco 4/7',
+        plaqueName: 'Placa 100K',
         nextTarget: 100000,
         imageSrc: '/awards/100k.png',
       };
     } else if (revenue < 500000) {
       return {
-        levelName: 'Nível Ouro',
-        plaqueName: 'Placa Ouro',
+        levelName: 'Marco 5/7',
+        plaqueName: 'Placa 500K',
         nextTarget: 500000,
         imageSrc: '/awards/500k.png',
       };
-    } else if (revenue < 1000000) {
-      return {
-        levelName: 'Nível Diamante',
-        plaqueName: 'Placa Diamante',
-        nextTarget: 1000000,
-        imageSrc: '/awards/1m.png',
-      };
-    } else if (revenue < 5000000) {
-      return {
-        levelName: 'Nível Black',
-        plaqueName: 'Placa Black',
-        nextTarget: 5000000,
-        imageSrc: '/awards/5m.png',
-      };
     } else {
       return {
-        levelName: 'Nível Titan',
-        plaqueName: 'Placa Titan',
-        nextTarget: 10000000,
-        imageSrc: '/awards/10m.png',
+        levelName: 'Marco 6/7',
+        plaqueName: 'Placa 1M (Final)',
+        nextTarget: 1000000,
+        imageSrc: '/awards/1m.png',
       };
     }
   };
@@ -154,16 +155,16 @@ export default function TotalRevenueHeroCard({
               </div>
             </div>
 
-            {/* Award Photo/Badge Slot (PNG / ICO) + Open Modal button */}
+            {/* Award Photo/Badge Slot (PNG / ICO) + Link to Awards page */}
             <div className="flex items-center gap-3 self-start sm:self-center">
-              <div 
-                onClick={() => setAwardsOpen(true)}
+              <Link 
+                href="/dashboard/awards"
                 className={`cursor-pointer group flex items-center gap-3 p-2 px-3 rounded-xl border transition-all shadow-sm ${
                   isLight
                     ? 'bg-[#F8FAFC] border-[#E2E8F0] hover:border-slate-400 hover:bg-slate-50'
                     : 'bg-[#0F0E14] border-[#1E1B26] hover:border-white/30 hover:bg-[#16141F]'
                 }`}
-                title="Clique para ver todas as premiações e placas oficiais"
+                title="Clique para ver a jornada de conquistas e premiações oficiais"
               >
                 {/* Photo slot */}
                 <div 
@@ -207,10 +208,10 @@ export default function TotalRevenueHeroCard({
                       ? 'text-[#0F172A] group-hover:text-violet-600' 
                       : 'text-[#F8FAFC] group-hover:text-white'
                   }`}>
-                    {info.plaqueName}
+                    {info.plaqueName} →
                   </span>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
 

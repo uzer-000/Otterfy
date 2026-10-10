@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AwardsModal from './AwardsModal';
 import NotificationStack from './NotificationStack';
@@ -244,13 +245,23 @@ export default function DashboardTopNav() {
     };
   }, [pathname]);
 
-  // 50K Milestone calculation (0 / 50k)
-  const target50k = 50000;
-  const progress50k = Math.min(100, Math.round((totalRevenue / target50k) * 100));
+  // Dynamic Milestone calculation (7-step journey)
+  const getNextMilestone = (rev: number) => {
+    if (rev < 5000) return { name: 'Grupo Network', target: 5000, tag: '2/7', image: '/awards/50k.png' };
+    if (rev < 10000) return { name: 'Pulseira Otterfy', target: 10000, tag: '3/7', image: '/awards/50k.png' };
+    if (rev < 50000) return { name: 'Placa 50K', target: 50000, tag: '4/7', image: '/awards/50k.png' };
+    if (rev < 100000) return { name: 'Placa 100K', target: 100000, tag: '5/7', image: '/awards/100k.png' };
+    if (rev < 500000) return { name: 'Placa 500K', target: 500000, tag: '6/7', image: '/awards/500k.png' };
+    return { name: 'Placa 1M', target: 1000000, tag: '7/7', image: '/awards/1m.png' };
+  };
+  const nextMilestone = getNextMilestone(totalRevenue);
+  const milestoneProgress = Math.min(100, Math.round((totalRevenue / nextMilestone.target) * 100));
   const approvedCount = approvedOrders.length;
 
   const getPageTitle = (path: string) => {
     if (path === '/dashboard') return 'Painel Geral';
+    if (path.startsWith('/dashboard/awards')) return 'Premiações';
+    if (path.startsWith('/dashboard/settings')) return 'Configurações da Conta';
     if (path.startsWith('/dashboard/metrics')) return 'Métricas & Relatórios';
     if (path.startsWith('/dashboard/products/new')) return 'Novo Produto';
     if (path.startsWith('/dashboard/products')) return 'Produtos';
@@ -260,7 +271,6 @@ export default function DashboardTopNav() {
     if (path.startsWith('/dashboard/affiliates')) return 'Afiliados';
     if (path.startsWith('/dashboard/campaigns')) return 'Campanhas UTM';
     if (path.startsWith('/dashboard/marketing')) return 'Marketing & Cupons';
-    if (path.startsWith('/dashboard/settings')) return 'Definições & Conta';
     if (path.startsWith('/dashboard/refunds')) return 'Reembolsos';
     if (path.startsWith('/dashboard/developer')) return 'Desenvolvedor & APIs';
     if (path.startsWith('/dashboard/automations')) return 'Automações';
@@ -271,19 +281,18 @@ export default function DashboardTopNav() {
     <>
       <header className="sticky top-0 z-30 bg-[#08070C]/90 backdrop-blur-md border-b border-[#1E1B26] px-4 sm:px-6 lg:px-8 2xl:px-10 py-3.5 transition-colors transform-gpu will-change-transform">
         <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto flex items-center justify-between gap-3">
-          {/* 50K Milestone Progress Bar (Visible in ALL TABS) */}
-          <button
-            type="button"
-            onClick={() => setAwardsModalOpen(true)}
+          {/* Milestone Progress Bar (Visible in ALL TABS, direct link to /dashboard/awards) */}
+          <Link
+            href="/dashboard/awards"
             className="flex items-center gap-2.5 sm:gap-3 p-1.5 px-2.5 sm:px-3 rounded-xl bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] hover:border-violet-500/40 transition-all text-left group cursor-pointer shadow-sm flex-1 sm:flex-initial min-w-0 max-w-[340px] md:max-w-[440px]"
-            title="Meta atual: Pulseira Bronze (50K). Clique para ver todas as premiações."
+            title={`Meta: ${nextMilestone.name} (${nextMilestone.tag}). Clique para ver a jornada de conquistas completa.`}
           >
-            {/* Award Badge (Pulseira Bronze 50K) */}
+            {/* Award Badge */}
             <div className="relative w-8 h-8 rounded-lg bg-[#171420] border border-amber-500/40 group-hover:border-amber-400 flex flex-col items-center justify-center shrink-0 overflow-hidden shadow-inner">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/awards/50k.png"
-                alt="Pulseira Bronze 50K"
+                src={nextMilestone.image}
+                alt={nextMilestone.name}
                 className="w-full h-full object-cover p-0 scale-125"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -291,31 +300,31 @@ export default function DashboardTopNav() {
                   if (parent && !parent.querySelector('.award-fallback-icon')) {
                     const fallback = document.createElement('div');
                     fallback.className = 'award-fallback-icon flex flex-col items-center justify-center';
-                    fallback.innerHTML = '<span class="text-[10px] font-black text-amber-300 font-mono tracking-tight leading-none">50K</span><span class="text-[6.5px] font-extrabold uppercase text-amber-400/90 tracking-wider">BRONZE</span>';
+                    fallback.innerHTML = '<span class="text-[10px] font-black text-amber-300 font-mono tracking-tight leading-none">🏆</span>';
                     parent.appendChild(fallback);
                   }
                 }}
               />
             </div>
 
-              <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-                <div className="flex items-center justify-between text-xs font-semibold gap-2">
-                  <span className="text-[#94A3B8] group-hover:text-violet-400 transition-colors truncate">
-                    Meta: <span className="text-[#F8FAFC] font-bold">{formatMZN(totalRevenue)}</span> / 50k
-                  </span>
-                  <span className="text-violet-400 font-mono font-bold text-[11px] shrink-0">
-                    {progress50k}%
-                  </span>
-                </div>
-
-                <div className="w-full h-1.5 bg-[#0F0E14] rounded-full overflow-hidden border border-[#1E1B26]">
-                  <div
-                    className="h-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-emerald-400 rounded-full transition-all duration-500"
-                    style={{ width: `${progress50k}%` }}
-                  />
-                </div>
+            <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+              <div className="flex items-center justify-between text-xs font-semibold gap-2">
+                <span className="text-[#94A3B8] group-hover:text-violet-400 transition-colors truncate">
+                  {nextMilestone.name}: <span className="text-[#F8FAFC] font-bold">{formatMZN(totalRevenue)}</span> / {formatMZN(nextMilestone.target)}
+                </span>
+                <span className="text-violet-400 font-mono font-bold text-[11px] shrink-0">
+                  {milestoneProgress}%
+                </span>
               </div>
-            </button>
+
+              <div className="w-full h-1.5 bg-[#0F0E14] rounded-full overflow-hidden border border-[#1E1B26]">
+                <div
+                  className="h-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-emerald-400 rounded-full transition-all duration-500"
+                  style={{ width: `${milestoneProgress}%` }}
+                />
+              </div>
+            </div>
+          </Link>
 
           {/* Right: Notifications + Theme Switcher + Profile */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -391,7 +400,15 @@ export default function DashboardTopNav() {
                 </span>
               </div>
             </div>
-            <div className="pt-2 border-t border-[#1E1B26] flex gap-2">
+            <div className="pt-2 border-t border-[#1E1B26] flex flex-col gap-2">
+              <Link
+                href="/dashboard/settings"
+                onClick={() => setProfileModalOpen(false)}
+                className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs rounded-xl transition-colors text-center flex items-center justify-center gap-1.5"
+              >
+                <span>⚙️</span>
+                <span>Configurações da Conta</span>
+              </Link>
               <button
                 type="button"
                 onClick={() => setProfileModalOpen(false)}
