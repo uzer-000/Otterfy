@@ -122,20 +122,10 @@ export default async function CheckoutPage({ params }: PageProps) {
           />
         )}
 
-        <div className="w-full max-w-[500px] py-6 sm:py-8 px-4 space-y-6">
-          {/* Brand Header */}
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-              <img src="/logo.png" alt="Otterfy" className="w-full h-full object-contain" />
-            </div>
-            <span className="font-extrabold text-xl tracking-tight text-gray-900">
-              Otter<span className="text-purple-600">fy</span>
-            </span>
-          </div>
-
+        <div className="w-full max-w-[500px] py-6 sm:py-9 px-4 space-y-5">
           {/* Custom Banner if configured */}
           {bannerUrl && (
-            <div className="w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white animate-fadeIn">
+            <div className="w-full rounded-2xl overflow-hidden border border-gray-200/80 shadow-sm bg-white animate-fadeIn">
               <img
                 src={bannerUrl}
                 alt="Banner promocional"
@@ -166,11 +156,11 @@ export default async function CheckoutPage({ params }: PageProps) {
             />
           </Suspense>
 
-          {/* Branding */}
-          <div className="text-center pb-8 flex items-center justify-center gap-1.5 text-gray-500 text-xs font-medium">
+          {/* Small Footer Branding Only */}
+          <div className="text-center pb-8 pt-1 flex items-center justify-center gap-1.5 text-gray-400 text-xs font-medium">
             <span>Powered by</span>
-            <img src="/logo.png" alt="Otterfy" className="w-4 h-4 object-contain inline-block align-middle" />
-            <span className="font-bold text-gray-800">Otterfy</span>
+            <img src="/logo.png" alt="Otterfy" className="w-3.5 h-3.5 object-contain inline-block align-middle opacity-90" />
+            <span className="font-bold text-gray-600">Otterfy</span>
           </div>
         </div>
       </main>

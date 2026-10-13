@@ -1616,3 +1616,64 @@ svg.otter-sb-icon {
   }
 }
 
+/* ==========================================================================
+   CHECKOUT CTA BUTTON ATTENTION MOTION & SHINE
+   Faz o botão de compra pulsar e mexer suavemente para chamar atenção
+   ========================================================================== */
+@keyframes checkout-cta-move {
+  0%, 100% {
+    transform: scale(1) translateY(0) rotate(0deg);
+    box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.4), 0 4px 10px -2px rgba(5, 150, 105, 0.25);
+  }
+  18% {
+    transform: scale(1.028) translateY(-2px) rotate(-0.6deg);
+    box-shadow: 0 16px 32px -4px rgba(5, 150, 105, 0.58), 0 6px 14px -2px rgba(5, 150, 105, 0.35);
+  }
+  26% {
+    transform: scale(1.028) translateY(-2px) rotate(0.6deg);
+  }
+  34% {
+    transform: scale(1.022) translateY(-1px) rotate(-0.4deg);
+  }
+  42% {
+    transform: scale(1.025) translateY(-1.5px) rotate(0deg);
+  }
+  65% {
+    transform: scale(1) translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes checkout-cta-shine {
+  0% {
+    transform: translateX(-140%) skewX(-22deg);
+  }
+  45%, 100% {
+    transform: translateX(240%) skewX(-22deg);
+  }
+}
+
+.checkout-cta-attention {
+  position: relative;
+  overflow: hidden;
+  animation: checkout-cta-move 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.checkout-cta-attention::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 100%
+  );
+  transform: translateX(-140%) skewX(-22deg);
+  animation: checkout-cta-shine 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+

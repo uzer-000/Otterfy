@@ -185,16 +185,6 @@ export default function CheckoutPreviewPage() {
           )}
 
           <div className="p-4 sm:p-6 space-y-5">
-            {/* Brand Header */}
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-                <img src="/logo.png" alt="Otterfy" className="w-full h-full object-contain" />
-              </div>
-              <span className="font-extrabold text-xl tracking-tight text-gray-900">
-                Otter<span className="text-purple-600">fy</span>
-              </span>
-            </div>
-
             {/* Banner */}
             {bannerUrl && (
               <div className="w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white">
@@ -219,11 +209,11 @@ export default function CheckoutPreviewPage() {
               />
             </Suspense>
 
-            {/* Branding */}
-            <div className="text-center pb-2 flex items-center justify-center gap-1.5 text-gray-500 text-xs font-medium">
+            {/* Small Footer Branding Only */}
+            <div className="text-center pb-2 flex items-center justify-center gap-1.5 text-gray-400 text-xs font-medium">
               <span>Powered by</span>
-              <img src="/logo.png" alt="Otterfy" className="w-4 h-4 object-contain inline-block align-middle" />
-              <span className="font-bold text-gray-800">Otterfy</span>
+              <img src="/logo.png" alt="Otterfy" className="w-3.5 h-3.5 object-contain inline-block align-middle opacity-90" />
+              <span className="font-bold text-gray-600">Otterfy</span>
             </div>
           </div>
         </div>
