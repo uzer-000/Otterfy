@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ImageDropzone from '@/components/ui/ImageDropzone';
@@ -26,10 +27,15 @@ interface CourseLesson {
 export default function NewProductWizardPage() {
   const router = useRouter();
 
-  // Wizard state: 0 = Category modal, 1 = Detalhes, 2 = Conteúdo, 3 = Materiais, 4 = Pagamento, 5 = Revisão
-  const [currentStep, setCurrentStep] = useState<number>(0);
+  // Wizard state: 1 = Detalhes, 2 = Conteúdo, 3 = Materiais, 4 = Pagamento, 5 = Revisão
+  const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedCategory, setSelectedCategory] = useState<ProductType>('ebook');
   const [categoryModalOpen, setCategoryModalOpen] = useState<boolean>(true);
+  const [portalMounted, setPortalMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setPortalMounted(true);
+  }, []);
 
   // Form Fields
   const [title, setTitle] = useState('');
@@ -255,35 +261,38 @@ export default function NewProductWizardPage() {
   return (
     <div className="w-full max-w-5xl 2xl:max-w-6xl mx-auto space-y-6 pb-20">
       {/* ============================================================== */}
-      {/* MODAL 1: SELETOR DE CATEGORIA (PRINT 1 NO TEMA ROXO DA OTTERFY) */}
+      {/* MODAL 1: SELETOR DE CATEGORIA (RENDERIZADO NO BODY VIA PORTAL)  */}
       {/* ============================================================== */}
-      {categoryModalOpen && (
-        <div className="fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#121016] border border-[#1E1B26] rounded-3xl w-full max-w-3xl max-h-[90dvh] overflow-y-auto my-auto p-6 sm:p-8 shadow-2xl relative space-y-6 text-[#F8FAFC]">
+      {portalMounted && categoryModalOpen && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-y-auto bg-black/80 backdrop-blur-md animate-fadeIn flex items-center justify-center p-4 sm:p-6"
+          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh', zIndex: 9999 }}
+        >
+          <div className="bg-[#121016] border border-[#1E1B26] rounded-3xl w-full max-w-3xl max-h-[92dvh] overflow-y-auto my-auto p-5 sm:p-7 shadow-2xl relative space-y-5 text-[#F8FAFC]">
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-2 border-b border-[#1E1B26]">
+            <div className="flex items-start justify-between pb-3 border-b border-[#1E1B26]">
               <div>
-                <h2 className="text-2xl font-black text-[#F8FAFC] tracking-tight">Criar Novo Produto</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-[#F8FAFC] tracking-tight">Criar Novo Produto</h2>
                 <p className="text-xs text-[#94A3B8] mt-1">Escolha o tipo de produto que deseja criar</p>
               </div>
               <Link
                 href="/dashboard/products"
-                className="w-8 h-8 rounded-full bg-[#1A1820] text-[#94A3B8] hover:text-white flex items-center justify-center text-sm"
+                className="w-8 h-8 rounded-full bg-[#1A1820] text-[#94A3B8] hover:text-white flex items-center justify-center text-sm shrink-0"
               >
                 ✕
               </Link>
             </div>
 
             {/* Grid of Categories (Print 1 style in Otterfy Purple) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
               {/* 1. E-book */}
               <div
                 onClick={() => handleSelectCategory('ebook')}
-                className="group relative bg-[#0F0E14] hover:bg-[#16131F] border border-[#1E1B26] hover:border-violet-500/60 rounded-2xl p-5 cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between"
+                className="group relative bg-[#0F0E14] hover:bg-[#16131F] border border-[#1E1B26] hover:border-violet-500/60 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-600 text-white shadow-sm">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-600 text-white shadow-sm">
                       Mais Popular
                     </span>
                     <div className="w-8 h-8 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -296,7 +305,7 @@ export default function NewProductWizardPage() {
                     E-book
                   </h3>
                   <p className="text-xs text-[#94A3B8] mt-1">Livros digitais, guias e materiais em PDF</p>
-                  <ul className="mt-4 space-y-1.5 text-xs text-[#94A3B8]">
+                  <ul className="mt-3.5 space-y-1.5 text-xs text-[#94A3B8]">
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
                       PDF automático
@@ -320,7 +329,7 @@ export default function NewProductWizardPage() {
               {/* 2. Curso Online */}
               <div
                 onClick={() => handleSelectCategory('course')}
-                className="group relative bg-[#0F0E14] hover:bg-[#16131F] border border-[#1E1B26] hover:border-violet-500/60 rounded-2xl p-5 cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between"
+                className="group relative bg-[#0F0E14] hover:bg-[#16131F] border border-[#1E1B26] hover:border-violet-500/60 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -335,7 +344,7 @@ export default function NewProductWizardPage() {
                     Curso Online
                   </h3>
                   <p className="text-xs text-[#94A3B8] mt-1">Cursos com vídeo-aulas e materiais</p>
-                  <ul className="mt-4 space-y-1.5 text-xs text-[#94A3B8]">
+                  <ul className="mt-3.5 space-y-1.5 text-xs text-[#94A3B8]">
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
                       Vídeo-aulas
@@ -359,7 +368,7 @@ export default function NewProductWizardPage() {
               {/* 3. SaaS */}
               <div
                 onClick={() => handleSelectCategory('saas')}
-                className="group relative bg-[#0F0E14] hover:bg-[#16131F] border border-[#1E1B26] hover:border-violet-500/60 rounded-2xl p-5 cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between"
+                className="group relative bg-[#0F0E14] hover:bg-[#16131F] border border-[#1E1B26] hover:border-violet-500/60 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -373,7 +382,7 @@ export default function NewProductWizardPage() {
                     SaaS
                   </h3>
                   <p className="text-xs text-[#94A3B8] mt-1">Link de acesso com cobrança recorrente</p>
-                  <ul className="mt-4 space-y-1.5 text-xs text-[#94A3B8]">
+                  <ul className="mt-3.5 space-y-1.5 text-xs text-[#94A3B8]">
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
                       Link de redirecionamento
@@ -395,8 +404,8 @@ export default function NewProductWizardPage() {
               </div>
 
               {/* 4. Template / Planilha (Em Breve) */}
-              <div className="bg-[#0F0E14]/50 border border-[#1E1B26]/60 rounded-2xl p-5 opacity-60">
-                <div className="flex items-center justify-between mb-3">
+              <div className="bg-[#0F0E14]/50 border border-[#1E1B26]/60 rounded-2xl p-4 sm:p-5 opacity-60">
+                <div className="flex items-center justify-between mb-2.5">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#1E1B26] text-[#94A3B8]">
                     Em Breve
                   </span>
@@ -411,8 +420,8 @@ export default function NewProductWizardPage() {
               </div>
 
               {/* 5. Pacote / Bundle (Em Breve) */}
-              <div className="bg-[#0F0E14]/50 border border-[#1E1B26]/60 rounded-2xl p-5 opacity-60">
-                <div className="flex items-center justify-between mb-3">
+              <div className="bg-[#0F0E14]/50 border border-[#1E1B26]/60 rounded-2xl p-4 sm:p-5 opacity-60">
+                <div className="flex items-center justify-between mb-2.5">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#1E1B26] text-[#94A3B8]">
                     Em Breve
                   </span>
@@ -427,8 +436,8 @@ export default function NewProductWizardPage() {
               </div>
 
               {/* 6. Software / Plugin (Em Breve) */}
-              <div className="bg-[#0F0E14]/50 border border-[#1E1B26]/60 rounded-2xl p-5 opacity-60">
-                <div className="flex items-center justify-between mb-3">
+              <div className="bg-[#0F0E14]/50 border border-[#1E1B26]/60 rounded-2xl p-4 sm:p-5 opacity-60">
+                <div className="flex items-center justify-between mb-2.5">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#1E1B26] text-[#94A3B8]">
                     Em Breve
                   </span>
@@ -443,12 +452,16 @@ export default function NewProductWizardPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* SUCCESS MODAL ONCE PRODUCT IS CREATED */}
-      {createdProductId && (
-        <div className="fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+      {portalMounted && createdProductId && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] overflow-y-auto flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh', zIndex: 9999 }}
+        >
           <div className="bg-[#121016] border border-violet-500/40 rounded-3xl w-full max-w-lg my-auto p-6 sm:p-8 text-center space-y-5 shadow-2xl">
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mx-auto flex items-center justify-center text-2xl font-black">
               ✓
@@ -490,7 +503,8 @@ export default function NewProductWizardPage() {
               </Link>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Main Stepper Header (Print 2 style) */}
