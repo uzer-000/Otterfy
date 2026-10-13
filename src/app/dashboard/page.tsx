@@ -56,7 +56,84 @@ export default async function DashboardPage() {
   const mpesaTotal = thisWeekMpesa.reduce((sum, o) => sum + o.amount, 0);
 
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+  const startOfTwoDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 0, 0, 0, 0);
+  const startOfLastWeek = new Date(startOfThisWeek.getFullYear(), startOfThisWeek.getMonth(), startOfThisWeek.getDate() - 7, 0, 0, 0, 0);
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+  const startOfThisYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+  const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+
+  const calcTrend = (curr: number, prev: number) => {
+    if (prev <= 0) return curr > 0 ? '+100.0%' : '+0.0%';
+    const diff = ((curr - prev) / prev) * 100;
+    return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%`;
+  };
+
+  const buildPeriodMetric = (
+    ordersInPeriod: typeof allOrders,
+    ordersInPrevPeriod: typeof allOrders,
+    vsLabel: string,
+    expiredLabel: string
+  ) => {
+    const approved = ordersInPeriod.filter((o) => o.status === 'APPROVED');
+    const prevApproved = ordersInPrevPeriod.filter((o) => o.status === 'APPROVED');
+    const pending = ordersInPeriod.filter((o) => o.status === 'PENDING');
+    const prevPending = ordersInPrevPeriod.filter((o) => o.status === 'PENDING');
+    const expired = ordersInPeriod.filter(
+      (o) => o.status === 'DECLINED' || o.status === 'CANCELLED' || (o.status as string) === 'EXPIRED'
+    );
+
+    const salesCount = approved.length;
+    const prevSalesCount = prevApproved.length;
+    const revenue = approved.reduce((sum, o) => sum + o.amount, 0);
+    const prevRevenue = prevApproved.reduce((sum, o) => sum + o.amount, 0);
+
+    return {
+      salesCount,
+      revenue,
+      pendingCount: pending.length,
+      expiredCount: expired.length,
+      salesTrend: calcTrend(salesCount, prevSalesCount),
+      revenueTrend: calcTrend(revenue, prevRevenue),
+      pendingTrend: calcTrend(pending.length, prevPending.length),
+      vsLabel,
+      expiredLabel,
+    };
+  };
+
   const todayOrders = allOrders.filter(o => new Date(o.createdAt) >= startOfToday);
+  const yesterdayOrders = allOrders.filter(o => {
+    const d = new Date(o.createdAt);
+    return d >= startOfYesterday && d < startOfToday;
+  });
+  const twoDaysAgoOrders = allOrders.filter(o => {
+    const d = new Date(o.createdAt);
+    return d >= startOfTwoDaysAgo && d < startOfYesterday;
+  });
+  const lastWeekOrders = allOrders.filter(o => {
+    const d = new Date(o.createdAt);
+    return d >= startOfLastWeek && d < startOfThisWeek;
+  });
+  const thisMonthOrders = allOrders.filter(o => new Date(o.createdAt) >= startOfThisMonth);
+  const lastMonthOrders = allOrders.filter(o => {
+    const d = new Date(o.createdAt);
+    return d >= startOfLastMonth && d < startOfThisMonth;
+  });
+  const thisYearOrders = allOrders.filter(o => new Date(o.createdAt) >= startOfThisYear);
+  const lastYearOrders = allOrders.filter(o => {
+    const d = new Date(o.createdAt);
+    return d >= startOfLastYear && d < startOfThisYear;
+  });
+
+  const periodStats = {
+    yesterday: buildPeriodMetric(yesterdayOrders, twoDaysAgoOrders, 'vs. dia anterior', 'ontem'),
+    today: buildPeriodMetric(todayOrders, yesterdayOrders, 'vs. ontem', 'hoje'),
+    week: buildPeriodMetric(thisWeekOrders, lastWeekOrders, 'vs. semana anterior', 'na última semana'),
+    month: buildPeriodMetric(thisMonthOrders, lastMonthOrders, 'vs. mês anterior', 'no último mês'),
+    year: buildPeriodMetric(thisYearOrders, lastYearOrders, 'vs. ano anterior', 'no último ano'),
+    all: buildPeriodMetric(allOrders, [], 'desde o início', 'em todo o período'),
+  };
 
   const hours = [
     '00:00', '01:00', '02:00', '03:00', '04:00', '05:00',
@@ -141,6 +218,7 @@ export default async function DashboardPage() {
         hourlyData={hourlyData}
         weeklyData={weeklyData}
         approvalsVsVolumeData={approvalsVsVolumeData}
+        periodStats={periodStats}
       />
     </div>
   );

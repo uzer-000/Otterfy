@@ -296,7 +296,7 @@ export default function AccountSettingsPage() {
           <button
             type="button"
             onClick={handleSavePersonalInfo}
-            className="px-5 py-2.5 rounded-xl bg-white text-gray-900 dark:bg-white dark:text-gray-900 font-bold text-xs sm:text-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-sm"
+            className="px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs sm:text-sm active:scale-95 transition-all cursor-pointer shadow-sm"
           >
             Salvar alterações
           </button>
@@ -327,7 +327,7 @@ export default function AccountSettingsPage() {
           <button
             type="button"
             onClick={() => setIsAddEmailModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white text-gray-900 dark:bg-white dark:text-gray-900 font-bold text-xs sm:text-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer self-start sm:self-auto shadow-sm"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs sm:text-sm active:scale-95 transition-all cursor-pointer self-start sm:self-auto shadow-sm"
           >
             <span>+</span>
             <span>Adicionar Email</span>
@@ -393,7 +393,7 @@ export default function AccountSettingsPage() {
             onClick={() => setSelectedLanguage('pt-BR')}
             className={`w-full flex items-center justify-between p-3.5 sm:p-4 rounded-xl border transition-all text-left cursor-pointer ${
               selectedLanguage === 'pt-BR'
-                ? 'border-white/80 bg-white/5 text-[var(--text-primary)] ring-1 ring-white/20'
+                ? 'border-[#7C3AED] bg-violet-500/10 text-[var(--text-primary)] ring-1 ring-[#7C3AED]/30'
                 : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-slate-500'
             }`}
           >
@@ -407,7 +407,7 @@ export default function AccountSettingsPage() {
               </div>
             </div>
             {selectedLanguage === 'pt-BR' && (
-              <span className="w-5 h-5 rounded-full bg-white text-gray-900 flex items-center justify-center text-xs font-bold">
+              <span className="w-5 h-5 rounded-full bg-[#7C3AED] text-white flex items-center justify-center text-xs font-bold">
                 ✓
               </span>
             )}
@@ -419,7 +419,7 @@ export default function AccountSettingsPage() {
             onClick={() => setSelectedLanguage('en-US')}
             className={`w-full flex items-center justify-between p-3.5 sm:p-4 rounded-xl border transition-all text-left cursor-pointer ${
               selectedLanguage === 'en-US'
-                ? 'border-white/80 bg-white/5 text-[var(--text-primary)] ring-1 ring-white/20'
+                ? 'border-[#7C3AED] bg-violet-500/10 text-[var(--text-primary)] ring-1 ring-[#7C3AED]/30'
                 : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-slate-500'
             }`}
           >
@@ -433,7 +433,7 @@ export default function AccountSettingsPage() {
               </div>
             </div>
             {selectedLanguage === 'en-US' && (
-              <span className="w-5 h-5 rounded-full bg-white text-gray-900 flex items-center justify-center text-xs font-bold">
+              <span className="w-5 h-5 rounded-full bg-[#7C3AED] text-white flex items-center justify-center text-xs font-bold">
                 ✓
               </span>
             )}
@@ -445,7 +445,7 @@ export default function AccountSettingsPage() {
             onClick={() => setSelectedLanguage('es-ES')}
             className={`w-full flex items-center justify-between p-3.5 sm:p-4 rounded-xl border transition-all text-left cursor-pointer ${
               selectedLanguage === 'es-ES'
-                ? 'border-white/80 bg-white/5 text-[var(--text-primary)] ring-1 ring-white/20'
+                ? 'border-[#7C3AED] bg-violet-500/10 text-[var(--text-primary)] ring-1 ring-[#7C3AED]/30'
                 : 'border-[var(--border-color)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-slate-500'
             }`}
           >
@@ -459,7 +459,7 @@ export default function AccountSettingsPage() {
               </div>
             </div>
             {selectedLanguage === 'es-ES' && (
-              <span className="w-5 h-5 rounded-full bg-white text-gray-900 flex items-center justify-center text-xs font-bold">
+              <span className="w-5 h-5 rounded-full bg-[#7C3AED] text-white flex items-center justify-center text-xs font-bold">
                 ✓
               </span>
             )}
@@ -487,7 +487,7 @@ export default function AccountSettingsPage() {
               setIsAppleLinked(!isAppleLinked);
               showToast(isAppleLinked ? 'Conta Apple desconectada.' : 'Conta Apple vinculada com sucesso!');
             }}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-gray-900 dark:bg-white dark:text-gray-900 font-bold text-xs sm:text-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer shrink-0 shadow-sm"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs sm:text-sm active:scale-95 transition-all cursor-pointer shrink-0 shadow-sm"
           >
             <svg className="w-4 h-4 fill-current" viewBox="0 0 170 170">
               <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.08-7.73-7.98-12.12-14.7-6.2-9.48-11.05-20.5-14.54-33.05-3.5-12.55-5.25-24.3-5.25-35.25 0-14.93 3.65-27.46 10.95-37.59 7.3-10.13 16.63-15.34 27.99-15.63 4.89 0 10.19 1.25 15.89 3.75 5.71 2.5 9.77 3.8 12.18 3.91 2.07-.11 6.31-1.46 12.74-4.05 6.42-2.6 11.77-3.8 16.05-3.6 12.07.72 21.72 5.14 28.96 13.25-10.65 6.45-15.86 15.36-15.63 26.74.23 9.07 3.75 16.71 10.56 22.92 6.81 6.21 15.01 9.75 24.6 10.63-2.17 6.42-4.78 12.87-7.83 19.34zM119.22 31.85c0-7.39 2.65-14.18 7.95-20.37 5.3-6.19 11.95-10.02 19.95-11.48.23 1.09.35 2.17.35 3.26 0 7.39-2.76 14.28-8.28 20.67-5.52 6.39-12.18 10.15-19.97 11.28v-3.36z" />
@@ -904,7 +904,7 @@ export default function AccountSettingsPage() {
               <button
                 type="button"
                 onClick={handleAddSupportEmail}
-                className="px-5 py-2 rounded-xl bg-white text-gray-900 font-bold text-xs hover:opacity-90 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs cursor-pointer transition-colors"
               >
                 Adicionar
               </button>
@@ -927,7 +927,7 @@ export default function AccountSettingsPage() {
             <button
               type="button"
               onClick={() => setActiveIpModal(null)}
-              className="w-full py-2.5 rounded-xl bg-white text-gray-900 font-bold text-xs hover:opacity-90"
+              className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs cursor-pointer transition-colors"
             >
               Fechar
             </button>

@@ -24,6 +24,20 @@ export interface KpiItem {
   visible: boolean;
 }
 
+export type PeriodKey = 'yesterday' | 'today' | 'week' | 'month' | 'year' | 'all';
+
+export interface PeriodMetric {
+  salesCount: number;
+  revenue: number;
+  pendingCount: number;
+  expiredCount: number;
+  salesTrend: string;
+  revenueTrend: string;
+  pendingTrend: string;
+  vsLabel: string;
+  expiredLabel: string;
+}
+
 const DEFAULT_BLOCKS: DashboardBlock[] = [
   { id: 'kpis', label: 'Indicadores Principais (KPIs)', visible: true, type: 'kpis' },
   { id: 'hourly', label: 'Gráfico 24h: Fluxo por Horário (00:00 - 23:59)', visible: true, type: 'hourly' },
@@ -33,10 +47,19 @@ const DEFAULT_BLOCKS: DashboardBlock[] = [
 ];
 
 const DEFAULT_KPIS: KpiItem[] = [
-  { id: 'today', label: 'Vendas Hoje', visible: true },
-  { id: 'week', label: 'Vendas Esta Semana', visible: true },
-  { id: 'month', label: 'Vendas Este Mês', visible: true },
-  { id: 'ticket', label: 'Valor Médio por Compra (Ticket Médio)', visible: true },
+  { id: 'totalSales', label: 'Total de Vendas', visible: true },
+  { id: 'totalRevenue', label: 'Receita Total', visible: true },
+  { id: 'pendingSales', label: 'Vendas Pendentes', visible: true },
+  { id: 'expiredSales', label: 'Vendas Expiradas', visible: true },
+];
+
+const PERIOD_OPTIONS: { id: PeriodKey; label: string }[] = [
+  { id: 'yesterday', label: 'Ontem' },
+  { id: 'today', label: 'Hoje' },
+  { id: 'week', label: 'Semana' },
+  { id: 'month', label: 'Mês' },
+  { id: 'year', label: 'Ano' },
+  { id: 'all', label: 'Tudo' },
 ];
 
 interface Transaction {
@@ -71,6 +94,7 @@ interface CustomizableWidgetsProps {
   hourlyData?: { hour: string; iniciados: number; aprovados: number }[];
   weeklyData?: { day: string; vendas: number; date?: string }[];
   approvalsVsVolumeData?: { date: string; dayName?: string; fullDate?: string; aprovados: number; volume: number }[];
+  periodStats?: Record<PeriodKey, PeriodMetric>;
 }
 
 export default function CustomizableWidgets({
@@ -96,9 +120,11 @@ export default function CustomizableWidgets({
   hourlyData,
   weeklyData,
   approvalsVsVolumeData,
+  periodStats,
 }: CustomizableWidgetsProps) {
   const [blocks, setBlocks] = useState<DashboardBlock[]>(DEFAULT_BLOCKS);
   const [kpis, setKpis] = useState<KpiItem[]>(DEFAULT_KPIS);
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>('week');
   const [customizingOpen, setCustomizingOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'blocks' | 'kpis'>('blocks');
   const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
@@ -160,7 +186,7 @@ export default function CustomizableWidgets({
         }
       }
 
-      const savedKpis = localStorage.getItem('otterfy-dashboard-kpis-v2');
+      const savedKpis = localStorage.getItem('otterfy-dashboard-kpis-v3');
       if (savedKpis) {
         const parsedKpis = JSON.parse(savedKpis);
         if (Array.isArray(parsedKpis) && parsedKpis.length > 0) {
@@ -183,7 +209,7 @@ export default function CustomizableWidgets({
 
   const saveKpis = (items: KpiItem[]) => {
     setKpis(items);
-    localStorage.setItem('otterfy-dashboard-kpis-v2', JSON.stringify(items));
+    localStorage.setItem('otterfy-dashboard-kpis-v3', JSON.stringify(items));
   };
 
   const toggleBlock = (id: string) => {
@@ -259,166 +285,220 @@ export default function CustomizableWidgets({
     localStorage.setItem('otterfy-dashboard-blocks-v2', JSON.stringify(blocks));
   };
 
-  // Render individual KPI Card
+  // Fallback period stats when not provided by server
+  const fallbackPeriodStats: Record<PeriodKey, PeriodMetric> = {
+    yesterday: {
+      salesCount: 0,
+      revenue: 0,
+      pendingCount: 0,
+      expiredCount: 0,
+      salesTrend: '+0.0%',
+      revenueTrend: '+0.0%',
+      pendingTrend: '+0.0%',
+      vsLabel: 'vs. dia anterior',
+      expiredLabel: 'ontem',
+    },
+    today: {
+      salesCount: todaySalesCount,
+      revenue: todayRevenue,
+      pendingCount,
+      expiredCount: lostCount,
+      salesTrend: '+0.0%',
+      revenueTrend: '+0.0%',
+      pendingTrend: '+0.0%',
+      vsLabel: 'vs. ontem',
+      expiredLabel: 'hoje',
+    },
+    week: {
+      salesCount: weekSalesCount,
+      revenue: weekRevenue,
+      pendingCount,
+      expiredCount: lostCount,
+      salesTrend: '+0.0%',
+      revenueTrend: '+0.0%',
+      pendingTrend: '+0.0%',
+      vsLabel: 'vs. semana anterior',
+      expiredLabel: 'na última semana',
+    },
+    month: {
+      salesCount: monthSalesCount,
+      revenue: monthRevenue,
+      pendingCount,
+      expiredCount: lostCount,
+      salesTrend: '+0.0%',
+      revenueTrend: '+0.0%',
+      pendingTrend: '+0.0%',
+      vsLabel: 'vs. mês anterior',
+      expiredLabel: 'no último mês',
+    },
+    year: {
+      salesCount: approvedCount,
+      revenue: totalRevenue,
+      pendingCount,
+      expiredCount: lostCount,
+      salesTrend: '+0.0%',
+      revenueTrend: '+0.0%',
+      pendingTrend: '+0.0%',
+      vsLabel: 'vs. ano anterior',
+      expiredLabel: 'no último ano',
+    },
+    all: {
+      salesCount: approvedCount,
+      revenue: totalRevenue,
+      pendingCount,
+      expiredCount: lostCount,
+      salesTrend: '+0.0%',
+      revenueTrend: '+0.0%',
+      pendingTrend: '+0.0%',
+      vsLabel: 'desde o início',
+      expiredLabel: 'em todo o período',
+    },
+  };
+
+  const activeStats = (periodStats || fallbackPeriodStats)[selectedPeriod];
+
+  // Render individual Colored KPI Card (matching screenshot)
   const renderKpiCard = (id: string) => {
     switch (id) {
-      case 'today':
+      case 'totalSales':
         return (
-          <KPICard
+          <div
             key={id}
-            title="Hoje"
-            revenue={todayRevenue}
-            salesCount={todaySalesCount}
-            percentChange={0}
-            icon={
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            }
-          />
+            className="otter-stat-card otter-stat-card--emerald otter-keep-colors p-5 sm:p-6 min-h-[168px] flex flex-col justify-between"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <span className="text-[13px] font-medium text-white/95 tracking-tight">
+                Total de Vendas
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white shrink-0 backdrop-blur-[2px]">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="my-2">
+              <span className="text-3xl sm:text-[32px] font-bold text-white tracking-tight leading-none">
+                {activeStats.salesCount}
+              </span>
+            </div>
+
+            <div className="space-y-0.5 pt-1">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                <svg className="w-3.5 h-3.5 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                </svg>
+                <span>{activeStats.salesTrend}</span>
+              </div>
+              <p className="text-[11px] text-white/80 font-normal">
+                {activeStats.vsLabel}
+              </p>
+            </div>
+          </div>
         );
 
-      case 'week':
+      case 'totalRevenue':
         return (
-          <KPICard
+          <div
             key={id}
-            title="Esta Semana"
-            revenue={weekRevenue}
-            salesCount={weekSalesCount}
-            percentChange={0}
-            icon={
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            }
-          />
+            className="otter-stat-card otter-stat-card--emerald otter-keep-colors p-5 sm:p-6 min-h-[168px] flex flex-col justify-between"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <span className="text-[13px] font-medium text-white/95 tracking-tight">
+                Receita Total
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white shrink-0 backdrop-blur-[2px]">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18m-4-3.5c1.3 1.2 3.5 1.5 5.5 1.1 2-.4 3.2-1.8 3-3.5-.2-1.6-1.5-2.6-3.7-3.1l-1.8-.4c-2-.5-3.3-1.4-3.3-3 0-1.7 1.5-3.1 3.8-3.3 2-.2 3.8.3 4.8 1.3" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="my-2">
+              <span className="text-2xl sm:text-[30px] font-bold text-white tracking-tight leading-none">
+                {formatMZN(activeStats.revenue)}
+              </span>
+            </div>
+
+            <div className="space-y-0.5 pt-1">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                <svg className="w-3.5 h-3.5 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                </svg>
+                <span>{activeStats.revenueTrend}</span>
+              </div>
+              <p className="text-[11px] text-white/80 font-normal">
+                {activeStats.vsLabel}
+              </p>
+            </div>
+          </div>
         );
 
-      case 'month':
-        return (
-          <KPICard
-            key={id}
-            title="Este Mês"
-            revenue={monthRevenue}
-            salesCount={monthSalesCount}
-            percentChange={0}
-            icon={
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            }
-          />
-        );
-
-      case 'pending':
+      case 'pendingSales':
         return (
           <Link
             key={id}
             href="/dashboard/payments?status=PENDING"
-            className="otter-widget-card rounded-2xl p-6 relative overflow-hidden group block shadow-sm"
+            className="otter-stat-card otter-stat-card--amber otter-keep-colors p-5 sm:p-6 min-h-[168px] flex flex-col justify-between block"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-1.5">
-                <h3 className="text-[#94A3B8] text-sm font-semibold group-hover:text-[#F8FAFC] transition-colors">
-                  Vendas Pendentes
-                </h3>
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              </div>
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <div className="flex items-start justify-between gap-3">
+              <span className="text-[13px] font-medium text-white/95 tracking-tight">
+                Vendas Pendentes
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white shrink-0 backdrop-blur-[2px]">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
 
-            <div className="mb-3">
-              <span className="text-3xl font-black text-[#F8FAFC] tracking-tight group-hover:text-amber-400 transition-colors">
-                {formatMZN(pendingAmount)}
+            <div className="my-2">
+              <span className="text-3xl sm:text-[32px] font-bold text-white tracking-tight leading-none">
+                {activeStats.pendingCount}
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-xs pt-3 border-t border-[#1E1B26]/80 text-[#94A3B8]">
-              <span>{pendingCount} leads para recuperar</span>
-              <span className="text-amber-400 font-bold flex items-center gap-1">
-                Recuperar <span>→</span>
-              </span>
+            <div className="space-y-0.5 pt-1">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                <svg className="w-3.5 h-3.5 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                </svg>
+                <span>{activeStats.pendingTrend}</span>
+              </div>
+              <p className="text-[11px] text-white/80 font-normal">
+                aguardando pagamento
+              </p>
             </div>
           </Link>
         );
 
-      case 'lost':
+      case 'expiredSales':
         return (
-          <div key={id} className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[#94A3B8] text-sm font-semibold">Vendas Perdidas</h3>
-              <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          <div
+            key={id}
+            className="otter-stat-card otter-stat-card--crimson otter-keep-colors p-5 sm:p-6 min-h-[168px] flex flex-col justify-between"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <span className="text-[13px] font-medium text-white/95 tracking-tight">
+                Vendas Expiradas
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white shrink-0 backdrop-blur-[2px]">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                 </svg>
               </div>
             </div>
 
-            <div className="mb-3">
-              <span className="text-3xl font-black text-[#F8FAFC] tracking-tight">
-                {formatMZN(lostAmount)}
+            <div className="my-2">
+              <span className="text-3xl sm:text-[32px] font-bold text-white tracking-tight leading-none">
+                {activeStats.expiredCount}
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-xs pt-3 border-t border-[#1E1B26]/80 text-[#94A3B8]">
-              <span>{lostCount} pedidos recusados</span>
-              <span className="text-red-400 font-semibold">Recuperável</span>
-            </div>
-          </div>
-        );
-
-      case 'refunds':
-        return (
-          <div key={id} className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[#94A3B8] text-sm font-semibold">Reembolsos</h3>
-              <div className="w-9 h-9 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <span className="text-3xl font-black text-[#F8FAFC] tracking-tight">
-                {formatMZN(refundsAmount)}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between text-xs pt-3 border-t border-[#1E1B26]/80 text-[#94A3B8]">
-              <span>{refundsCount} solicitações</span>
-              <span className="text-emerald-400 font-semibold">0.0% estorno</span>
-            </div>
-          </div>
-        );
-
-      case 'ticket':
-        return (
-          <div key={id} className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[#94A3B8] text-sm font-semibold">Valor Médio por Compra</h3>
-              <div className="w-9 h-9 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <circle cx="12" cy="12" r="9" />
-                  <circle cx="12" cy="12" r="5" />
-                  <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                </svg>
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <span className="text-3xl font-black text-[#F8FAFC] tracking-tight text-violet-400">
-                {formatMZN(averageTicket)}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between text-xs pt-3 border-t border-[#1E1B26]/80 text-[#94A3B8]">
-              <span>Ticket Médio por cliente</span>
-              <span className="text-[#64748B] font-semibold">Sem alteração</span>
+            <div className="pt-4">
+              <p className="text-[11px] text-white/80 font-normal">
+                {activeStats.expiredLabel}
+              </p>
             </div>
           </div>
         );
@@ -442,147 +522,82 @@ export default function CustomizableWidgets({
         const awardProgressPercent = Math.min(100, Math.round((totalRevenue / currentMilestone.target) * 100));
 
         return (
-          <div key={block.id} className="space-y-6 w-full">
-            {/* TRÊS CAIXAS NO TOPO:
-                1) TOTAL DE VENDAS APROVADAS
-                2) VOLUME TOTAL (TOTAL REVENUE)
-                3) PRÓXIMA CONQUISTA / MARCO */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Widget 1: Total de Vendas Aprovadas */}
-              <div className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between group">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <h3 className="text-[#94A3B8] text-xs font-extrabold uppercase tracking-wider group-hover:text-[#F8FAFC] transition-colors">
-                      Total de Vendas Aprovadas
-                    </h3>
-                  </div>
-                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-black">
-                    ✓
-                  </div>
-                </div>
-
-                <div className="my-2 flex items-baseline gap-2.5">
-                  <span className="text-3xl sm:text-4xl font-black text-[#F8FAFC] tracking-tight font-mono">
-                    {approvedCount}
-                  </span>
-                  <span className="text-sm font-semibold text-[#94A3B8]">
-                    {approvedCount === 1 ? 'venda aprovada' : 'vendas aprovadas'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between text-xs pt-4 border-t border-[#1E1B26] text-[#94A3B8] mt-2">
-                  <span>
-                    Conversão: <strong className="text-emerald-400 font-mono font-bold">{conversionRate}%</strong>
-                  </span>
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> 100% liquidação
-                  </span>
-                </div>
+          <div key={block.id} className="space-y-4 w-full">
+            {/* BARRA DE PERÍODO (Ontem, Hoje, Semana, Mês, Ano, Tudo + Calendário) & PRÓXIMA CONQUISTA */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div
+                className={`inline-flex items-center gap-0.5 p-1 rounded-xl border self-start ${
+                  isLight
+                    ? 'bg-[#ECEAF6] border-[#DFDCF0]'
+                    : 'bg-[#0B0911] border-[#1E1B26]'
+                }`}
+              >
+                {PERIOD_OPTIONS.map((opt) => {
+                  const active = selectedPeriod === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setSelectedPeriod(opt.id)}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
+                        active
+                          ? 'otter-keep-colors bg-white text-[#0F172A] font-semibold shadow-sm'
+                          : isLight
+                            ? 'text-[#475569] hover:text-[#0F172A] font-medium'
+                            : 'text-[#94A3B8] hover:text-white font-medium'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idx = PERIOD_OPTIONS.findIndex((p) => p.id === selectedPeriod);
+                    const next = PERIOD_OPTIONS[(idx + 1) % PERIOD_OPTIONS.length];
+                    setSelectedPeriod(next.id);
+                  }}
+                  title="Alternar período"
+                  className={`px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                    isLight
+                      ? 'text-[#475569] hover:text-[#0F172A]'
+                      : 'text-[#94A3B8] hover:text-white'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                  </svg>
+                </button>
               </div>
 
-              {/* Widget 2: Volume Total (Total Revenue) */}
-              <div className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between group">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-violet-400 animate-pulse" />
-                    <h3 className="text-[#94A3B8] text-xs font-extrabold uppercase tracking-wider group-hover:text-[#F8FAFC] transition-colors">
-                      Volume Total (Faturamento)
-                    </h3>
-                  </div>
-                  <div className="w-9 h-9 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black font-mono">
-                    MT
-                  </div>
-                </div>
-
-                <div className="my-2 flex items-baseline gap-2.5">
-                  <span className="text-3xl sm:text-4xl font-black text-emerald-400 tracking-tight font-mono">
-                    {formatMZN(totalRevenue)}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between text-xs pt-4 border-t border-[#1E1B26] text-[#94A3B8] mt-2">
-                  <span>
-                    Ticket Médio: <strong className="text-violet-400 font-mono font-bold">{formatMZN(averageTicket)}</strong>
-                  </span>
-                  <span className="text-[#94A3B8]">
-                    {approvedCount} {approvedCount === 1 ? 'transação' : 'transações'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Widget 3: Próxima Conquista (Faltam quanto para o próximo prêmio) */}
-              <Link 
+              {/* Atalho compacto da Próxima Conquista da Otterfy */}
+              <Link
                 href="/dashboard/awards"
-                className="otter-widget-card rounded-2xl p-6 relative overflow-hidden shadow-xl flex flex-col justify-between cursor-pointer group md:col-span-2 lg:col-span-1"
+                className="otter-widget-card rounded-xl px-3.5 py-2 flex items-center gap-3 self-start sm:self-auto group"
                 title="Clique para ver os marcos e placas oficiais"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-violet-400 animate-pulse" />
-                    <h3 className="text-[#94A3B8] text-xs font-extrabold uppercase tracking-wider group-hover:text-[#F8FAFC] transition-colors">
-                      Próxima Conquista: {currentMilestone.name}
-                    </h3>
-                  </div>
-                  <span className="text-xs text-violet-400 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
-                    Ver Placas <span>→</span>
+                <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse shrink-0" />
+                <div className="text-xs flex items-center gap-2 flex-wrap">
+                  <span className="text-[#94A3B8] font-medium">
+                    Próxima Conquista ({currentMilestone.level}):
+                  </span>
+                  <span className="font-mono font-bold text-violet-400">
+                    Faltam {formatMZN(remainingForAward)}
+                  </span>
+                  <span className="text-[11px] text-emerald-400 font-mono font-semibold">
+                    ({awardProgressPercent}%)
                   </span>
                 </div>
-
-                <div className="my-1 flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                      Faltam exatamente:
-                    </div>
-                    <div className="text-3xl sm:text-4xl font-black text-violet-400 font-mono tracking-tight mt-0.5">
-                      {formatMZN(remainingForAward)}
-                    </div>
-                  </div>
-                  {currentMilestone.imageSrc && (
-                    <div className="w-14 h-14 rounded-xl bg-[#171420] border border-[#2A2538] flex items-center justify-center shrink-0 overflow-hidden shadow-inner group-hover:scale-105 transition-transform">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={currentMilestone.imageSrc}
-                        alt={currentMilestone.name}
-                        className={
-                          currentMilestone.imageSrc.includes('50k')
-                            ? "w-full h-full object-cover p-0 scale-125"
-                            : "w-full h-full object-contain p-1"
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Barra de progresso decrescente para o prêmio */}
-                <div className="space-y-1.5 pt-3 border-t border-[#1E1B26] mt-2">
-                  <div className="flex items-center justify-between text-[11px] text-[#94A3B8]">
-                    <span>Meta: {formatMZN(currentMilestone.target)}</span>
-                    <span className="text-emerald-400 font-mono font-bold">{awardProgressPercent}% concluído</span>
-                  </div>
-                  <div className="w-full bg-[#0F0E14] h-2 rounded-full overflow-hidden border border-[#1E1B26]">
-                    <div
-                      className="bg-gradient-to-r from-violet-600 via-fuchsia-500 to-emerald-400 h-full transition-all duration-700 rounded-full"
-                      style={{ width: `${awardProgressPercent}%` }}
-                    />
-                  </div>
-                </div>
+                <span className="text-xs text-violet-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                  →
+                </span>
               </Link>
             </div>
 
-            {/* SEGUNDA LINHA: OS 4 CARDS DE KPIS INDIVIDUAIS (Hoje, Esta Semana, Este Mês, Ticket Médio) */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-wider font-semibold text-[#64748B]">
-                  Desempenho por Período
-                </span>
-                <span className="text-[11px] text-[#64748B]">
-                  {visibleKpis.length} indicadores ativos
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {visibleKpis.map((k) => renderKpiCard(k.id))}
-              </div>
+            {/* OS 4 WIDGETS PRINCIPAIS COM AS CORES DO PRINT (Total de Vendas, Receita Total, Vendas Pendentes, Vendas Expiradas) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              {visibleKpis.map((k) => renderKpiCard(k.id))}
             </div>
           </div>
         );

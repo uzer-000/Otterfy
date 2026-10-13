@@ -14,32 +14,30 @@ export default function OtterSplashScreen() {
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Tempo para completar 100% o ciclo da animação oficial (montagem, contornos, olhos, nariz e reflexo)
-    const minDisplayMs = 2600;
-    const startTime = Date.now();
-
-    const finishSplash = () => {
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, minDisplayMs - elapsed);
-
-      setTimeout(() => {
-        setIsFadingOut(true);
-        setTimeout(() => {
-          setMounted(false);
-        }, 500);
-      }, remaining);
-    };
-
-    if (document.readyState === 'complete') {
-      finishSplash();
-    } else {
-      window.addEventListener('load', finishSplash, { once: true });
-      const safety = setTimeout(finishSplash, 3600);
-      return () => {
-        window.removeEventListener('load', finishSplash);
-        clearTimeout(safety);
-      };
+    try {
+      // Se já abriu nesta sessão, libera imediatamente em 0ms para navegação instantânea
+      if (sessionStorage.getItem('otterfy_booted') === '1') {
+        setMounted(false);
+        return;
+      }
+      sessionStorage.setItem('otterfy_booted', '1');
+    } catch {
+      // ignore sessionStorage errors
     }
+
+    // Boot ultra-rápido (~480ms de entrada + 180ms de fade suave = ~0.65s total)
+    const fadeTimer = setTimeout(() => {
+      setIsFadingOut(true);
+    }, 480);
+
+    const unmountTimer = setTimeout(() => {
+      setMounted(false);
+    }, 660);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(unmountTimer);
+    };
   }, []);
 
   if (!mounted) return null;
@@ -47,7 +45,7 @@ export default function OtterSplashScreen() {
   return (
     <div
       id="otter-splash-screen"
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-300 ease-out select-none otter-splash-container ${
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-200 ease-out select-none otter-splash-container ${
         isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
       style={{

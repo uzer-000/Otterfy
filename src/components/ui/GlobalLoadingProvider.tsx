@@ -75,9 +75,9 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
       setIsVisible(false);
       return;
     }
-    // Garante que a animação da lontra complete seu ciclo de 2.5s sem ser cortada
+    // Transição rápida e suave assim que a rota termina de carregar
     const elapsed = Date.now() - visibleSinceRef.current;
-    const minAnimationMs = 2500;
+    const minAnimationMs = 550;
     const remaining = Math.max(0, minAnimationMs - elapsed);
     setTimeout(() => {
       setIsVisible(false);
