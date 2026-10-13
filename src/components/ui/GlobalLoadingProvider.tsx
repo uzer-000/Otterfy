@@ -199,25 +199,27 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
       </Suspense>
       {children}
 
-      {/* Overlay Global de Processamento — Só visível se demorar > 1.90s */}
-      <div
-        className={`fixed inset-0 z-[9990] flex flex-col items-center justify-center transition-opacity duration-300 ease-out select-none otter-splash-container ${
-          isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-        style={{
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          backgroundColor: 'var(--otter-overlay-bg, rgba(14, 11, 18, 0.85))',
-        }}
-        aria-hidden={!isVisible}
-        role="status"
-        aria-live="polite"
-        aria-label="Processando..."
-      >
-        <div className="flex flex-col items-center justify-center p-6 rounded-3xl animate-in zoom-in-95 duration-200">
-          <OtterLoadingAnimation size="compact" idPrefix="global-loader" />
+      {/* Overlay Global de Processamento — Só visível se demorar > 1.90s (nunca no checkout /pay) */}
+      {!pathname?.startsWith('/pay') && (
+        <div
+          className={`fixed inset-0 z-[9990] flex flex-col items-center justify-center transition-opacity duration-300 ease-out select-none otter-splash-container ${
+            isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            backgroundColor: 'var(--otter-overlay-bg, rgba(14, 11, 18, 0.85))',
+          }}
+          aria-hidden={!isVisible}
+          role="status"
+          aria-live="polite"
+          aria-label="Processando..."
+        >
+          <div className="flex flex-col items-center justify-center p-6 rounded-3xl animate-in zoom-in-95 duration-200">
+            <OtterLoadingAnimation size="compact" idPrefix="global-loader" />
+          </div>
         </div>
-      </div>
+      )}
     </GlobalLoadingContext.Provider>
   );
 }

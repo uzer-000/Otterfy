@@ -5,7 +5,6 @@ import Script from 'next/script';
 import dbStore from '@/lib/store';
 import CheckoutForm from '@/components/checkout/CheckoutForm';
 import CheckoutUrgencyTimer from '@/components/checkout/CheckoutUrgencyTimer';
-import OtterLoadingAnimation from '@/components/ui/OtterLoadingAnimation';
 import { formatMZN } from '@/lib/utils';
 
 interface PageProps {
@@ -137,11 +136,20 @@ export default async function CheckoutPage({ params }: PageProps) {
           {/* Unified High-Converting Checkout (Holding the Product & Payment) */}
           <Suspense
             fallback={
-              <div className="py-12 flex flex-col items-center justify-center gap-4 bg-white rounded-3xl border border-gray-100 shadow-xl p-8">
-                <OtterLoadingAnimation size="compact" idPrefix="pay-suspense" />
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Carregando checkout seguro...
-                </span>
+              <div className="bg-white rounded-[24px] border border-gray-100 shadow-xl p-6 sm:p-7 space-y-4 animate-pulse">
+                <div className="flex items-center gap-3.5 pb-3 border-b border-gray-100">
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-100 rounded w-2/3" />
+                    <div className="h-5 bg-emerald-100 rounded w-1/3" />
+                  </div>
+                </div>
+                <div className="space-y-3 pt-2">
+                  <div className="h-11 bg-gray-50 rounded-xl" />
+                  <div className="h-11 bg-gray-50 rounded-xl" />
+                  <div className="h-11 bg-gray-50 rounded-xl" />
+                </div>
+                <div className="h-14 bg-emerald-600/20 rounded-xl" />
               </div>
             }
           >

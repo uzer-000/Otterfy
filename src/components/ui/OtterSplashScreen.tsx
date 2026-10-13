@@ -1,20 +1,29 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import OtterLoadingAnimation from './OtterLoadingAnimation';
 
 /**
  * Splash Screen inicial ao abrir o site ou aplicativo PWA.
  * Renderiza imediatamente no boot/carregamento inicial com a animação oficial da lontra,
  * com fade de saída suave assim que a aplicação estiver pronta.
- * Como fica no RootLayout, não reaparece durante a navegação normal entre abas.
+ * No checkout (/pay), é DESATIVADA para carregamento instantâneo e máxima conversão.
  */
 export default function OtterSplashScreen() {
-  const [mounted, setMounted] = useState(true);
+  const pathname = usePathname();
+  const isCheckout = pathname?.startsWith('/pay');
+
+  const [mounted, setMounted] = useState(!isCheckout);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Tempo exato da nova logo animada oficial (3.9s) antes de abrir o site
+    if (isCheckout) {
+      setMounted(false);
+      return;
+    }
+
+    // Tempo da nova logo animada oficial (3.9s) antes de abrir
     const fullAnimationMs = 3900;
     const fadeDurationMs = 380;
 
@@ -30,9 +39,9 @@ export default function OtterSplashScreen() {
       clearTimeout(fadeTimer);
       clearTimeout(unmountTimer);
     };
-  }, []);
+  }, [isCheckout]);
 
-  if (!mounted) return null;
+  if (!mounted || isCheckout) return null;
 
   return (
     <div
