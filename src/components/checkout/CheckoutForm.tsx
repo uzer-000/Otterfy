@@ -378,12 +378,14 @@ export default function CheckoutForm({
         }`}
       >
         <div className="otter-keep-colors bg-white/95 backdrop-blur-2xl border border-black/[0.08] shadow-[0_18px_42px_-8px_rgba(15,23,42,0.22),0_4px_14px_-2px_rgba(15,23,42,0.08)] rounded-[22px] px-3.5 py-2.5 flex items-center gap-3">
-          {/* Ícone estilo App iOS */}
-          <div className="w-10 h-10 rounded-[12px] bg-gradient-to-br from-[#10B981] to-[#047857] flex items-center justify-center text-white shadow-sm shrink-0 relative">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="absolute -bottom-0.5 -right-0.5 text-[10px] leading-none">🇲🇿</span>
+          {/* Bandeira de Moçambique Full no Quadrado */}
+          <div className="w-10 h-10 rounded-[12px] overflow-hidden shadow-sm shrink-0 border border-black/[0.08] relative bg-slate-100 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/mozambique-flag.png"
+              alt="Bandeira de Moçambique"
+              className="w-full h-full object-cover"
+            />
           </div>
 
           {/* Conteúdo da Notificação iPhone */}
