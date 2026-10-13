@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt" className={`${satoshi.variable} h-full w-full max-w-[100vw] overflow-x-hidden antialiased`} suppressHydrationWarning>
       <head>
