@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import dbStore from '@/lib/store';
 import { zenofyProvider } from '@/services/payment/zenofy';
+import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@/services/tracking/dispatcher';
 
 export async function GET(req: Request) {
   try {
@@ -11,45 +13,68 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Referência da encomenda não fornecida.' }, { status: 400 });
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id: ref },
-      include: {
-        transaction: true
-      }
-    });
-
+    const order = await dbStore.getOrderById(ref);
     if (!order) {
       return NextResponse.json({ error: 'Encomenda não encontrada.' }, { status: 404 });
     }
+
+    const product = await dbStore.getProductById(order.productId);
+    const upsellUrl =
+      (product?.checkoutSettings as any)?.postPurchase?.upsellUrl?.trim() ||
+      (product?.checkoutSettings as any)?.upsellUrl?.trim() ||
+      undefined;
 
     const transaction = order.transaction;
 
     if (transaction?.zenofyCheckoutId && order.status === 'PENDING') {
       try {
         const zenofyStatus = await zenofyProvider.getOrderStatus(transaction.zenofyCheckoutId);
-        
+
         if (zenofyStatus.status === 'PAID') {
-          // Update to APPROVED if Zenofy is PAID but DB is PENDING
-          await prisma.$transaction([
-            prisma.order.update({
-              where: { id: order.id },
-              data: { status: 'APPROVED' }
-            }),
-            prisma.transaction.update({
-              where: { id: transaction.id },
-              data: { status: 'APPROVED' }
-            })
-          ]);
-          
-          return NextResponse.json({ status: 'APPROVED', transactionId: transaction.id, orderId: order.id });
+          await dbStore.updateOrderTransaction(order.id, {
+            status: 'APPROVED',
+          });
+
+          try {
+            await prisma.$transaction([
+              prisma.order.update({
+                where: { id: order.id },
+                data: { status: 'APPROVED' },
+              }),
+              prisma.transaction.update({
+                where: { id: transaction.id },
+                data: { status: 'APPROVED' },
+              }),
+            ]);
+          } catch {}
+
+          if (product) {
+            const approvedOrder = { ...order, status: 'APPROVED' as const };
+            Promise.allSettled([
+              dispatchProductWebhook(product, 'order.approved', approvedOrder),
+              dispatchMetaCapi(product, 'Purchase', approvedOrder),
+              dispatchUtmifyOrder(product, approvedOrder),
+            ]).catch((err) => console.warn('[Status Poll Webhook Error]:', err));
+          }
+
+          return NextResponse.json({
+            status: 'APPROVED',
+            transactionId: transaction.id,
+            orderId: order.id,
+            upsellUrl,
+          });
         }
       } catch (error) {
         console.error('Erro ao verificar status no Zenofy como fallback', error);
       }
     }
 
-    return NextResponse.json({ status: order.status, transactionId: transaction?.id, orderId: order.id });
-
+    return NextResponse.json({
+      status: order.status,
+      transactionId: transaction?.id,
+      orderId: order.id,
+      upsellUrl,
+    });
   } catch (error) {
     console.error('Order status error:', error);
     return NextResponse.json({ error: 'Erro interno do servidor.' }, { status: 500 });

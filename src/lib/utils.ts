@@ -9,11 +9,11 @@ export function formatMZN(amount: number): string {
 
 export function formatSaleNotificationMessage(amount?: number | string | null): string {
   if (amount === undefined || amount === null || isNaN(Number(amount))) {
-    return 'Valor : Mzn 0';
+    return 'Valor: MT 0';
   }
   const num = Number(amount);
   const formatted = Number.isInteger(num) ? `${num}` : num.toFixed(2);
-  return `Valor : Mzn ${formatted}`;
+  return `Valor: MT ${formatted}`;
 }
 
 export function toMinorUnits(amount: number): number {

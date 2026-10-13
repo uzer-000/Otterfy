@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import { formatSaleNotificationMessage } from '@/lib/utils';
+import { getAllIntegrations, addWebhookLog } from './webhookConfig';
 
 interface TrackingProduct {
   id: string;
@@ -13,11 +15,13 @@ interface TrackingProduct {
   };
   automation?: {
     webhookUrl?: string;
+    webhookSecret?: string;
     webhookEvents?: string[];
   };
+  checkoutSettings?: any;
 }
 
-interface OrderData {
+export interface OrderData {
   id: string;
   amount: number;
   customerName: string;
@@ -25,6 +29,9 @@ interface OrderData {
   customerEmail?: string | null;
   paymentMethod?: string;
   status: string;
+  hasOrderBump?: boolean;
+  orderBumpTitle?: string;
+  orderBumpAmount?: number;
   createdAt?: string;
   utmParams?: {
     source?: string;
@@ -40,33 +47,41 @@ function sha256(val: string): string {
   return crypto.createHash('sha256').update(val.trim().toLowerCase()).digest('hex');
 }
 
-/**
- * Dispatches a real webhook payload to the external URL configured on the product
- */
-export async function dispatchProductWebhook(
-  product: TrackingProduct,
+function hmacSha256(secret: string, body: string): string {
+  return crypto.createHmac('sha256', secret).update(body).digest('hex');
+}
+
+export function buildWebhookPayload(
+  product: { id: string; name: string },
   event: string,
   order: OrderData
 ) {
-  const url = product.automation?.webhookUrl;
-  if (!url || !url.startsWith('http')) return;
+  const numAmount = Number(order.amount) || 0;
+  const formattedAmt = Number.isInteger(numAmount) ? `${numAmount}` : numAmount.toFixed(2);
 
-  const events = product.automation?.webhookEvents || ['order.approved'];
-  if (events.length > 0 && !events.includes(event)) {
-    return;
-  }
-
-  const payload = {
+  return {
     event,
     timestamp: new Date().toISOString(),
+    notification: {
+      title: event === 'order.approved' ? 'Venda Aprovada' : `Pedido (${event})`,
+      message: formatSaleNotificationMessage(numAmount),
+    },
     productId: product.id,
     productName: product.name,
+    product: {
+      id: product.id,
+      name: product.name,
+    },
     order: {
       id: order.id,
-      amount: order.amount,
+      amount: numAmount,
+      formattedAmount: `MT ${formattedAmt}`,
       currency: 'MZN',
       status: order.status,
-      paymentMethod: order.paymentMethod || 'MPESA',
+      paymentMethod: order.paymentMethod || order.transaction?.method || 'MPESA',
+      hasOrderBump: Boolean(order.hasOrderBump),
+      orderBumpTitle: order.orderBumpTitle || null,
+      orderBumpAmount: order.orderBumpAmount || null,
       customer: {
         name: order.customerName,
         phone: order.customerPhone,
@@ -76,26 +91,182 @@ export async function dispatchProductWebhook(
       createdAt: order.createdAt || new Date().toISOString(),
     },
   };
+}
+
+export async function sendSingleWebhook(
+  url: string,
+  event: string,
+  payload: any,
+  options?: {
+    secret?: string;
+    authHeader?: string;
+    productId?: string;
+    productName?: string;
+    orderId?: string;
+  }
+) {
+  const startTime = Date.now();
+  const bodyStr = JSON.stringify(payload);
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Otterfy-Webhook-Engine/2.0',
+    'X-Otterfy-Event': event,
+    'X-Otterfy-Product-Id': options?.productId || payload.productId || 'global',
+    'X-Otterfy-Delivery': `wh_${Date.now()}`,
+  };
+
+  if (options?.secret?.trim()) {
+    const sig = hmacSha256(options.secret.trim(), bodyStr);
+    headers['X-Otterfy-Signature'] = `sha256=${sig}`;
+    headers['X-Signature'] = sig;
+  }
+
+  if (options?.authHeader?.trim()) {
+    headers['Authorization'] = options.authHeader.trim();
+  }
 
   try {
-    const res = await fetch(url, {
+    const res = await fetch(url.trim(), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Otterfy-Webhook-Engine/1.0',
-        'X-Otterfy-Event': event,
-        'X-Otterfy-Product-Id': product.id,
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(6000),
+      headers,
+      body: bodyStr,
+      signal: AbortSignal.timeout(8000),
     });
 
-    console.log(`[Webhook Dispatch] ${url} -> Status ${res.status}`);
-    return { ok: res.ok, status: res.status };
+    const durationMs = Date.now() - startTime;
+    let responseText = '';
+    try {
+      responseText = (await res.text()).slice(0, 300);
+    } catch {}
+
+    addWebhookLog({
+      url: url.trim(),
+      event,
+      orderId: options?.orderId || payload.order?.id || 'TEST',
+      productName: options?.productName || payload.productName || 'Teste Webhook',
+      status: res.status,
+      ok: res.ok,
+      durationMs,
+      responsePreview: responseText,
+    });
+
+    console.log(`[Webhook Dispatch] ${url} (${event}) -> Status ${res.status} (${durationMs}ms)`);
+    return {
+      ok: res.ok,
+      status: res.status,
+      statusText: res.statusText,
+      durationMs,
+      responsePreview: responseText,
+    };
   } catch (err: any) {
-    console.warn(`[Webhook Dispatch Error] to ${url}:`, err.message);
-    return { ok: false, error: err.message };
+    const durationMs = Date.now() - startTime;
+    const errMsg = err?.message || 'Erro de conexão com o endpoint';
+
+    addWebhookLog({
+      url: url.trim(),
+      event,
+      orderId: options?.orderId || payload.order?.id || 'TEST',
+      productName: options?.productName || payload.productName || 'Teste Webhook',
+      status: 0,
+      ok: false,
+      durationMs,
+      error: errMsg,
+    });
+
+    console.warn(`[Webhook Dispatch Error] to ${url}:`, errMsg);
+    return {
+      ok: false,
+      status: 0,
+      statusText: 'Connection Failed',
+      durationMs,
+      error: errMsg,
+    };
   }
+}
+
+/**
+ * Dispatches real webhook payloads to:
+ * 1) Product-specific webhook URL (if configured on the product)
+ * 2) Global Webhook / n8n / Membership endpoints configured in /dashboard/integrations or /dashboard/automations
+ */
+export async function dispatchProductWebhook(
+  product: TrackingProduct,
+  event: string,
+  order: OrderData
+) {
+  const targets: Array<{
+    url: string;
+    secret?: string;
+    authHeader?: string;
+  }> = [];
+
+  // 1. Product-level webhook
+  const prodAuto = product.automation || product.checkoutSettings?._automation;
+  const prodUrl = prodAuto?.webhookUrl?.trim();
+  if (prodUrl && prodUrl.startsWith('http')) {
+    const prodEvents = prodAuto?.webhookEvents || ['order.approved'];
+    if (prodEvents.length === 0 || prodEvents.includes(event)) {
+      targets.push({
+        url: prodUrl,
+        secret: prodAuto?.webhookSecret,
+      });
+    }
+  }
+
+  // 2. Global Integrations (Webhook, n8n, Membership)
+  try {
+    const integrations = getAllIntegrations();
+    for (const integ of integrations) {
+      if (integ.status !== 'Ativo') continue;
+
+      if (integ.id === 'webhook' && integ.fields?.webhookUrl?.startsWith('http')) {
+        const allowedEvents = integ.events && integ.events.length > 0 ? integ.events : ['order.approved', 'order.created', 'order.declined', 'order.refunded'];
+        if (allowedEvents.includes(event)) {
+          targets.push({
+            url: integ.fields.webhookUrl.trim(),
+            secret: integ.fields.secret,
+          });
+        }
+      } else if (integ.id === 'n8n' && integ.fields?.webhookUrl?.startsWith('http')) {
+        const allowedEvents = integ.events && integ.events.length > 0 ? integ.events : ['order.approved', 'order.created', 'order.declined', 'order.refunded'];
+        if (allowedEvents.includes(event)) {
+          targets.push({
+            url: integ.fields.webhookUrl.trim(),
+            authHeader: integ.fields.authHeader,
+          });
+        }
+      } else if (integ.id === 'membership' && event === 'order.approved' && integ.fields?.apiUrl?.startsWith('http')) {
+        targets.push({
+          url: integ.fields.apiUrl.trim(),
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading global integrations for webhook dispatch:', e);
+  }
+
+  // Deduplicate by URL
+  const uniqueTargets = targets.filter(
+    (t, index, self) => index === self.findIndex((x) => x.url === t.url)
+  );
+
+  if (uniqueTargets.length === 0) return [];
+
+  const payload = buildWebhookPayload(product, event, order);
+
+  const results = await Promise.allSettled(
+    uniqueTargets.map((target) =>
+      sendSingleWebhook(target.url, event, payload, {
+        secret: target.secret,
+        authHeader: target.authHeader,
+        productId: product.id,
+        productName: product.name,
+        orderId: order.id,
+      })
+    )
+  );
+
+  return results;
 }
 
 /**
@@ -108,8 +279,9 @@ export async function dispatchMetaCapi(
   clientIp?: string,
   userAgent?: string
 ) {
-  const pixelId = product.tracking?.metaPixelId;
-  const token = product.tracking?.metaApiToken;
+  const tracking = product.tracking || product.checkoutSettings?._tracking;
+  const pixelId = tracking?.metaPixelId;
+  const token = tracking?.metaApiToken;
 
   if (!pixelId || !token) return;
 
@@ -126,7 +298,6 @@ export async function dispatchMetaCapi(
   }
 
   if (order.customerPhone) {
-    // Normalise phone: remove + and non-digits
     const digitsOnly = order.customerPhone.replace(/\D/g, '');
     userData.ph = [sha256(digitsOnly)];
   }
@@ -173,8 +344,20 @@ export async function dispatchUtmifyOrder(
   product: TrackingProduct,
   order: OrderData
 ) {
-  const pixelId = product.tracking?.utmifyPixelId;
-  const token = product.tracking?.utmifyToken;
+  const tracking = product.tracking || product.checkoutSettings?._tracking;
+  let pixelId = tracking?.utmifyPixelId;
+  let token = tracking?.utmifyToken;
+
+  // Fallback to global Utmify integration if configured in /dashboard/integrations
+  if (!pixelId && !token) {
+    try {
+      const utmifyGlobal = getAllIntegrations().find((i) => i.id === 'utmify' && i.status === 'Ativo');
+      if (utmifyGlobal) {
+        pixelId = utmifyGlobal.fields?.pixelId;
+        token = utmifyGlobal.fields?.apiToken;
+      }
+    } catch {}
+  }
 
   if (!pixelId && !token) return;
 
@@ -197,7 +380,6 @@ export async function dispatchUtmifyOrder(
   };
 
   try {
-    // Utmify webhook endpoint
     const res = await fetch('https://api.utmify.com.br/api/v1/orders', {
       method: 'POST',
       headers: {

@@ -20,6 +20,10 @@ interface ApprovalsVsVolumeLineChartProps {
     aprovados: number;
     volume: number;
   }[];
+  title?: string;
+  subtitle?: string;
+  badgeLabel?: string;
+  animationKey?: string;
 }
 
 const generate7DayData = () => {
@@ -49,62 +53,68 @@ const generate7DayData = () => {
 
 const defaultData = generate7DayData();
 
-export default function ApprovalsVsVolumeLineChart({ data = defaultData }: ApprovalsVsVolumeLineChartProps) {
+export default function ApprovalsVsVolumeLineChart({
+  data = defaultData,
+  title = 'Carrinhos Aprovados vs Total de Carrinhos',
+  subtitle = 'Evolução diária da semana atual (Segunda a Domingo em Meticais)',
+  badgeLabel = '7 Dias',
+  animationKey = 'default',
+}: ApprovalsVsVolumeLineChartProps) {
   const [showAprovados, setShowAprovados] = useState(true);
   const [showVolume, setShowVolume] = useState(true);
 
   return (
-    <div className="otter-widget-card rounded-2xl p-6 flex flex-col justify-between">
+    <div className="otter-widget-card rounded-2xl p-4 sm:p-6 flex flex-col justify-between w-full max-w-full min-w-0 overflow-hidden">
       {/* Header with Title and Interactive Toggles in Top Right */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-[#F8FAFC]">
-              Carrinhos Aprovados vs Total de Carrinhos
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center flex-wrap gap-2">
+            <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC] truncate">
+              {title}
             </h3>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-600/10 text-violet-400 border border-violet-500/20">
-              7 Dias
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-violet-600/10 text-violet-400 border border-violet-500/20 whitespace-nowrap shrink-0 transition-all duration-300">
+              {badgeLabel}
             </span>
           </div>
-          <p className="text-xs text-[#94A3B8] mt-0.5">
-            Evolução diária da semana atual (Segunda a Domingo em Meticais)
+          <p className="text-xs text-[#94A3B8] mt-0.5 truncate">
+            {subtitle}
           </p>
         </div>
 
         {/* Legend toggles */}
-        <div className="flex items-center gap-3 self-start sm:self-center">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
           <button
             type="button"
             onClick={() => setShowAprovados(!showAprovados)}
-            className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border cursor-pointer ${
               showAprovados
                 ? 'bg-violet-600/10 border-violet-500/30 text-violet-300'
                 : 'bg-[#0F0E14] border-[#1E1B26] text-[#64748B] opacity-60'
             }`}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6]" />
-            <span>Carrinhos Aprovados</span>
+            <span className="w-2 h-2 rounded-full bg-[#8B5CF6] shrink-0" />
+            <span>Aprovados</span>
           </button>
 
           <button
             type="button"
             onClick={() => setShowVolume(!showVolume)}
-            className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border cursor-pointer ${
               showVolume
                 ? 'bg-purple-400/10 border-purple-400/30 text-purple-300'
                 : 'bg-[#0F0E14] border-[#1E1B26] text-[#64748B] opacity-60'
             }`}
           >
-            <span className="w-2.5 h-0.5 bg-[#A78BFA]" />
-            <span>Total de Carrinhos</span>
+            <span className="w-2 h-0.5 bg-[#A78BFA] shrink-0" />
+            <span>Total</span>
           </button>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="h-[220px] md:h-[300px] w-full">
+      <div key={animationKey} className="h-[210px] sm:h-[250px] md:h-[280px] w-full min-w-0 otter-chart-animate">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 10, right: 8, left: -14, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1E1B26" vertical={false} />
             <XAxis
               dataKey="date"
@@ -112,7 +122,7 @@ export default function ApprovalsVsVolumeLineChart({ data = defaultData }: Appro
               fontSize={11}
               tickLine={false}
               axisLine={{ stroke: '#1E1B26' }}
-              interval={0}
+              interval="preserveStartEnd"
             />
             <YAxis
               stroke="#64748B"
@@ -126,10 +136,10 @@ export default function ApprovalsVsVolumeLineChart({ data = defaultData }: Appro
                 if (active && payload && payload.length) {
                   const item = payload[0].payload;
                   const titleLabel = item?.dayName
-                    ? `${item.dayName} (${item.fullDate})`
+                    ? `${item.dayName}${item.fullDate ? ` (${item.fullDate})` : ''}`
                     : item?.fullDate
                     ? `${label} (${item.fullDate})`
-                    : `Dia ${label}`;
+                    : `${label}`;
 
                   return (
                     <div className="bg-[#0F0E14] border border-[#1E1B26] p-3 rounded-xl shadow-2xl text-xs space-y-1.5">
@@ -158,17 +168,22 @@ export default function ApprovalsVsVolumeLineChart({ data = defaultData }: Appro
             />
             {showAprovados && (
               <Line
+                key={`aprovados-vol-${animationKey}`}
                 type="monotone"
                 name="Carrinhos Aprovados"
                 dataKey="aprovados"
                 stroke="#8B5CF6"
                 strokeWidth={2.5}
                 dot={false}
+                isAnimationActive={true}
+                animationDuration={620}
+                animationEasing="ease-out"
                 activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#08070C', strokeWidth: 2 }}
               />
             )}
             {showVolume && (
               <Line
+                key={`total-vol-${animationKey}`}
                 type="monotone"
                 name="Total de Carrinhos"
                 dataKey="volume"
@@ -177,6 +192,9 @@ export default function ApprovalsVsVolumeLineChart({ data = defaultData }: Appro
                 strokeDasharray="4 4"
                 strokeOpacity={0.75}
                 dot={false}
+                isAnimationActive={true}
+                animationDuration={680}
+                animationEasing="ease-out"
                 activeDot={{ r: 4, fill: '#A78BFA', stroke: '#08070C', strokeWidth: 2 }}
               />
             )}

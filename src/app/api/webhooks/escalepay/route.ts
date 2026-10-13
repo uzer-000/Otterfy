@@ -70,6 +70,13 @@ export async function POST(req: Request) {
         responsePayload: payload,
       });
 
+      const product = await dbStore.getProductById(order.productId);
+      if (product) {
+        Promise.allSettled([
+          dispatchProductWebhook(product, 'order.declined', { ...order, status: 'DECLINED' }),
+        ]).catch((err) => console.warn('[EscalePay Webhook] Declined tracking error:', err));
+      }
+
       return NextResponse.json({ success: true, message: 'Status atualizado para recusado.' });
     }
 

@@ -41,7 +41,21 @@ function EditProductContent({ params }: PageProps) {
     price: '297.00',
     zenofyProductId: DEFAULT_ZENOFY_PRODUCT_ID,
     imageUrl: '',
+    contentUrl: '',
   });
+  const [existingProducts, setExistingProducts] = useState<Array<{ id: string; name: string; price: number; currency?: string }>>([]);
+  const [extraOffers, setExtraOffers] = useState<Array<{ id: string; productId: string; title: string; price: string }>>([]);
+  const [upsellUrl, setUpsellUrl] = useState('');
+  const [downsellUrl, setDownsellUrl] = useState('');
+
+  useEffect(() => {
+    fetch('/api/products?status=ACTIVE')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => {
+        if (Array.isArray(list)) setExistingProducts(list);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function loadProduct() {
@@ -57,9 +71,44 @@ function EditProductContent({ params }: PageProps) {
             price: data.price !== undefined ? String(data.price) : '297.00',
             zenofyProductId: currentZenofyId,
             imageUrl: data.imageUrl || '',
+            contentUrl: data.contentUrl || '',
           });
           setStatus(data.status || 'ACTIVE');
           setCategory(data.category || 'Curso Online');
+
+          const savedExtra = data.checkoutSettings?.extraOffers || [];
+          if (savedExtra.length > 0) {
+            setExtraOffers(
+              savedExtra.map((o: any, idx: number) => ({
+                id: o.id || `extra_${idx}`,
+                productId: o.productId || '',
+                title: o.title || '',
+                price: o.price !== undefined ? String(o.price) : '',
+              }))
+            );
+          } else if (data.checkoutSettings?.orderBump?.enabled && data.checkoutSettings?.orderBump?.title) {
+            setExtraOffers([
+              {
+                id: 'extra_0',
+                productId: data.checkoutSettings.orderBump.productId || '',
+                title: data.checkoutSettings.orderBump.title,
+                price: String(data.checkoutSettings.orderBump.price || ''),
+              },
+            ]);
+          } else {
+            setExtraOffers([]);
+          }
+
+          setUpsellUrl(
+            data.checkoutSettings?.postPurchase?.upsellUrl ||
+              data.checkoutSettings?.upsellUrl ||
+              ''
+          );
+          setDownsellUrl(
+            data.checkoutSettings?.postPurchase?.downsellUrl ||
+              data.checkoutSettings?.downsellUrl ||
+              ''
+          );
         }
       } catch (err) {
         console.error('Erro ao carregar produto:', err);
@@ -77,6 +126,29 @@ function EditProductContent({ params }: PageProps) {
 
   const handleProductConfigSaved = (updated: any) => {
     setFullProduct(updated);
+    const savedExtra = updated.checkoutSettings?.extraOffers || [];
+    if (savedExtra.length > 0) {
+      setExtraOffers(
+        savedExtra.map((o: any, idx: number) => ({
+          id: o.id || `extra_${idx}`,
+          productId: o.productId || '',
+          title: o.title || '',
+          price: o.price !== undefined ? String(o.price) : '',
+        }))
+      );
+    } else {
+      setExtraOffers([]);
+    }
+    setUpsellUrl(
+      updated.checkoutSettings?.postPurchase?.upsellUrl ||
+        updated.checkoutSettings?.upsellUrl ||
+        ''
+    );
+    setDownsellUrl(
+      updated.checkoutSettings?.postPurchase?.downsellUrl ||
+        updated.checkoutSettings?.downsellUrl ||
+        ''
+    );
     setToastMessage('Integração salva e ativa com sucesso!');
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3500);
@@ -87,13 +159,52 @@ function EditProductContent({ params }: PageProps) {
     setLoading(true);
 
     try {
+      const normalizedOffers = extraOffers
+        .map((offer) => {
+          const chosen = existingProducts.find((p) => p.id === offer.productId);
+          const resolvedTitle = offer.title.trim() || chosen?.name || '';
+          const resolvedPrice =
+            offer.price.trim() !== ''
+              ? parseFloat(offer.price) || 0
+              : chosen?.price || 0;
+          return {
+            id: offer.id,
+            productId: offer.productId || undefined,
+            title: resolvedTitle,
+            price: resolvedPrice,
+          };
+        })
+        .filter((o) => o.title && o.price > 0);
+
+      const firstOffer = normalizedOffers[0];
+
       const payload = {
         ...formData,
         price: parseFloat(formData.price) || 0,
         zenofyProductId: formData.zenofyProductId || undefined,
+        contentUrl: formData.contentUrl || undefined,
         checkoutSettings: {
           ...(fullProduct?.checkoutSettings || {}),
           zenofyProductId: formData.zenofyProductId || undefined,
+          extraOffers: normalizedOffers,
+          orderBump: firstOffer
+            ? {
+                enabled: true,
+                title: firstOffer.title,
+                price: firstOffer.price,
+                productId: firstOffer.productId,
+              }
+            : {
+                enabled: false,
+                title: '',
+                price: 0,
+              },
+          postPurchase: {
+            upsellUrl: upsellUrl.trim(),
+            downsellUrl: downsellUrl.trim(),
+          },
+          upsellUrl: upsellUrl.trim(),
+          downsellUrl: downsellUrl.trim(),
           customCheckout: {
             ...(fullProduct?.checkoutSettings?.customCheckout || {}),
             zenofyProductId: formData.zenofyProductId || undefined,
@@ -407,7 +518,7 @@ function EditProductContent({ params }: PageProps) {
               <span className="text-xs text-[#64748B]">— Aumente as vendas com ofertas e personalização</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
               {/* Cupons de desconto */}
               <button
                 type="button"
@@ -437,7 +548,7 @@ function EditProductContent({ params }: PageProps) {
                 onClick={() => handleOpenIntegration('order_bump')}
                 className="group relative p-5 rounded-2xl bg-[#121016] hover:bg-[#181522] border border-[#1E1B26] hover:border-violet-500/50 hover:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all flex flex-col items-center justify-center text-center cursor-pointer min-h-[115px]"
               >
-                {checkoutSettings.orderBump?.enabled ? (
+                {((checkoutSettings.extraOffers && checkoutSettings.extraOffers.length > 0) || checkoutSettings.orderBump?.enabled) ? (
                   <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     Ativo
@@ -453,6 +564,30 @@ function EditProductContent({ params }: PageProps) {
                   </svg>
                 </div>
                 <span className="text-xs font-semibold text-[#F8FAFC] group-hover:text-violet-300">Order bump</span>
+              </button>
+
+              {/* Upsell pós-compra */}
+              <button
+                type="button"
+                onClick={() => handleOpenIntegration('upsell')}
+                className="group relative p-5 rounded-2xl bg-[#121016] hover:bg-[#181522] border border-[#1E1B26] hover:border-violet-500/50 hover:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all flex flex-col items-center justify-center text-center cursor-pointer min-h-[115px]"
+              >
+                {(checkoutSettings.postPurchase?.upsellUrl || checkoutSettings.upsellUrl) ? (
+                  <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Ativo
+                  </span>
+                ) : (
+                  <span className="absolute top-3 right-3 text-[10px] text-[#64748B] group-hover:text-violet-400 transition-colors">
+                    Configurar
+                  </span>
+                )}
+                <div className="text-[#94A3B8] group-hover:text-violet-400 transition-colors mb-2.5">
+                  <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <span className="text-xs font-semibold text-[#F8FAFC] group-hover:text-violet-300">Upsell pós-compra</span>
               </button>
 
               {/* Checkout personalizado (Banner, Timer de Escassez & Garantia) */}
@@ -669,6 +804,168 @@ function EditProductContent({ params }: PageProps) {
                     className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-4 py-3 text-[#F8FAFC] text-xs focus:outline-none transition-colors resize-none"
                     placeholder="Descreva seu produto ou os benefícios principais da oferta..."
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
+                    Link de Entrega / Conteúdo do Produto
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.contentUrl}
+                    onChange={(e) => setFormData({ ...formData, contentUrl: e.target.value })}
+                    placeholder="https://drive.google.com/..."
+                    className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-4 py-3 text-xs text-[#F8FAFC] font-mono focus:outline-none transition-colors"
+                  />
+                  <p className="text-[11px] text-[#64748B] mt-1.5">
+                    Este link será disponibilizado ao comprador após o pagamento.
+                  </p>
+                </div>
+
+                {/* ============================================================== */}
+                {/* OFERTAS EXTRA NO CHECKOUT (ORDER BUMP) — IGUAL AO PRINT        */}
+                {/* ============================================================== */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-[#0F0E14] border border-[#1E1B26] space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-[#F8FAFC]">
+                      Ofertas extra no checkout <span className="font-normal text-[#94A3B8]">(order bump)</span>
+                    </h4>
+                    <p className="text-xs text-[#94A3B8] mt-1 leading-relaxed">
+                      Escolha outros produtos seus para oferecer no checkout, antes do botão de pagamento. O cliente pode marcar uma ou mais ofertas e o valor é somado ao mesmo pagamento.
+                    </p>
+                  </div>
+
+                  {extraOffers.length > 0 && (
+                    <div className="space-y-3">
+                      {extraOffers.map((offer, idx) => (
+                        <div key={offer.id} className="p-4 rounded-xl bg-[#121016] border border-[#1E1B26] space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-violet-400">Oferta extra #{idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => setExtraOffers(extraOffers.filter((_, i) => i !== idx))}
+                              className="text-xs text-red-400 hover:underline cursor-pointer"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <select
+                              value={offer.productId}
+                              onChange={(e) => {
+                                const pid = e.target.value;
+                                const chosen = existingProducts.find((p) => p.id === pid);
+                                const updated = [...extraOffers];
+                                updated[idx] = {
+                                  ...updated[idx],
+                                  productId: pid,
+                                  title: chosen ? chosen.name : updated[idx].title,
+                                  price: updated[idx].price || (chosen ? String(chosen.price) : ''),
+                                };
+                                setExtraOffers(updated);
+                              }}
+                              className="bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2.5 text-xs text-[#F8FAFC] focus:outline-none"
+                            >
+                              <option value="">Escolher produto existente (MZN)...</option>
+                              {existingProducts
+                                .filter((p) => p.id !== resolvedParams.id)
+                                .map((p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.name} ({p.price} MZN)
+                                  </option>
+                                ))}
+                            </select>
+
+                            <input
+                              type="text"
+                              value={offer.title}
+                              onChange={(e) => {
+                                const updated = [...extraOffers];
+                                updated[idx].title = e.target.value;
+                                setExtraOffers(updated);
+                              }}
+                              placeholder="Nome / título da oferta extra"
+                              className="bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2.5 text-xs text-[#F8FAFC] focus:outline-none"
+                            />
+
+                            <input
+                              type="number"
+                              value={offer.price}
+                              onChange={(e) => {
+                                const updated = [...extraOffers];
+                                updated[idx].price = e.target.value;
+                                setExtraOffers(updated);
+                              }}
+                              placeholder="Preço (MZN) — vazio usa o normal"
+                              className="bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2.5 text-xs text-[#F8FAFC] font-mono focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExtraOffers([
+                          ...extraOffers,
+                          { id: `extra_${Date.now()}`, productId: '', title: '', price: '' },
+                        ])
+                      }
+                      className="px-4 py-2.5 rounded-xl bg-[#121016] hover:bg-[#181522] border border-[#2A2636] text-[#F8FAFC] font-semibold text-xs inline-flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <span className="text-sm leading-none">+</span>
+                      <span>Adicionar oferta extra</span>
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-[#64748B] leading-relaxed">
+                    Só aparecem produtos com a mesma moeda deste produto. Se o preço ficar vazio, usa o preço normal do produto escolhido.
+                  </p>
+                </div>
+
+                {/* ============================================================== */}
+                {/* OFERTAS PÓS-COMPRA (OPCIONAL) — UPSELL & DOWNSELL IGUAL PRINT  */}
+                {/* ============================================================== */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-[#0F0E14] border border-[#1E1B26] space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-[#F8FAFC]">
+                      Ofertas pós-compra <span className="font-normal text-[#94A3B8]">(opcional)</span>
+                    </h4>
+                    <p className="text-xs text-[#94A3B8] mt-1 leading-relaxed">
+                      Se preencher um link de upsell, o comprador será redirecionado para esse link assim que o pagamento for aprovado.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-[#F8FAFC]">Link de upsell</label>
+                    <input
+                      type="url"
+                      value={upsellUrl}
+                      onChange={(e) => setUpsellUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full bg-[#121016] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-4 py-3 text-xs text-[#F8FAFC] font-mono focus:outline-none transition-colors"
+                    />
+                    <p className="text-[11px] text-[#64748B]">
+                      Após a compra aprovada, o cliente é levado automaticamente para este link.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-[#F8FAFC]">Link de downsell</label>
+                    <input
+                      type="url"
+                      value={downsellUrl}
+                      onChange={(e) => setDownsellUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full bg-[#121016] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-4 py-3 text-xs text-[#F8FAFC] font-mono focus:outline-none transition-colors"
+                    />
+                    <p className="text-[11px] text-[#64748B]">
+                      Alternativa caso o cliente recuse o upsell.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3 pt-2">

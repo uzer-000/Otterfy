@@ -8,6 +8,8 @@ interface ConversionAndMethodsProps {
   emolaAmount?: number;
   mpesaAmount?: number;
   sparklineData?: { val: number }[];
+  periodLabel?: string;
+  animationKey?: string;
 }
 
 const defaultSparklineData = [
@@ -25,23 +27,25 @@ export default function ConversionAndMethods({
   emolaAmount = 0,
   mpesaAmount = 0,
   sparklineData = defaultSparklineData,
+  periodLabel = 'nesta semana',
+  animationKey = 'default',
 }: ConversionAndMethodsProps) {
   const total = emolaAmount + mpesaAmount;
   const emolaPercentage = total > 0 ? Math.round((emolaAmount / total) * 100) : 0;
   const mpesaPercentage = total > 0 ? Math.round((mpesaAmount / total) * 100) : 0;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-full min-w-0">
       {/* Bloco 1 — Conversão */}
-      <div className="otter-widget-card rounded-2xl p-6 flex flex-col justify-between">
-        <div className="flex items-center justify-between mb-2">
-          <div>
+      <div className="otter-widget-card rounded-2xl p-4 sm:p-6 flex flex-col justify-between w-full max-w-full min-w-0 overflow-hidden">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="min-w-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8]">
               Performance de Checkout
             </span>
             <p className="text-sm font-medium text-[#F8FAFC] mt-0.5">Taxa de Conversão</p>
           </div>
-          <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${
+          <div className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border shrink-0 transition-all duration-300 ${
             conversionRate > 0 
               ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' 
               : 'text-[#64748B] bg-[#0F0E14] border-[#1E1B26]'
@@ -50,17 +54,17 @@ export default function ConversionAndMethods({
           </div>
         </div>
 
-        <div className="flex items-baseline gap-3 my-3">
-          <span className="text-4xl md:text-5xl font-black text-[#F8FAFC] tracking-tight">
+        <div className="flex items-baseline flex-wrap gap-2.5 my-3">
+          <span className="text-4xl md:text-5xl font-black text-[#F8FAFC] tracking-tight transition-all duration-300">
             {conversionRate.toFixed(1)}%
           </span>
           <span className="text-xs text-[#94A3B8]">
-            média nos últimos 7 dias
+            média {periodLabel}
           </span>
         </div>
 
         {/* Mini Sparkline Chart */}
-        <div className="h-[70px] w-full pt-2">
+        <div key={animationKey} className="h-[70px] w-full min-w-0 pt-2 otter-chart-animate">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sparklineData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <defs>
@@ -70,11 +74,15 @@ export default function ConversionAndMethods({
                 </linearGradient>
               </defs>
               <Area
+                key={`spark-${animationKey}`}
                 type="monotone"
                 dataKey="val"
                 stroke="#8B5CF6"
                 strokeWidth={2.5}
                 fill="url(#conversionGrad)"
+                isAnimationActive={true}
+                animationDuration={620}
+                animationEasing="ease-out"
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -82,13 +90,13 @@ export default function ConversionAndMethods({
       </div>
 
       {/* Bloco 2 — Métodos de Pagamento */}
-      <div className="otter-widget-card rounded-2xl p-6 flex flex-col justify-between">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-bold text-[#F8FAFC]">Vendas por Método</h3>
-            <p className="text-xs text-[#94A3B8] mt-0.5">Distribuição móvel (eMola vs M-Pesa)</p>
+      <div className="otter-widget-card rounded-2xl p-4 sm:p-6 flex flex-col justify-between w-full max-w-full min-w-0 overflow-hidden">
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC] truncate">Vendas por Método</h3>
+            <p className="text-xs text-[#94A3B8] mt-0.5 truncate">Distribuição móvel ({periodLabel})</p>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <span className="text-xs text-[#94A3B8] block">Total Processado</span>
             <span className="text-sm font-bold text-violet-400">
               MT {total.toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

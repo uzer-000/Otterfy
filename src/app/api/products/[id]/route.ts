@@ -12,6 +12,13 @@ const updateProductSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
   approvalStatus: z.string().optional(),
   zenofyProductId: z.string().optional(),
+  contentDeliveryType: z.string().optional(),
+  contentUrl: z.string().optional(),
+  materials: z.array(z.object({
+    name: z.string(),
+    type: z.string(),
+    url: z.string().optional(),
+  })).optional(),
   tracking: z.object({
     metaPixelId: z.string().optional(),
     metaApiToken: z.string().optional(),
@@ -35,7 +42,21 @@ const updateProductSchema = z.object({
       title: z.string(),
       price: z.number(),
       description: z.string().optional(),
-    })?.optional(),
+      productId: z.string().optional(),
+    }).optional(),
+    extraOffers: z.array(z.object({
+      id: z.string().optional(),
+      productId: z.string().optional(),
+      title: z.string(),
+      price: z.number(),
+      description: z.string().optional(),
+    })).optional(),
+    postPurchase: z.object({
+      upsellUrl: z.string().optional(),
+      downsellUrl: z.string().optional(),
+    }).optional(),
+    upsellUrl: z.string().optional(),
+    downsellUrl: z.string().optional(),
     customCheckout: z.object({
       enabled: z.boolean().optional(),
       themeColor: z.string().optional(),
@@ -51,7 +72,7 @@ const updateProductSchema = z.object({
       phone: z.string(),
       message: z.string().optional(),
     }).optional(),
-  }).optional(),
+  }).passthrough().optional(),
   automation: z.object({
     webhookUrl: z.string().optional(),
     webhookEvents: z.array(z.string()).optional(),

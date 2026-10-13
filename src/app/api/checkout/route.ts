@@ -111,6 +111,15 @@ export async function POST(req: Request) {
       baseUrl,
     });
 
+    const upsellUrl =
+      (product.checkoutSettings as any)?.postPurchase?.upsellUrl?.trim() ||
+      (product.checkoutSettings as any)?.upsellUrl?.trim() ||
+      undefined;
+    const downsellUrl =
+      (product.checkoutSettings as any)?.postPurchase?.downsellUrl?.trim() ||
+      (product.checkoutSettings as any)?.downsellUrl?.trim() ||
+      undefined;
+
     if (dispatchResult.status === 'APPROVED') {
       // Instant demo approval
       await dbStore.updateOrderTransaction(order.id, {
@@ -122,13 +131,17 @@ export async function POST(req: Request) {
 
       // Asynchronously trigger Webhooks, Meta CAPI and Utmify in background
       Promise.allSettled([
+        dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
         dispatchProductWebhook(product, 'order.approved', { ...order, status: 'APPROVED' }),
         dispatchMetaCapi(product, 'Purchase', { ...order, status: 'APPROVED' }),
         dispatchUtmifyOrder(product, { ...order, status: 'APPROVED' }),
       ]).catch((e) => console.warn('Background tracking dispatch error:', e));
 
       return NextResponse.json({
-        checkoutUrl: dispatchResult.checkoutUrl,
+        checkoutUrl: upsellUrl || dispatchResult.checkoutUrl,
+        upsellUrl,
+        downsellUrl,
+        orderId: order.id,
         gateway: dispatchResult.gatewayId,
         status: 'APPROVED',
       });
@@ -141,8 +154,16 @@ export async function POST(req: Request) {
         method: paymentMethod,
       });
 
+      Promise.allSettled([
+        dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
+        dispatchUtmifyOrder(product, { ...order, status: 'PENDING' }),
+      ]).catch((e) => console.warn('Background order.created webhook dispatch error:', e));
+
       return NextResponse.json({
         checkoutUrl: dispatchResult.checkoutUrl,
+        upsellUrl,
+        downsellUrl,
+        orderId: order.id,
         gateway: dispatchResult.gatewayId,
         status: 'PENDING',
         message: dispatchResult.message,

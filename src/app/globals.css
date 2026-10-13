@@ -770,11 +770,54 @@ a:not([aria-disabled="true"]):active,
 }
 
 /* Área de conteúdo: scroll nativo ultra fluido (sem transform para não quebrar position: fixed) */
+html,
+body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  position: relative;
+}
+
 .otter-main {
   overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
+  overflow-x: hidden;
+  max-width: 100%;
   -webkit-overflow-scrolling: touch;
-  scrollbar-gutter: stable;
   scroll-behavior: smooth;
+}
+
+@media (min-width: 768px) {
+  .otter-main {
+    scrollbar-gutter: stable;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Animação suave e fluida ao alternar períodos nos gráficos da Dashboard */
+@keyframes otter-chart-swap {
+  0% {
+    opacity: 0.45;
+    transform: translateY(4px) scale(0.994);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.otter-chart-animate {
+  animation: otter-chart-swap 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* ==========================================================================

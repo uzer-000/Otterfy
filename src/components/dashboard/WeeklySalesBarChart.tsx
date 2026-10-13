@@ -12,35 +12,45 @@ import {
 } from 'recharts';
 
 interface WeeklySalesBarChartProps {
-  data?: { day: string; vendas: number; date?: string }[];
+  data?: { day: string; fullLabel?: string; vendas: number; date?: string }[];
+  title?: string;
+  subtitle?: string;
+  badgeLabel?: string;
+  animationKey?: string;
 }
 
 const defaultWeeklyData = [
-  { day: 'Segunda', vendas: 0 },
-  { day: 'Terça', vendas: 0 },
-  { day: 'Quarta', vendas: 0 },
-  { day: 'Quinta', vendas: 0 },
-  { day: 'Sexta', vendas: 0 },
-  { day: 'Sábado', vendas: 0 },
-  { day: 'Domingo', vendas: 0 },
+  { day: 'Seg', fullLabel: 'Segunda', vendas: 0 },
+  { day: 'Ter', fullLabel: 'Terça', vendas: 0 },
+  { day: 'Qua', fullLabel: 'Quarta', vendas: 0 },
+  { day: 'Qui', fullLabel: 'Quinta', vendas: 0 },
+  { day: 'Sex', fullLabel: 'Sexta', vendas: 0 },
+  { day: 'Sáb', fullLabel: 'Sábado', vendas: 0 },
+  { day: 'Dom', fullLabel: 'Domingo', vendas: 0 },
 ];
 
-export default function WeeklySalesBarChart({ data = defaultWeeklyData }: WeeklySalesBarChartProps) {
+export default function WeeklySalesBarChart({
+  data = defaultWeeklyData,
+  title = 'Vendas por Dia',
+  subtitle = 'Ciclo semanal atual (Segunda a Domingo)',
+  badgeLabel = 'Semana Atual',
+  animationKey = 'default',
+}: WeeklySalesBarChartProps) {
   return (
-    <div className="otter-widget-card rounded-2xl p-6 flex flex-col justify-between">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-bold text-[#F8FAFC]">Vendas por Dia</h3>
-          <p className="text-xs text-[#94A3B8] mt-0.5">Ciclo semanal atual (Segunda a Domingo)</p>
+    <div className="otter-widget-card rounded-2xl p-4 sm:p-6 flex flex-col justify-between w-full max-w-full min-w-0 overflow-hidden">
+      <div className="flex items-start sm:items-center justify-between gap-3 mb-4 min-w-0">
+        <div className="min-w-0">
+          <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC] truncate">{title}</h3>
+          <p className="text-xs text-[#94A3B8] mt-0.5 truncate">{subtitle}</p>
         </div>
-        <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-violet-600/10 text-violet-400 border border-violet-500/20">
-          Semana Atual
+        <div className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-600/10 text-violet-400 border border-violet-500/20 whitespace-nowrap shrink-0 transition-all duration-300">
+          {badgeLabel}
         </div>
       </div>
 
-      <div className="h-[200px] md:h-[280px] w-full">
+      <div key={animationKey} className="h-[210px] sm:h-[250px] md:h-[280px] w-full min-w-0 otter-chart-animate">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 10, right: 6, left: -24, bottom: 0 }}>
             <defs>
               <linearGradient id="barPurpleGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#8B5CF6" stopOpacity={1} />
@@ -51,14 +61,16 @@ export default function WeeklySalesBarChart({ data = defaultWeeklyData }: Weekly
             <XAxis
               dataKey="day"
               stroke="#64748B"
-              fontSize={12}
+              fontSize={11}
               tickLine={false}
               axisLine={{ stroke: '#1E1B26' }}
-              tickFormatter={(val) => val.substring(0, 3)}
+              tickFormatter={(val: string) =>
+                val && val.length > 5 && !val.includes(' ') ? val.substring(0, 3) : val
+              }
             />
             <YAxis
               stroke="#64748B"
-              fontSize={12}
+              fontSize={11}
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
@@ -71,10 +83,10 @@ export default function WeeklySalesBarChart({ data = defaultWeeklyData }: Weekly
                   return (
                     <div className="bg-[#0F0E14] border border-[#1E1B26] p-3 rounded-xl shadow-2xl text-xs">
                       <p className="font-semibold text-[#F8FAFC]">
-                        {item.day} {item.date ? `(${item.date})` : ''}
+                        {item.fullLabel || item.day} {item.date ? `(${item.date})` : ''}
                       </p>
                       <p className="text-violet-400 font-bold mt-1 text-sm">
-                        {item.vendas} {item.vendas === 1 ? 'venda' : 'vendas'}
+                        {item.vendas} {item.vendas === 1 ? 'venda aprovada' : 'vendas aprovadas'}
                       </p>
                     </div>
                   );
@@ -83,10 +95,14 @@ export default function WeeklySalesBarChart({ data = defaultWeeklyData }: Weekly
               }}
             />
             <Bar
+              key={`bar-${animationKey}`}
               dataKey="vendas"
               fill="url(#barPurpleGradient)"
               radius={[6, 6, 0, 0]}
               maxBarSize={48}
+              isAnimationActive={true}
+              animationDuration={620}
+              animationEasing="ease-out"
             />
           </BarChart>
         </ResponsiveContainer>

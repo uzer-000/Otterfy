@@ -36,6 +36,20 @@ export interface PeriodMetric {
   pendingTrend: string;
   vsLabel: string;
   expiredLabel: string;
+  periodBadge?: string;
+  hourlyTitle?: string;
+  hourlySubtitle?: string;
+  barChartTitle?: string;
+  barChartSubtitle?: string;
+  lineChartTitle?: string;
+  lineChartSubtitle?: string;
+  hourlyData?: { hour: string; iniciados: number; aprovados: number }[];
+  barChartData?: { day: string; fullLabel?: string; vendas: number; date?: string }[];
+  approvalsVsVolumeData?: { date: string; dayName?: string; fullDate?: string; aprovados: number; volume: number }[];
+  conversionRate?: number;
+  emolaTotal?: number;
+  mpesaTotal?: number;
+  recentTransactions?: Transaction[];
 }
 
 const DEFAULT_BLOCKS: DashboardBlock[] = [
@@ -522,11 +536,11 @@ export default function CustomizableWidgets({
         const awardProgressPercent = Math.min(100, Math.round((totalRevenue / currentMilestone.target) * 100));
 
         return (
-          <div key={block.id} className="space-y-4 w-full">
+          <div key={block.id} className="space-y-4 w-full max-w-full min-w-0">
             {/* BARRA DE PERÍODO (Ontem, Hoje, Semana, Mês, Ano, Tudo + Calendário) & PRÓXIMA CONQUISTA */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full max-w-full min-w-0">
               <div
-                className={`inline-flex items-center gap-0.5 p-1 rounded-xl border self-start ${
+                className={`flex items-center gap-0.5 p-1 rounded-xl border w-full sm:w-auto max-w-full overflow-x-auto no-scrollbar ${
                   isLight
                     ? 'bg-[#ECEAF6] border-[#DFDCF0]'
                     : 'bg-[#0B0911] border-[#1E1B26]'
@@ -539,7 +553,7 @@ export default function CustomizableWidgets({
                       key={opt.id}
                       type="button"
                       onClick={() => setSelectedPeriod(opt.id)}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
+                      className={`flex-1 sm:flex-initial text-center px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                         active
                           ? 'otter-keep-colors bg-white text-[#0F172A] font-semibold shadow-sm'
                           : isLight
@@ -559,7 +573,7 @@ export default function CustomizableWidgets({
                     setSelectedPeriod(next.id);
                   }}
                   title="Alternar período"
-                  className={`px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                  className={`px-2 sm:px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ${
                     isLight
                       ? 'text-[#475569] hover:text-[#0F172A]'
                       : 'text-[#94A3B8] hover:text-white'
@@ -574,67 +588,102 @@ export default function CustomizableWidgets({
               {/* Atalho compacto da Próxima Conquista da Otterfy */}
               <Link
                 href="/dashboard/awards"
-                className="otter-widget-card rounded-xl px-3.5 py-2 flex items-center gap-3 self-start sm:self-auto group"
+                className="otter-widget-card rounded-xl px-3.5 py-2 flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 w-full sm:w-auto max-w-full min-w-0 group"
                 title="Clique para ver os marcos e placas oficiais"
               >
                 <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse shrink-0" />
-                <div className="text-xs flex items-center gap-2 flex-wrap">
-                  <span className="text-[#94A3B8] font-medium">
+                <div className="text-xs flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0 flex-1">
+                  <span className="text-[#94A3B8] font-medium truncate">
                     Próxima Conquista ({currentMilestone.level}):
                   </span>
-                  <span className="font-mono font-bold text-violet-400">
+                  <span className="font-mono font-bold text-violet-400 whitespace-nowrap">
                     Faltam {formatMZN(remainingForAward)}
                   </span>
                   <span className="text-[11px] text-emerald-400 font-mono font-semibold">
                     ({awardProgressPercent}%)
                   </span>
                 </div>
-                <span className="text-xs text-violet-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                <span className="text-xs text-violet-400 font-bold group-hover:translate-x-0.5 transition-transform shrink-0">
                   →
                 </span>
               </Link>
             </div>
 
             {/* OS 4 WIDGETS PRINCIPAIS COM AS CORES DO PRINT (Total de Vendas, Receita Total, Vendas Pendentes, Vendas Expiradas) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div key={`kpis-${selectedPeriod}`} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 otter-chart-animate">
               {visibleKpis.map((k) => renderKpiCard(k.id))}
             </div>
           </div>
         );
 
-      case 'hourly':
+      case 'hourly': {
+        const syncedHourly = activeStats.hourlyData || hourlyData;
         return (
-          <div key={block.id} className="w-full">
-            <HourlyCartsLineChart data={hourlyData} />
-          </div>
-        );
-
-      case 'dailyCharts':
-        return (
-          <div key={block.id} className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-            <WeeklySalesBarChart data={weeklyData} />
-            <ApprovalsVsVolumeLineChart data={approvalsVsVolumeData} />
-          </div>
-        );
-
-      case 'conversion':
-        return (
-          <div key={block.id} className="w-full">
-            <ConversionAndMethods
-              conversionRate={conversionRate}
-              emolaAmount={emolaTotal}
-              mpesaAmount={mpesaTotal}
-              sparklineData={weeklyData?.map((w) => ({ val: w.vendas }))}
+          <div key={block.id} className="w-full max-w-full min-w-0">
+            <HourlyCartsLineChart
+              data={syncedHourly}
+              title={activeStats.hourlyTitle || 'Fluxo por Horário (00:00 – 23:59)'}
+              subtitle={activeStats.hourlySubtitle}
+              badgeLabel={activeStats.periodBadge || 'Período Selecionado'}
+              animationKey={selectedPeriod}
             />
           </div>
         );
+      }
 
-      case 'transactions':
+      case 'dailyCharts': {
+        const syncedBarData = activeStats.barChartData || weeklyData;
+        const syncedLineData = activeStats.approvalsVsVolumeData || approvalsVsVolumeData;
         return (
-          <div key={block.id} className="w-full">
-            <CensoredTransactionsTable transactions={recentTransactions} />
+          <div key={block.id} className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-full min-w-0">
+            <WeeklySalesBarChart
+              data={syncedBarData}
+              title={activeStats.barChartTitle || 'Vendas no Período'}
+              subtitle={activeStats.barChartSubtitle || 'Evolução das vendas aprovadas'}
+              badgeLabel={activeStats.periodBadge || 'Semana Atual'}
+              animationKey={selectedPeriod}
+            />
+            <ApprovalsVsVolumeLineChart
+              data={syncedLineData}
+              title={activeStats.lineChartTitle || 'Carrinhos Aprovados vs Total'}
+              subtitle={activeStats.lineChartSubtitle || 'Evolução financeira em Meticais'}
+              badgeLabel={activeStats.periodBadge || '7 Dias'}
+              animationKey={selectedPeriod}
+            />
           </div>
         );
+      }
+
+      case 'conversion': {
+        const syncedBarData = activeStats.barChartData || weeklyData;
+        const syncedConvRate =
+          activeStats.conversionRate !== undefined ? activeStats.conversionRate : conversionRate;
+        const syncedEmola =
+          activeStats.emolaTotal !== undefined ? activeStats.emolaTotal : emolaTotal;
+        const syncedMpesa =
+          activeStats.mpesaTotal !== undefined ? activeStats.mpesaTotal : mpesaTotal;
+        return (
+          <div key={block.id} className="w-full max-w-full min-w-0">
+            <ConversionAndMethods
+              conversionRate={syncedConvRate}
+              emolaAmount={syncedEmola}
+              mpesaAmount={syncedMpesa}
+              sparklineData={syncedBarData?.map((w) => ({ val: w.vendas }))}
+              periodLabel={activeStats.expiredLabel || 'nesta semana'}
+              animationKey={selectedPeriod}
+            />
+          </div>
+        );
+      }
+
+      case 'transactions': {
+        const syncedTransactions = activeStats.recentTransactions || recentTransactions;
+        return (
+          <div key={block.id} className="w-full max-w-full min-w-0">
+            <CensoredTransactionsTable transactions={syncedTransactions} />
+          </div>
+        );
+      }
 
       default:
         return null;
@@ -642,12 +691,12 @@ export default function CustomizableWidgets({
   };
 
   return (
-    <div className="space-y-8 w-full">
+    <div className="space-y-6 sm:space-y-8 w-full max-w-full min-w-0">
       {/* Top Action Bar: Customizar & Reordenar Dashboard */}
-      <div className="flex items-center justify-between pb-1">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
-          <span className="text-xs uppercase tracking-wider font-semibold text-[#94A3B8]">
+      <div className="flex items-center justify-between gap-2 pb-1 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse shrink-0" />
+          <span className="text-xs uppercase tracking-wider font-semibold text-[#94A3B8] truncate">
             Painel Otterfy
           </span>
         </div>
@@ -655,7 +704,7 @@ export default function CustomizableWidgets({
         <button
           type="button"
           onClick={() => setCustomizingOpen(true)}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] hover:border-violet-500/40 text-[#94A3B8] hover:text-[#F8FAFC] transition-all cursor-pointer shadow-sm"
+          className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] hover:border-violet-500/40 text-[#94A3B8] hover:text-[#F8FAFC] transition-all cursor-pointer shadow-sm shrink-0"
           title="Clique para realocar blocos, colocar gráficos primeiro e escolher indicadores"
         >
           <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>

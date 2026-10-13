@@ -76,6 +76,17 @@ export async function POST(req: Request) {
           zenofyTransactionId: paymentId || checkoutId,
           responsePayload: payload,
         });
+
+        const prod = await dbStore.getProductById(matchedOrder.productId);
+        if (prod) {
+          const approvedOrder = { ...matchedOrder, status: 'APPROVED' as const };
+          Promise.allSettled([
+            dispatchProductWebhook(prod, 'order.approved', approvedOrder),
+            dispatchMetaCapi(prod, 'Purchase', approvedOrder),
+            dispatchUtmifyOrder(prod, approvedOrder),
+          ]).catch((e) => console.warn('[Zenofy Local Store Webhook Error]:', e));
+        }
+
         return NextResponse.json({ received: true, source: 'local_store' });
       }
 
@@ -83,7 +94,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true, note: 'Transação não encontrada' });
     }
 
-    let newStatus: 'APPROVED' | 'REFUNDED' | 'CHARGEBACK' | undefined;
+    let newStatus: 'APPROVED' | 'REFUNDED' | 'CHARGEBACK' | 'DECLINED' | undefined;
 
     if (
       resolvedEvent === 'payment.succeeded' ||
@@ -97,6 +108,13 @@ export async function POST(req: Request) {
       newStatus = 'REFUNDED';
     } else if (resolvedEvent === 'payment.chargeback' || rawStatus === 'CHARGEBACK') {
       newStatus = 'CHARGEBACK';
+    } else if (
+      resolvedEvent === 'payment.failed' ||
+      rawStatus === 'FAILED' ||
+      rawStatus === 'DECLINED' ||
+      rawStatus === 'CANCELLED'
+    ) {
+      newStatus = 'DECLINED';
     }
 
     const mapPaymentMethod = (method?: string) => {
@@ -136,8 +154,12 @@ export async function POST(req: Request) {
         responsePayload: payload,
       });
 
-      // Trigger tracking integrations
-      if (newStatus === 'APPROVED' && transaction.order?.product) {
+      // Load full product (with automation/tracking) from dbStore
+      const fullProduct =
+        (await dbStore.getProductById(transaction.order.productId)) ||
+        (transaction.order?.product as any);
+
+      if (fullProduct && transaction.order) {
         const fullOrder = {
           id: transaction.order.id,
           productId: transaction.order.productId,
@@ -145,14 +167,29 @@ export async function POST(req: Request) {
           customerName: transaction.order.customer?.name || 'Cliente',
           customerPhone: transaction.order.customer?.phone || '',
           customerEmail: transaction.order.customer?.email || undefined,
-          status: 'APPROVED',
+          paymentMethod: resolvedMethod || 'MPESA',
+          hasOrderBump: transaction.order.hasOrderBump || false,
+          orderBumpTitle: transaction.order.orderBumpTitle || undefined,
+          orderBumpAmount: transaction.order.orderBumpAmount || undefined,
+          status: newStatus,
           createdAt: transaction.order.createdAt.toISOString(),
         };
-        Promise.allSettled([
-          dispatchProductWebhook(transaction.order.product, 'order.approved', fullOrder),
-          dispatchMetaCapi(transaction.order.product, 'Purchase', fullOrder),
-          dispatchUtmifyOrder(transaction.order.product, fullOrder),
-        ]).catch((e) => console.warn('[Tracking Dispatch Error]:', e));
+
+        if (newStatus === 'APPROVED') {
+          Promise.allSettled([
+            dispatchProductWebhook(fullProduct, 'order.approved', fullOrder),
+            dispatchMetaCapi(fullProduct, 'Purchase', fullOrder),
+            dispatchUtmifyOrder(fullProduct, fullOrder),
+          ]).catch((e) => console.warn('[Tracking Dispatch Error]:', e));
+        } else if (newStatus === 'REFUNDED' || newStatus === 'CHARGEBACK') {
+          Promise.allSettled([
+            dispatchProductWebhook(fullProduct, 'order.refunded', fullOrder),
+          ]).catch((e) => console.warn('[Tracking Refund Webhook Error]:', e));
+        } else if (newStatus === 'DECLINED') {
+          Promise.allSettled([
+            dispatchProductWebhook(fullProduct, 'order.declined', fullOrder),
+          ]).catch((e) => console.warn('[Tracking Declined Webhook Error]:', e));
+        }
       }
     } else {
       await prisma.transaction.update({

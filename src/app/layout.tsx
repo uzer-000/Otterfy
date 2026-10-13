@@ -48,7 +48,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt" className={`${satoshi.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="pt" className={`${satoshi.variable} h-full w-full max-w-[100vw] overflow-x-hidden antialiased`} suppressHydrationWarning>
       <head>
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
         <link rel="dns-prefetch" href="https://cdn.utmify.com.br" />
@@ -57,6 +57,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             __html: `
               html, body {
                 background-color: #0e0b12;
+                max-width: 100vw;
+                overflow-x: hidden;
+                overscroll-behavior-x: none;
               }
               [data-theme="light"],
               [data-theme="light"] body {
@@ -78,7 +81,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-[#0e0b12] text-[#F8FAFC] font-sans">
+      <body className="min-h-full w-full max-w-[100vw] overflow-x-hidden flex flex-col bg-[#0e0b12] text-[#F8FAFC] font-sans">
         <OtterSplashScreen />
         <GlobalLoadingProvider>
           {children}

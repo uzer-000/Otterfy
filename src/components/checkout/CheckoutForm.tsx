@@ -24,7 +24,21 @@ interface Props {
       title: string;
       price: number;
       description?: string;
+      productId?: string;
     };
+    extraOffers?: Array<{
+      id?: string;
+      productId?: string;
+      title: string;
+      price: number;
+      description?: string;
+    }>;
+    postPurchase?: {
+      upsellUrl?: string;
+      downsellUrl?: string;
+    };
+    upsellUrl?: string;
+    downsellUrl?: string;
     customCheckout?: {
       enabled?: boolean;
       themeColor?: string;
@@ -159,16 +173,49 @@ export default function CheckoutForm({
     };
   }, []);
 
-  // ORDER BUMP (só aparece se o vendedor tiver ativado e configurado no produto)
-  const isOrderBumpAvailable = Boolean(
-    checkoutSettings?.orderBump?.enabled === true &&
-      checkoutSettings?.orderBump?.title?.trim() &&
-      Number(checkoutSettings?.orderBump?.price) > 0
+  // ORDER BUMP / OFERTAS EXTRA NO CHECKOUT (só aparece se o vendedor tiver configurado no produto)
+  const configuredExtraOffers = (checkoutSettings?.extraOffers || []).filter(
+    (offer) => offer && offer.title?.trim() && Number(offer.price) > 0
   );
-  const [includeOrderBump, setIncludeOrderBump] = useState(false);
-  const orderBumpPrice = Number(checkoutSettings?.orderBump?.price) || 0;
-  const orderBumpTitle = checkoutSettings?.orderBump?.title?.trim() || '';
-  const orderBumpDescription = checkoutSettings?.orderBump?.description?.trim() || '';
+  const availableBumpOffers: Array<{
+    key: string;
+    title: string;
+    price: number;
+    description?: string;
+  }> =
+    configuredExtraOffers.length > 0
+      ? configuredExtraOffers.map((o, idx) => ({
+          key: o.id || o.productId || `bump_${idx}`,
+          title: o.title.trim(),
+          price: Number(o.price) || 0,
+          description: o.description?.trim(),
+        }))
+      : checkoutSettings?.orderBump?.enabled === true &&
+        checkoutSettings?.orderBump?.title?.trim() &&
+        Number(checkoutSettings?.orderBump?.price) > 0
+      ? [
+          {
+            key: 'default_bump',
+            title: checkoutSettings.orderBump.title.trim(),
+            price: Number(checkoutSettings.orderBump.price) || 0,
+            description: checkoutSettings.orderBump.description?.trim(),
+          },
+        ]
+      : [];
+
+  const isOrderBumpAvailable = availableBumpOffers.length > 0;
+  const [selectedBumpKeys, setSelectedBumpKeys] = useState<string[]>([]);
+
+  const toggleBumpOffer = (key: string) => {
+    setSelectedBumpKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const selectedOffers = availableBumpOffers.filter((o) => selectedBumpKeys.includes(o.key));
+  const includeOrderBump = selectedOffers.length > 0;
+  const orderBumpPrice = selectedOffers.reduce((sum, o) => sum + o.price, 0);
+  const orderBumpTitle = selectedOffers.map((o) => o.title).join(' + ');
 
   // CUPONS DE DESCONTO (via URL ?cupom=...)
   const urlCoupon = searchParams.get('cupom') || searchParams.get('coupon');
@@ -274,8 +321,15 @@ export default function CheckoutForm({
         });
       }
 
+      const configuredUpsellUrl =
+        data.upsellUrl ||
+        checkoutSettings?.postPurchase?.upsellUrl?.trim() ||
+        checkoutSettings?.upsellUrl?.trim();
+
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
+      } else if (configuredUpsellUrl && /^https?:\/\//i.test(configuredUpsellUrl)) {
+        window.location.href = configuredUpsellUrl;
       } else {
         window.location.href = `/pay/success?orderId=${data.orderId || 'DEMO-OK'}&amount=${totalCalculatedPrice}`;
       }
@@ -487,63 +541,71 @@ export default function CheckoutForm({
           </div>
 
           {/* ========================================================================= */}
-          {/* 4. ORDER BUMP (SE HABILITADO)                                             */}
+          {/* 4. ORDER BUMP / OFERTAS EXTRA NO CHECKOUT (SE HABILITADO)                 */}
           {/* ========================================================================= */}
           {isOrderBumpAvailable && (
-            <div
-              onClick={() => setIncludeOrderBump(!includeOrderBump)}
-              className={`border-2 border-dashed rounded-2xl p-3.5 transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${
-                includeOrderBump
-                  ? 'border-[#059669] bg-emerald-50/70 shadow-sm'
-                  : 'border-emerald-400/80 bg-emerald-50/25 hover:bg-emerald-50/50'
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 rounded-xl bg-emerald-100/80 border border-emerald-200 overflow-hidden shrink-0 flex items-center justify-center text-[#059669] shadow-sm">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                </div>
+            <div className="space-y-2.5">
+              {availableBumpOffers.map((offer) => {
+                const isSelected = selectedBumpKeys.includes(offer.key);
+                return (
+                  <div
+                    key={offer.key}
+                    onClick={() => toggleBumpOffer(offer.key)}
+                    className={`border-2 border-dashed rounded-2xl p-3.5 transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${
+                      isSelected
+                        ? 'border-[#059669] bg-emerald-50/70 shadow-sm'
+                        : 'border-emerald-400/80 bg-emerald-50/25 hover:bg-emerald-50/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-11 h-11 rounded-xl bg-emerald-100/80 border border-emerald-200 overflow-hidden shrink-0 flex items-center justify-center text-[#059669] shadow-sm">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                      </div>
 
-                <div className="min-w-0">
-                  <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded mb-0.5">
-                    ⚡ Oferta Especial Opcional
-                  </span>
-                  <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 uppercase tracking-tight truncate">
-                    {orderBumpTitle}
-                  </h4>
-                  {orderBumpDescription && (
-                    <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                      {orderBumpDescription}
-                    </p>
-                  )}
-                  <p className="text-xs sm:text-sm font-bold text-[#059669] mt-0.5">
-                    + {formatMZN(orderBumpPrice)}
-                  </p>
-                </div>
-              </div>
+                      <div className="min-w-0">
+                        <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded mb-0.5">
+                          ⚡ Oferta Especial Opcional
+                        </span>
+                        <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 uppercase tracking-tight truncate">
+                          {offer.title}
+                        </h4>
+                        {offer.description && (
+                          <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                            {offer.description}
+                          </p>
+                        )}
+                        <p className="text-xs sm:text-sm font-bold text-[#059669] mt-0.5">
+                          + {formatMZN(offer.price)}
+                        </p>
+                      </div>
+                    </div>
 
-              <div className="flex flex-col items-center justify-center gap-1 shrink-0 pl-1">
-                <div
-                  className={`otter-keep-colors w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    includeOrderBump ? 'border-[#059669] bg-[#059669] text-white' : 'border-slate-300 bg-white'
-                  }`}
-                >
-                  {includeOrderBump && (
-                    <svg
-                      className="w-3 h-3 text-white"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </div>
-              </div>
+                    <div className="flex flex-col items-center justify-center gap-1 shrink-0 pl-1">
+                      <div
+                        className={`otter-keep-colors w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                          isSelected ? 'border-[#059669] bg-[#059669] text-white' : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {isSelected && (
+                          <svg
+                            className="w-3 h-3 text-white"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 

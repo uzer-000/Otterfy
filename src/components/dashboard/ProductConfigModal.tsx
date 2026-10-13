@@ -26,7 +26,21 @@ export interface ProductConfigData {
       title: string;
       price: number;
       description?: string;
+      productId?: string;
     };
+    extraOffers?: Array<{
+      id?: string;
+      productId?: string;
+      title: string;
+      price: number;
+      description?: string;
+    }>;
+    postPurchase?: {
+      upsellUrl?: string;
+      downsellUrl?: string;
+    };
+    upsellUrl?: string;
+    downsellUrl?: string;
     customCheckout?: {
       enabled?: boolean;
       themeColor?: string;
@@ -69,6 +83,7 @@ export type ModalSubview =
   | 'gtm'
   | 'coupons'
   | 'order_bump'
+  | 'upsell'
   | 'custom_checkout'
   | 'whatsapp'
   | 'webhook'
@@ -78,12 +93,23 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
   const [activeItem, setActiveItem] = useState<ModalSubview>(initialSubview);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [allProducts, setAllProducts] = useState<Array<{ id: string; name: string; price: number; currency?: string }>>([]);
 
   useEffect(() => {
     if (initialSubview !== undefined) {
       setActiveItem(initialSubview);
     }
   }, [initialSubview, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch('/api/products?status=ACTIVE')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => {
+        if (Array.isArray(list)) setAllProducts(list);
+      })
+      .catch(() => {});
+  }, [isOpen]);
 
   // Form states initialized from product
   const [metaPixelId, setMetaPixelId] = useState('');
@@ -104,8 +130,15 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
 
   const [orderBumpEnabled, setOrderBumpEnabled] = useState(false);
   const [orderBumpTitle, setOrderBumpTitle] = useState('');
-  const [orderBumpPrice, setOrderBumpPrice] = useState('99');
+  const [orderBumpPrice, setOrderBumpPrice] = useState('');
   const [orderBumpDesc, setOrderBumpDesc] = useState('');
+  const [extraOffers, setExtraOffers] = useState<
+    Array<{ id: string; productId?: string; title: string; price: string; description?: string }>
+  >([]);
+
+  // Post-Purchase Upsell & Downsell
+  const [upsellUrl, setUpsellUrl] = useState('');
+  const [downsellUrl, setDownsellUrl] = useState('');
 
   const [customGuarantee, setCustomGuarantee] = useState(7);
   const [customTimer, setCustomTimer] = useState(true);
@@ -120,6 +153,8 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
   // Automation
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookEvents, setWebhookEvents] = useState<string[]>(['order.approved']);
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [webhookTestMsg, setWebhookTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [recoveryEmail, setRecoveryEmail] = useState(true);
   const [recoveryWhatsapp, setRecoveryWhatsapp] = useState(true);
 
@@ -138,9 +173,49 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
 
       setCoupons(product.checkoutSettings?.coupons || []);
       setOrderBumpEnabled(product.checkoutSettings?.orderBump?.enabled || false);
-      setOrderBumpTitle(product.checkoutSettings?.orderBump?.title || 'Acesso VIP Vitalício + Comunidade');
-      setOrderBumpPrice(String(product.checkoutSettings?.orderBump?.price || 99));
-      setOrderBumpDesc(product.checkoutSettings?.orderBump?.description || 'Adicione acesso VIP exclusivo por uma fração do valor.');
+      setOrderBumpTitle(product.checkoutSettings?.orderBump?.title || '');
+      setOrderBumpPrice(
+        product.checkoutSettings?.orderBump?.price
+          ? String(product.checkoutSettings.orderBump.price)
+          : ''
+      );
+      setOrderBumpDesc(product.checkoutSettings?.orderBump?.description || '');
+
+      const savedExtra = product.checkoutSettings?.extraOffers || [];
+      if (savedExtra.length > 0) {
+        setExtraOffers(
+          savedExtra.map((o, idx) => ({
+            id: o.id || `extra_${idx}`,
+            productId: o.productId || '',
+            title: o.title || '',
+            price: o.price !== undefined ? String(o.price) : '',
+            description: o.description || '',
+          }))
+        );
+      } else if (product.checkoutSettings?.orderBump?.enabled && product.checkoutSettings?.orderBump?.title) {
+        setExtraOffers([
+          {
+            id: 'extra_0',
+            productId: product.checkoutSettings.orderBump.productId || '',
+            title: product.checkoutSettings.orderBump.title,
+            price: String(product.checkoutSettings.orderBump.price || ''),
+            description: product.checkoutSettings.orderBump.description || '',
+          },
+        ]);
+      } else {
+        setExtraOffers([]);
+      }
+
+      setUpsellUrl(
+        product.checkoutSettings?.postPurchase?.upsellUrl ||
+          product.checkoutSettings?.upsellUrl ||
+          ''
+      );
+      setDownsellUrl(
+        product.checkoutSettings?.postPurchase?.downsellUrl ||
+          product.checkoutSettings?.downsellUrl ||
+          ''
+      );
 
       setCustomGuarantee(product.checkoutSettings?.customCheckout?.guaranteeDays || 7);
       setCustomTimer(product.checkoutSettings?.customCheckout?.urgencyTimer ?? true);
@@ -166,9 +241,68 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
     setTimeout(() => setToast(null), 3000);
   };
 
+  const handleTestProductWebhook = async () => {
+    if (!webhookUrl.trim()) {
+      alert('Insira primeiro a URL do Webhook para testar.');
+      return;
+    }
+    setTestingWebhook(true);
+    setWebhookTestMsg(null);
+    try {
+      const res = await fetch('/api/webhooks/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: webhookUrl.trim(),
+          event: 'order.approved',
+          productName: product.name,
+          amount: 297,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setWebhookTestMsg({
+          ok: true,
+          text: `✓ Disparado com sucesso! HTTP ${data.status} (${data.durationMs}ms) — Venda Aprovada | Valor: MT 297`,
+        });
+      } else {
+        setWebhookTestMsg({
+          ok: false,
+          text: `✕ Falha no disparo (${data.status ? `HTTP ${data.status}` : data.statusText || data.error})`,
+        });
+      }
+    } catch {
+      setWebhookTestMsg({ ok: false, text: '✕ Erro de conexão ao testar webhook.' });
+    } finally {
+      setTestingWebhook(false);
+    }
+  };
+
   const handleSaveSubitem = async () => {
     setSaving(true);
     try {
+      // Normalize extraOffers: if productId is selected and price is empty, use chosen product's price
+      const normalizedOffers = extraOffers
+        .map((offer) => {
+          const chosenProd = allProducts.find((p) => p.id === offer.productId);
+          const resolvedTitle = offer.title.trim() || chosenProd?.name || '';
+          const resolvedPrice =
+            offer.price.trim() !== ''
+              ? parseFloat(offer.price) || 0
+              : chosenProd?.price || 0;
+          return {
+            id: offer.id,
+            productId: offer.productId || undefined,
+            title: resolvedTitle,
+            price: resolvedPrice,
+            description: offer.description?.trim() || undefined,
+          };
+        })
+        .filter((o) => o.title && o.price > 0);
+
+      const firstOffer = normalizedOffers[0];
+      const bumpActive = normalizedOffers.length > 0 || (orderBumpEnabled && !!orderBumpTitle.trim() && (parseFloat(orderBumpPrice) || 0) > 0);
+
       const payload = {
         tracking: {
           metaPixelId,
@@ -184,12 +318,27 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
         },
         checkoutSettings: {
           coupons,
-          orderBump: {
-            enabled: orderBumpEnabled,
-            title: orderBumpTitle,
-            price: parseFloat(orderBumpPrice) || 0,
-            description: orderBumpDesc,
+          extraOffers: normalizedOffers,
+          orderBump: firstOffer
+            ? {
+                enabled: true,
+                title: firstOffer.title,
+                price: firstOffer.price,
+                description: firstOffer.description,
+                productId: firstOffer.productId,
+              }
+            : {
+                enabled: bumpActive,
+                title: orderBumpTitle.trim(),
+                price: parseFloat(orderBumpPrice) || 0,
+                description: orderBumpDesc.trim(),
+              },
+          postPurchase: {
+            upsellUrl: upsellUrl.trim(),
+            downsellUrl: downsellUrl.trim(),
           },
+          upsellUrl: upsellUrl.trim(),
+          downsellUrl: downsellUrl.trim(),
           customCheckout: {
             enabled: true,
             guaranteeDays: customGuarantee,
@@ -403,7 +552,7 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
               <p className="text-xs text-[#94A3B8]">Aumente as vendas com ofertas e personalização</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
               {/* Cupons de desconto */}
               <button
                 type="button"
@@ -429,7 +578,7 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
                 onClick={() => setActiveItem('order_bump')}
                 className="group relative p-5 rounded-2xl bg-[#0F0E14] hover:bg-[#181522] border border-[#1E1B26] hover:border-violet-500/50 hover:shadow-[0_0_15px_rgba(124,58,237,0.12)] transition-all flex flex-col items-center justify-center text-center cursor-pointer min-h-[110px]"
               >
-                {orderBumpEnabled && (
+                {(extraOffers.length > 0 || orderBumpEnabled) && (
                   <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
                 )}
                 <div className="text-[#94A3B8] group-hover:text-violet-400 transition-colors mb-2.5">
@@ -438,6 +587,23 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
                   </svg>
                 </div>
                 <span className="text-xs font-semibold text-[#F8FAFC] group-hover:text-violet-300">Order bump</span>
+              </button>
+
+              {/* Upsell & Pós-compra */}
+              <button
+                type="button"
+                onClick={() => setActiveItem('upsell')}
+                className="group relative p-5 rounded-2xl bg-[#0F0E14] hover:bg-[#181522] border border-[#1E1B26] hover:border-violet-500/50 hover:shadow-[0_0_15px_rgba(124,58,237,0.12)] transition-all flex flex-col items-center justify-center text-center cursor-pointer min-h-[110px]"
+              >
+                {upsellUrl && (
+                  <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+                )}
+                <div className="text-[#94A3B8] group-hover:text-violet-400 transition-colors mb-2.5">
+                  <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <span className="text-xs font-semibold text-[#F8FAFC] group-hover:text-violet-300">Upsell pós-compra</span>
               </button>
 
               {/* Checkout personalizado */}
@@ -538,7 +704,7 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
       {/* ========================================================================= */}
       {activeItem && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-[#121016] border border-[#1E1B26] rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
+          <div className="bg-[#121016] border border-[#1E1B26] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-[#1E1B26]">
               <div className="flex items-center gap-2.5">
@@ -548,24 +714,25 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
                   </div>
                 )}
                 <h4 className="text-base font-bold text-[#F8FAFC]">
-                {activeItem === 'meta' && 'Configurar Meta Pixel & CAPI'}
-                {activeItem === 'tiktok' && 'Configurar TikTok Pixel'}
-                {activeItem === 'google_analytics' && 'Configurar Google Analytics 4'}
-                {activeItem === 'google_ads' && 'Configurar Google Ads'}
-                {activeItem === 'utmify' && 'Configurar Utmify'}
-                {activeItem === 'gtm' && 'Configurar Google Tag Manager'}
-                {activeItem === 'coupons' && 'Cupons de Desconto'}
-                {activeItem === 'order_bump' && 'Configurar Order Bump'}
-                {activeItem === 'custom_checkout' && 'Personalizar Checkout'}
-                {activeItem === 'whatsapp' && 'Suporte via WhatsApp'}
-                {activeItem === 'webhook' && 'Webhook para este Produto'}
-                {activeItem === 'cart_recovery' && 'Recuperação de Carrinho'}
-              </h4>
+                  {activeItem === 'meta' && 'Configurar Meta Pixel & CAPI'}
+                  {activeItem === 'tiktok' && 'Configurar TikTok Pixel'}
+                  {activeItem === 'google_analytics' && 'Configurar Google Analytics 4'}
+                  {activeItem === 'google_ads' && 'Configurar Google Ads'}
+                  {activeItem === 'utmify' && 'Configurar Utmify'}
+                  {activeItem === 'gtm' && 'Configurar Google Tag Manager'}
+                  {activeItem === 'coupons' && 'Cupons de Desconto'}
+                  {activeItem === 'order_bump' && 'Ofertas extra no checkout (order bump)'}
+                  {activeItem === 'upsell' && 'Ofertas pós-compra (opcional)'}
+                  {activeItem === 'custom_checkout' && 'Personalizar Checkout'}
+                  {activeItem === 'whatsapp' && 'Suporte via WhatsApp'}
+                  {activeItem === 'webhook' && 'Webhook para este Produto'}
+                  {activeItem === 'cart_recovery' && 'Recuperação de Carrinho'}
+                </h4>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveItem(null)}
-                className="text-[#64748B] hover:text-white text-sm"
+                className="text-[#64748B] hover:text-white text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -745,44 +912,147 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
 
             {activeItem === 'order_bump' && (
               <div className="space-y-4 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer text-[#F8FAFC] font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={orderBumpEnabled}
-                    onChange={(e) => setOrderBumpEnabled(e.target.checked)}
-                    className="rounded border-[#1E1B26] text-violet-600 focus:ring-0"
-                  />
-                  <span>Ativar Order Bump no checkout deste produto</span>
-                </label>
+                <p className="text-[#94A3B8] leading-relaxed">
+                  Escolha outros produtos seus para oferecer no checkout, antes do botão de pagamento. O cliente pode marcar uma ou mais ofertas e o valor é somado ao mesmo pagamento.
+                </p>
+
+                {extraOffers.length > 0 && (
+                  <div className="space-y-3">
+                    {extraOffers.map((offer, idx) => (
+                      <div key={offer.id} className="p-3.5 rounded-xl bg-[#0F0E14] border border-[#1E1B26] space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-violet-400">Oferta extra #{idx + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => setExtraOffers(extraOffers.filter((_, i) => i !== idx))}
+                            className="text-[11px] text-red-400 hover:underline cursor-pointer"
+                          >
+                            Remover
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="block text-[#94A3B8] font-semibold mb-1">Produto (MZN)</label>
+                          <select
+                            value={offer.productId || ''}
+                            onChange={(e) => {
+                              const pid = e.target.value;
+                              const chosen = allProducts.find((p) => p.id === pid);
+                              const updated = [...extraOffers];
+                              updated[idx] = {
+                                ...updated[idx],
+                                productId: pid,
+                                title: chosen ? chosen.name : updated[idx].title,
+                                price: updated[idx].price || (chosen ? String(chosen.price) : ''),
+                              };
+                              setExtraOffers(updated);
+                            }}
+                            className="w-full bg-[#121016] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] focus:outline-none"
+                          >
+                            <option value="">Selecionar um produto existente ou preencher manual...</option>
+                            {allProducts
+                              .filter((p) => p.id !== product.id)
+                              .map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name} ({p.price} MZN)
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="block text-[#94A3B8] font-semibold mb-1">Título da Oferta</label>
+                            <input
+                              type="text"
+                              value={offer.title}
+                              onChange={(e) => {
+                                const updated = [...extraOffers];
+                                updated[idx].title = e.target.value;
+                                setExtraOffers(updated);
+                              }}
+                              placeholder="Ex: Mentoria Express / Bônus"
+                              className="w-full bg-[#121016] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[#94A3B8] font-semibold mb-1">Preço (MZN) — opcional</label>
+                            <input
+                              type="number"
+                              value={offer.price}
+                              onChange={(e) => {
+                                const updated = [...extraOffers];
+                                updated[idx].price = e.target.value;
+                                setExtraOffers(updated);
+                              }}
+                              placeholder="Vazio = preço normal"
+                              className="w-full bg-[#121016] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] font-mono focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExtraOffers([
+                      ...extraOffers,
+                      {
+                        id: `extra_${Date.now()}`,
+                        productId: '',
+                        title: '',
+                        price: '',
+                        description: '',
+                      },
+                    ])
+                  }
+                  className="px-4 py-2.5 rounded-xl bg-[#0F0E14] hover:bg-[#181522] border border-[#2A2636] text-[#F8FAFC] font-semibold text-xs inline-flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <span>+</span>
+                  <span>Adicionar oferta extra</span>
+                </button>
+
+                <p className="text-[11px] text-[#64748B] leading-relaxed">
+                  Só aparecem produtos com a mesma moeda deste produto. Se o preço ficar vazio, usa o preço normal do produto escolhido.
+                </p>
+              </div>
+            )}
+
+            {activeItem === 'upsell' && (
+              <div className="space-y-4 text-xs">
+                <p className="text-[#94A3B8] leading-relaxed">
+                  Se preencher um link de upsell, o comprador será redirecionado para esse link assim que o pagamento for aprovado.
+                </p>
+
                 <div>
-                  <label className="block text-[#94A3B8] font-semibold mb-1">Título da Oferta</label>
+                  <label className="block text-[#F8FAFC] font-semibold mb-1.5">Link de upsell</label>
                   <input
-                    type="text"
-                    value={orderBumpTitle}
-                    onChange={(e) => setOrderBumpTitle(e.target.value)}
-                    placeholder="Ex: Acesso VIP Vitalício + Grupo Exclusivo"
-                    className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] focus:outline-none"
+                    type="url"
+                    value={upsellUrl}
+                    onChange={(e) => setUpsellUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3.5 py-2.5 text-[#F8FAFC] font-mono focus:outline-none"
                   />
+                  <p className="text-[11px] text-[#64748B] mt-1.5">
+                    Após a compra aprovada, o cliente é levado automaticamente para este link.
+                  </p>
                 </div>
+
                 <div>
-                  <label className="block text-[#94A3B8] font-semibold mb-1">Valor Adicional (MZN)</label>
+                  <label className="block text-[#F8FAFC] font-semibold mb-1.5">Link de downsell</label>
                   <input
-                    type="number"
-                    value={orderBumpPrice}
-                    onChange={(e) => setOrderBumpPrice(e.target.value)}
-                    placeholder="99.00"
-                    className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] font-mono focus:outline-none"
+                    type="url"
+                    value={downsellUrl}
+                    onChange={(e) => setDownsellUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3.5 py-2.5 text-[#F8FAFC] font-mono focus:outline-none"
                   />
-                </div>
-                <div>
-                  <label className="block text-[#94A3B8] font-semibold mb-1">Texto de Chamada</label>
-                  <textarea
-                    rows={2}
-                    value={orderBumpDesc}
-                    onChange={(e) => setOrderBumpDesc(e.target.value)}
-                    placeholder="Marque a caixinha acima para incluir esta oferta especial!"
-                    className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] focus:outline-none"
-                  />
+                  <p className="text-[11px] text-[#64748B] mt-1.5">
+                    Alternativa caso o cliente recuse o upsell.
+                  </p>
                 </div>
               </div>
             )}
@@ -940,19 +1210,40 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
               <div className="space-y-4 text-xs">
                 <div>
                   <label className="block text-[#94A3B8] font-semibold mb-1">URL de Destino do Webhook</label>
-                  <input
-                    type="url"
-                    value={webhookUrl}
-                    onChange={(e) => setWebhookUrl(e.target.value)}
-                    placeholder="https://sua-api.com/webhooks/otterfy"
-                    className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] font-mono focus:outline-none"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                      placeholder="https://sua-api.com/webhooks/otterfy"
+                      className="flex-1 bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] font-mono focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={testingWebhook}
+                      onClick={handleTestProductWebhook}
+                      className="px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-[11px] shrink-0 cursor-pointer disabled:opacity-50"
+                    >
+                      {testingWebhook ? 'Testando...' : '⚡ Testar'}
+                    </button>
+                  </div>
+                  {webhookTestMsg && (
+                    <p
+                      className={`mt-2 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border ${
+                        webhookTestMsg.ok
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                          : 'bg-red-500/10 border-red-500/30 text-red-300'
+                      }`}
+                    >
+                      {webhookTestMsg.text}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <span className="block text-[#94A3B8] font-semibold mb-2">Eventos Notificados</span>
                   <div className="grid grid-cols-2 gap-2">
                     {['order.created', 'order.approved', 'order.refunded', 'order.declined'].map((ev) => (
-                      <label key={ev} className="flex items-center gap-2 text-[#F8FAFC]">
+                      <label key={ev} className="flex items-center gap-2 text-[#F8FAFC] cursor-pointer">
                         <input
                           type="checkbox"
                           checked={webhookEvents.includes(ev)}

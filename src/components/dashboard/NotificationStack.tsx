@@ -253,11 +253,11 @@ export default function NotificationStack() {
 
       {/* ─ PAINEL FLUTUANTE ─ */}
       <div
-        className={`fixed top-[60px] sm:top-[66px] left-3 sm:left-auto sm:right-6 md:right-8 w-[calc(100vw-24px)] sm:w-[360px] max-w-[360px] transition-all duration-200 ${
+        className={`fixed top-[60px] sm:top-[66px] right-3 sm:right-6 md:right-8 w-[calc(100vw-24px)] sm:w-[360px] max-w-[360px] transition-all duration-200 ${
           panelOpen
-            ? 'opacity-100 scale-100 pointer-events-auto translate-y-0'
-            : 'opacity-0 scale-95 pointer-events-none -translate-y-2'
-        } origin-top-left sm:origin-top-right`}
+            ? 'opacity-100 visible scale-100 pointer-events-auto translate-y-0'
+            : 'opacity-0 invisible scale-95 pointer-events-none -translate-y-2'
+        } origin-top-right`}
         style={{ zIndex: 9999 }}
       >
         <div

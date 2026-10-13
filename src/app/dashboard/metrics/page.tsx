@@ -136,6 +136,143 @@ export default function MetricsPage() {
     });
   }, [filteredByPeriodOrders]);
 
+  const { barChartData, approvalsVsVolumeData } = useMemo(() => {
+    const now = new Date();
+    if (period === 'today') {
+      const blocks = [
+        { start: 0, end: 3, short: '00h', full: '00:00 – 02:59' },
+        { start: 3, end: 6, short: '03h', full: '03:00 – 05:59' },
+        { start: 6, end: 9, short: '06h', full: '06:00 – 08:59' },
+        { start: 9, end: 12, short: '09h', full: '09:00 – 11:59' },
+        { start: 12, end: 15, short: '12h', full: '12:00 – 14:59' },
+        { start: 15, end: 18, short: '15h', full: '15:00 – 17:59' },
+        { start: 18, end: 21, short: '18h', full: '18:00 – 20:59' },
+        { start: 21, end: 24, short: '21h', full: '21:00 – 23:59' },
+      ];
+      const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+      return {
+        barChartData: blocks.map((b) => {
+          const inBlock = filteredByPeriodOrders.filter((o) => {
+            const h = new Date(o.createdAt).getHours();
+            return h >= b.start && h < b.end && o.status === 'APPROVED';
+          });
+          return { day: b.short, fullLabel: b.full, vendas: inBlock.length, date: dateStr };
+        }),
+        approvalsVsVolumeData: blocks.map((b) => {
+          const inBlock = filteredByPeriodOrders.filter((o) => {
+            const h = new Date(o.createdAt).getHours();
+            return h >= b.start && h < b.end;
+          });
+          const app = inBlock.filter((o) => o.status === 'APPROVED');
+          return {
+            date: b.short,
+            dayName: b.full,
+            fullDate: dateStr,
+            aprovados: app.reduce((s, o) => s + o.amount, 0),
+            volume: inBlock.reduce((s, o) => s + o.amount, 0),
+          };
+        }),
+      };
+    }
+
+    if (period === '7d') {
+      const weekDayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+      const weekDayShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i), 0, 0, 0, 0);
+        const nextD = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0);
+        const label = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+        return {
+          start: d,
+          end: nextD,
+          short: weekDayShort[d.getDay()],
+          full: weekDayNames[d.getDay()],
+          dateLabel: label,
+        };
+      });
+
+      return {
+        barChartData: days.map((d) => {
+          const inDay = filteredByPeriodOrders.filter((o) => {
+            const dt = new Date(o.createdAt);
+            return dt >= d.start && dt < d.end && o.status === 'APPROVED';
+          });
+          return { day: d.short, fullLabel: d.full, vendas: inDay.length, date: d.dateLabel };
+        }),
+        approvalsVsVolumeData: days.map((d) => {
+          const inDay = filteredByPeriodOrders.filter((o) => {
+            const dt = new Date(o.createdAt);
+            return dt >= d.start && dt < d.end;
+          });
+          const app = inDay.filter((o) => o.status === 'APPROVED');
+          return {
+            date: d.short,
+            dayName: d.full,
+            fullDate: d.dateLabel,
+            aprovados: app.reduce((s, o) => s + o.amount, 0),
+            volume: inDay.reduce((s, o) => s + o.amount, 0),
+          };
+        }),
+      };
+    }
+
+    if (period === '30d' || period === 'month') {
+      const monthNum = (now.getMonth() + 1).toString().padStart(2, '0');
+      const weeks = [
+        { short: 'Sem 1', full: 'Semana 1', range: `01/${monthNum} – 07/${monthNum}`, min: 1, max: 7 },
+        { short: 'Sem 2', full: 'Semana 2', range: `08/${monthNum} – 14/${monthNum}`, min: 8, max: 14 },
+        { short: 'Sem 3', full: 'Semana 3', range: `15/${monthNum} – 21/${monthNum}`, min: 15, max: 21 },
+        { short: 'Sem 4', full: 'Semana 4', range: `22/${monthNum} – 28/${monthNum}`, min: 22, max: 28 },
+        { short: 'Sem 5', full: 'Semana 5', range: `29/${monthNum}+`, min: 29, max: 31 },
+      ];
+      return {
+        barChartData: weeks.map((w) => {
+          const inW = filteredByPeriodOrders.filter((o) => {
+            const dom = new Date(o.createdAt).getDate();
+            return dom >= w.min && dom <= w.max && o.status === 'APPROVED';
+          });
+          return { day: w.short, fullLabel: w.full, vendas: inW.length, date: w.range };
+        }),
+        approvalsVsVolumeData: weeks.map((w) => {
+          const inW = filteredByPeriodOrders.filter((o) => {
+            const dom = new Date(o.createdAt).getDate();
+            return dom >= w.min && dom <= w.max;
+          });
+          const app = inW.filter((o) => o.status === 'APPROVED');
+          return {
+            date: w.short,
+            dayName: w.full,
+            fullDate: w.range,
+            aprovados: app.reduce((s, o) => s + o.amount, 0),
+            volume: inW.reduce((s, o) => s + o.amount, 0),
+          };
+        }),
+      };
+    }
+
+    const mShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const mFull = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    return {
+      barChartData: mShort.map((ms, idx) => {
+        const inM = filteredByPeriodOrders.filter(
+          (o) => new Date(o.createdAt).getMonth() === idx && o.status === 'APPROVED'
+        );
+        return { day: ms, fullLabel: mFull[idx], vendas: inM.length, date: 'Histórico' };
+      }),
+      approvalsVsVolumeData: mShort.map((ms, idx) => {
+        const inM = filteredByPeriodOrders.filter((o) => new Date(o.createdAt).getMonth() === idx);
+        const app = inM.filter((o) => o.status === 'APPROVED');
+        return {
+          date: ms,
+          dayName: mFull[idx],
+          fullDate: 'Histórico',
+          aprovados: app.reduce((s, o) => s + o.amount, 0),
+          volume: inM.reduce((s, o) => s + o.amount, 0),
+        };
+      }),
+    };
+  }, [filteredByPeriodOrders, period]);
+
   // Abandoned carts recovery handler
   const handleRecoverWhatsApp = (order: OrderItem) => {
     const rawPhone = order.customerPhone.replace(/\D/g, '');
@@ -331,11 +468,12 @@ export default function MetricsPage() {
           </div>
 
           {/* O GRÁFICO DE 24 HORAS COM AS LINHAS DE HOJE E DETALHES */}
-          <div className="w-full">
+          <div className="w-full min-w-0">
             <HourlyCartsLineChart
               data={hourlyData}
               title={`Fluxo por Horário (${periodLabels[period]})`}
               badgeLabel={periodLabels[period]}
+              animationKey={period}
             />
           </div>
 
@@ -454,9 +592,21 @@ export default function MetricsPage() {
           </div>
 
           {/* Gráficos Diários Complementares */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
-            <WeeklySalesBarChart />
-            <ApprovalsVsVolumeLineChart />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2 min-w-0">
+            <WeeklySalesBarChart
+              data={barChartData}
+              title={`Vendas Aprovadas (${periodLabels[period]})`}
+              subtitle={`Distribuição de vendas em ${periodLabels[period]}`}
+              badgeLabel={periodLabels[period]}
+              animationKey={period}
+            />
+            <ApprovalsVsVolumeLineChart
+              data={approvalsVsVolumeData}
+              title={`Aprovados vs Volume (${periodLabels[period]})`}
+              subtitle={`Evolução financeira em Meticais (${periodLabels[period]})`}
+              badgeLabel={periodLabels[period]}
+              animationKey={period}
+            />
           </div>
         </div>
       )}

@@ -40,7 +40,21 @@ export interface ProductItem {
       title: string;
       price: number;
       description?: string;
+      productId?: string;
     };
+    extraOffers?: Array<{
+      id?: string;
+      productId?: string;
+      title: string;
+      price: number;
+      description?: string;
+    }>;
+    postPurchase?: {
+      upsellUrl?: string;
+      downsellUrl?: string;
+    };
+    upsellUrl?: string;
+    downsellUrl?: string;
     customCheckout?: {
       enabled?: boolean;
       themeColor?: string;
@@ -56,6 +70,8 @@ export interface ProductItem {
       phone: string;
       message?: string;
     };
+    _tracking?: ProductItem['tracking'];
+    _automation?: ProductItem['automation'];
   };
   automation?: {
     webhookUrl?: string;
@@ -174,9 +190,9 @@ export const dbStore = {
           contentUrl: (p as any).contentUrl || localMatch?.contentUrl,
           materials: ((p as any).materials as any) || localMatch?.materials,
           zenofyProductId: zenId || null,
-          tracking: localMatch?.tracking,
+          tracking: localMatch?.tracking || ((p as any).checkoutSettings as any)?._tracking,
           checkoutSettings: ((p as any).checkoutSettings as any) || localMatch?.checkoutSettings,
-          automation: localMatch?.automation,
+          automation: localMatch?.automation || ((p as any).checkoutSettings as any)?._automation,
           createdAt: p.createdAt.toISOString(),
           updatedAt: p.updatedAt.toISOString(),
         };
@@ -232,9 +248,9 @@ export const dbStore = {
           contentUrl: (p as any).contentUrl || localMatch?.contentUrl,
           materials: ((p as any).materials as any) || localMatch?.materials,
           zenofyProductId: zenId || null,
-          tracking: localMatch?.tracking,
+          tracking: localMatch?.tracking || ((p as any).checkoutSettings as any)?._tracking,
           checkoutSettings: ((p as any).checkoutSettings as any) || localMatch?.checkoutSettings,
-          automation: localMatch?.automation,
+          automation: localMatch?.automation || ((p as any).checkoutSettings as any)?._automation,
           createdAt: p.createdAt.toISOString(),
           updatedAt: p.updatedAt.toISOString(),
         };
@@ -425,8 +441,13 @@ export const dbStore = {
       writeLocalStore(store);
     }
 
-    // 2. Also try to update Prisma if database is connected
+    // 2. Also try to update Prisma if database is connected (storing _tracking and _automation inside checkoutSettings JSON as well)
     try {
+      const mergedCheckoutSettings = {
+        ...(updatedItem.checkoutSettings || {}),
+        ...(updatedItem.tracking ? { _tracking: updatedItem.tracking } : {}),
+        ...(updatedItem.automation ? { _automation: updatedItem.automation } : {}),
+      };
       await prisma.product.update({
         where: { id },
         data: {
@@ -437,7 +458,7 @@ export const dbStore = {
           ...(data.contentDeliveryType !== undefined ? { contentDeliveryType: data.contentDeliveryType } : {}),
           ...(data.contentUrl !== undefined ? { contentUrl: data.contentUrl } : {}),
           ...(data.materials !== undefined ? { materials: data.materials as any } : {}),
-          ...(data.checkoutSettings !== undefined ? { checkoutSettings: data.checkoutSettings as any } : {}),
+          checkoutSettings: mergedCheckoutSettings as any,
           ...(data.status ? { status: data.status } : {}),
         },
       });

@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import dbStore from '@/lib/store';
 import prisma from '@/lib/prisma';
 import { zenofyProvider } from '@/services/payment/zenofy';
@@ -84,6 +85,16 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
 
   const fullProduct = (await dbStore.getProductById(order.productId)) || order.product;
   const product = fullProduct;
+
+  // Redirecionamento automático para Upsell se configurado no produto
+  const upsellUrl =
+    product?.checkoutSettings?.postPurchase?.upsellUrl?.trim() ||
+    product?.checkoutSettings?.upsellUrl?.trim() ||
+    '';
+  if (upsellUrl && /^https?:\/\//i.test(upsellUrl)) {
+    redirect(upsellUrl);
+  }
+
   const transaction = order.transaction;
   const materials = product?.materials && Array.isArray(product.materials) && product.materials.length > 0
     ? product.materials
