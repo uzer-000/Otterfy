@@ -696,25 +696,18 @@ a:not([aria-disabled="true"]):active,
 }
 
 /* Entrada suave e instantânea de cada página (app/dashboard/template.tsx).
-   fill-mode "backwards" => depois da animação não deixa transform residual,
-   permitindo GPU compositing perfeito sem quebrar modais fixos. */
+   Sem transform/will-change no wrapper de página para nunca prender modais position: fixed. */
 @keyframes otter-page-in {
   from {
     opacity: 0;
-    transform: translate3d(0, 8px, 0);
   }
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
   }
 }
 
 .otter-page {
-  will-change: opacity, transform;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  animation: otter-page-in var(--dur-base) var(--ease-out-expo) backwards;
+  animation: otter-page-in 160ms var(--ease-out-expo) backwards;
 }
 
 /* Utilitários suaves de fade e zoom com aceleração de hardware */
@@ -734,7 +727,7 @@ a:not([aria-disabled="true"]):active,
 }
 
 .animate-in {
-  will-change: opacity, transform;
+  will-change: opacity;
   animation: otter-fade-in var(--dur-base) var(--ease-out-expo) backwards;
 }
 
@@ -776,13 +769,12 @@ a:not([aria-disabled="true"]):active,
   background-image: linear-gradient(90deg, transparent 0%, rgba(124, 58, 237, 0.08) 50%, transparent 100%);
 }
 
-/* Área de conteúdo: scroll nativo ultra fluido, aceleração por GPU no mobile e PC */
+/* Área de conteúdo: scroll nativo ultra fluido (sem transform para não quebrar position: fixed) */
 .otter-main {
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
-  transform: translateZ(0);
 }
 
 /* ==========================================================================

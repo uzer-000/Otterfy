@@ -258,8 +258,8 @@ export default function NewProductWizardPage() {
       {/* MODAL 1: SELETOR DE CATEGORIA (PRINT 1 NO TEMA ROXO DA OTTERFY) */}
       {/* ============================================================== */}
       {categoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#121016] border border-[#1E1B26] rounded-3xl w-full max-w-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 text-[#F8FAFC]">
+        <div className="fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#121016] border border-[#1E1B26] rounded-3xl w-full max-w-3xl max-h-[90dvh] overflow-y-auto my-auto p-6 sm:p-8 shadow-2xl relative space-y-6 text-[#F8FAFC]">
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-2 border-b border-[#1E1B26]">
               <div>
@@ -448,8 +448,8 @@ export default function NewProductWizardPage() {
 
       {/* SUCCESS MODAL ONCE PRODUCT IS CREATED */}
       {createdProductId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#121016] border border-violet-500/40 rounded-3xl w-full max-w-lg p-6 sm:p-8 text-center space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#121016] border border-violet-500/40 rounded-3xl w-full max-w-lg my-auto p-6 sm:p-8 text-center space-y-5 shadow-2xl">
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mx-auto flex items-center justify-center text-2xl font-black">
               ✓
             </div>
