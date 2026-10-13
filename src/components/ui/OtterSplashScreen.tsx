@@ -14,8 +14,8 @@ export default function OtterSplashScreen() {
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Tempo exato para a animação da logo processar 100% (encaixe das metades + flash na fenda + feixe de brilho + barra laser)
-    const fullAnimationMs = 1900;
+    // Tempo exato da nova logo animada oficial (3.9s) antes de abrir o site
+    const fullAnimationMs = 3900;
     const fadeDurationMs = 380;
 
     const fadeTimer = setTimeout(() => {
