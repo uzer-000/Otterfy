@@ -159,11 +159,16 @@ export default function CheckoutForm({
     };
   }, []);
 
-  // ORDER BUMP (habilitado por padrão conforme print oficial do usuário)
-  const isOrderBumpAvailable = checkoutSettings?.orderBump?.enabled ?? true;
+  // ORDER BUMP (só aparece se o vendedor tiver ativado e configurado no produto)
+  const isOrderBumpAvailable = Boolean(
+    checkoutSettings?.orderBump?.enabled === true &&
+      checkoutSettings?.orderBump?.title?.trim() &&
+      Number(checkoutSettings?.orderBump?.price) > 0
+  );
   const [includeOrderBump, setIncludeOrderBump] = useState(false);
-  const orderBumpPrice = checkoutSettings?.orderBump?.price ?? 198;
-  const orderBumpTitle = checkoutSettings?.orderBump?.title ?? 'ARCANUM SPY';
+  const orderBumpPrice = Number(checkoutSettings?.orderBump?.price) || 0;
+  const orderBumpTitle = checkoutSettings?.orderBump?.title?.trim() || '';
+  const orderBumpDescription = checkoutSettings?.orderBump?.description?.trim() || '';
 
   // CUPONS DE DESCONTO (via URL ?cupom=...)
   const urlCoupon = searchParams.get('cupom') || searchParams.get('coupon');
@@ -494,20 +499,24 @@ export default function CheckoutForm({
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-xl bg-pink-100/70 border border-pink-200/60 overflow-hidden shrink-0 flex items-center justify-center shadow-inner">
-                  <div className="w-full h-full flex flex-col items-center justify-center p-1 bg-gradient-to-br from-pink-100 to-rose-200 text-rose-700">
-                    <span className="text-[12px] font-black leading-none tracking-tight">S</span>
-                    <span className="text-[7px] font-bold uppercase tracking-wider">selecta</span>
-                  </div>
+                <div className="w-11 h-11 rounded-xl bg-emerald-100/80 border border-emerald-200 overflow-hidden shrink-0 flex items-center justify-center text-[#059669] shadow-sm">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
                 </div>
 
                 <div className="min-w-0">
                   <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded mb-0.5">
-                    ⚡ Oferta Especial Única
+                    ⚡ Oferta Especial Opcional
                   </span>
                   <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 uppercase tracking-tight truncate">
                     {orderBumpTitle}
                   </h4>
+                  {orderBumpDescription && (
+                    <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                      {orderBumpDescription}
+                    </p>
+                  )}
                   <p className="text-xs sm:text-sm font-bold text-[#059669] mt-0.5">
                     + {formatMZN(orderBumpPrice)}
                   </p>
@@ -515,15 +524,6 @@ export default function CheckoutForm({
               </div>
 
               <div className="flex flex-col items-center justify-center gap-1 shrink-0 pl-1">
-                <svg
-                  className="w-4 h-4 text-red-500 animate-bounce"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
-                </svg>
                 <div
                   className={`otter-keep-colors w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
                     includeOrderBump ? 'border-[#059669] bg-[#059669] text-white' : 'border-slate-300 bg-white'

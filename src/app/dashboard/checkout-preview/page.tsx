@@ -30,10 +30,10 @@ export default function CheckoutPreviewPage() {
         { code: 'OTTER20', discountPercent: 20 },
       ],
       orderBump: {
-        enabled: true,
-        title: 'Pack de Modelos Editáveis + Resumos VIP',
-        price: 250,
-        description: 'Receba modelos prontos para copiar e colar diretamente no seu negócio.',
+        enabled: false,
+        title: '',
+        price: 0,
+        description: '',
       },
       customCheckout: {
         enabled: true,
