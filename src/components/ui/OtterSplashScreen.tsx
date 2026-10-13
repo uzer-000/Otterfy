@@ -14,25 +14,17 @@ export default function OtterSplashScreen() {
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    try {
-      // Se já abriu nesta sessão, libera imediatamente em 0ms para navegação instantânea
-      if (sessionStorage.getItem('otterfy_booted') === '1') {
-        setMounted(false);
-        return;
-      }
-      sessionStorage.setItem('otterfy_booted', '1');
-    } catch {
-      // ignore sessionStorage errors
-    }
+    // Tempo exato para a animação da logo processar 100% (encaixe das metades + flash na fenda + feixe de brilho + barra laser)
+    const fullAnimationMs = 1900;
+    const fadeDurationMs = 380;
 
-    // Boot ultra-rápido (~480ms de entrada + 180ms de fade suave = ~0.65s total)
     const fadeTimer = setTimeout(() => {
       setIsFadingOut(true);
-    }, 480);
+    }, fullAnimationMs);
 
     const unmountTimer = setTimeout(() => {
       setMounted(false);
-    }, 660);
+    }, fullAnimationMs + fadeDurationMs);
 
     return () => {
       clearTimeout(fadeTimer);
@@ -45,8 +37,8 @@ export default function OtterSplashScreen() {
   return (
     <div
       id="otter-splash-screen"
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-200 ease-out select-none otter-splash-container ${
-        isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-all duration-350 ease-out select-none otter-splash-container ${
+        isFadingOut ? 'opacity-0 scale-[1.03] pointer-events-none' : 'opacity-100 scale-100'
       }`}
       style={{
         backgroundColor: 'var(--otter-bg)',

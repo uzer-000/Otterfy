@@ -75,9 +75,9 @@ export default function GlobalLoadingProvider({ children }: { children: React.Re
       setIsVisible(false);
       return;
     }
-    // Transição rápida e suave assim que a rota termina de carregar
+    // Deixa a animação da logo processar totalmente antes de abrir
     const elapsed = Date.now() - visibleSinceRef.current;
-    const minAnimationMs = 550;
+    const minAnimationMs = 1850;
     const remaining = Math.max(0, minAnimationMs - elapsed);
     setTimeout(() => {
       setIsVisible(false);
