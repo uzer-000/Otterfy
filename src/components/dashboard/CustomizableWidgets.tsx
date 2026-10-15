@@ -692,27 +692,6 @@ export default function CustomizableWidgets({
 
   return (
     <div className="space-y-6 sm:space-y-8 w-full max-w-full min-w-0">
-      {/* Top Action Bar: Customizar & Reordenar Dashboard */}
-      <div className="flex items-center justify-between gap-2 pb-1 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse shrink-0" />
-          <span className="text-xs uppercase tracking-wider font-semibold text-[#94A3B8] truncate">
-            Painel Otterfy
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setCustomizingOpen(true)}
-          className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] hover:border-violet-500/40 text-[#94A3B8] hover:text-[#F8FAFC] transition-all cursor-pointer shadow-sm shrink-0"
-          title="Clique para realocar blocos, colocar gráficos primeiro e escolher indicadores"
-        >
-          <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-          </svg>
-          <span>Editar Layout da Dashboard</span>
-        </button>
-      </div>
 
       {/* Render All Blocks In The Order Arranged By The User */}
       <div className="space-y-8">
