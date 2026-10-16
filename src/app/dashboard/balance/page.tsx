@@ -644,11 +644,11 @@ export default function BalancePage() {
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm border border-slate-200 dark:border-white/10 p-1 flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 rounded-2xl bg-white shadow-xs border border-slate-200/90 dark:border-white/10 p-1.5 flex items-center justify-center shrink-0">
                     {acc.type === 'MPESA' ? (
-                      <Image src="/gateways/Mpesa.png" alt="M-Pesa" width={30} height={30} className="w-full h-full object-contain" />
+                      <Image src="/gateways/mpesa.svg" alt="M-Pesa" width={32} height={32} className="w-full h-full object-contain" />
                     ) : acc.type === 'EMOLA' ? (
-                      <Image src="/gateways/emola.png" alt="e-Mola" width={30} height={30} className="w-full h-full object-contain" />
+                      <Image src="/gateways/emola.svg" alt="e-Mola" width={32} height={32} className="w-full h-full object-contain" />
                     ) : (
                       <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 3l9 7H3l9-7z" />
@@ -1180,11 +1180,11 @@ export default function BalancePage() {
             </div>
 
             <div className="flex flex-col items-center justify-center py-4 border-b border-[#252033] space-y-2">
-              <div className="w-14 h-14 rounded-2xl bg-white shadow-md border p-1.5 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-white shadow-xs border-2 border-slate-200 p-2 flex items-center justify-center">
                 {selectedReceipt.method === 'MPESA' ? (
-                  <Image src="/gateways/Mpesa.png" alt="M-Pesa" width={42} height={42} className="w-full h-full object-contain" />
+                  <Image src="/gateways/mpesa.svg" alt="M-Pesa" width={48} height={48} className="w-full h-full object-contain" />
                 ) : selectedReceipt.method === 'EMOLA' ? (
-                  <Image src="/gateways/emola.png" alt="e-Mola" width={42} height={42} className="w-full h-full object-contain" />
+                  <Image src="/gateways/emola.svg" alt="e-Mola" width={48} height={48} className="w-full h-full object-contain" />
                 ) : (
                   <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 3l9 7H3l9-7z" />

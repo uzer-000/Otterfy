@@ -478,13 +478,13 @@ export default function CheckoutForm({
                 required
               />
 
-              {/* Mini visual logo container on the right of the phone input */}
-              <div className="absolute right-3 w-7 h-7 rounded-lg bg-white shadow-sm border border-slate-200 p-0.5 flex items-center justify-center shrink-0">
+              {/* Mini visual logo container on the right of the phone input with Smooth Outline */}
+              <div className="absolute right-3 w-8 h-8 rounded-xl bg-white shadow-xs border border-slate-200 p-1 flex items-center justify-center shrink-0">
                 <Image
-                  src={paymentMethod === 'MPESA' ? '/gateways/Mpesa.png' : '/gateways/emola.png'}
+                  src={paymentMethod === 'MPESA' ? '/gateways/mpesa.svg' : '/gateways/emola.svg'}
                   alt={paymentMethod}
-                  width={22}
-                  height={22}
+                  width={24}
+                  height={24}
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -721,17 +721,17 @@ export default function CheckoutForm({
           aria-label="Processando pagamento..."
         >
           <div className="bg-white rounded-3xl p-7 sm:p-8 max-w-sm w-full mx-auto flex flex-col items-center text-center shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150">
-            {/* Branded Logo Container with Pulsing Ring */}
+            {/* Branded Logo Container with Pulsing Ring & Smooth Outline */}
             <div className="relative mb-4">
               <div
-                className="w-16 h-16 rounded-2xl bg-white shadow-lg border-2 p-1.5 flex items-center justify-center"
+                className="w-18 h-18 rounded-3xl bg-white shadow-md border-2 p-2 flex items-center justify-center"
                 style={{ borderColor: paymentMethod === 'MPESA' ? '#E60000' : '#FF6600' }}
               >
                 <Image
-                  src={paymentMethod === 'MPESA' ? '/gateways/Mpesa.png' : '/gateways/emola.png'}
+                  src={paymentMethod === 'MPESA' ? '/gateways/mpesa.svg' : '/gateways/emola.svg'}
                   alt={paymentMethod}
-                  width={48}
-                  height={48}
+                  width={56}
+                  height={56}
                   className="w-full h-full object-contain"
                 />
               </div>

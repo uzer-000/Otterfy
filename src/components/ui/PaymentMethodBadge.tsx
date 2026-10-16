@@ -27,7 +27,7 @@ export default function PaymentMethodBadge({
       return {
         label: 'M-Pesa',
         subLabel: 'Vodacom (84 / 85)',
-        logoSrc: '/gateways/Mpesa.png',
+        logoSrc: '/gateways/mpesa.svg',
         bgLight: 'bg-[#FF0000]/10 border-[#FF0000]/30 text-[#D80000]',
         bgDark: 'bg-[#FF0000]/15 border-[#FF0000]/30 text-[#FF4D4D]',
         accentColor: '#E60000',
@@ -38,7 +38,7 @@ export default function PaymentMethodBadge({
       return {
         label: 'e-Mola',
         subLabel: 'Movitel (86 / 87)',
-        logoSrc: '/gateways/emola.png',
+        logoSrc: '/gateways/emola.svg',
         bgLight: 'bg-[#FF6600]/10 border-[#FF6600]/30 text-[#D95300]',
         bgDark: 'bg-[#FF6600]/15 border-[#FF6600]/30 text-[#FFA04D]',
         accentColor: '#FF6600',
@@ -49,7 +49,7 @@ export default function PaymentMethodBadge({
       return {
         label: 'Cartão',
         subLabel: 'Visa • Mastercard',
-        logoSrc: '/gateways/stripe.svg',
+        logoSrc: '/gateways/stripe-cards.svg',
         bgLight: 'bg-[#635BFF]/10 border-[#635BFF]/30 text-[#635BFF]',
         bgDark: 'bg-[#635BFF]/15 border-[#635BFF]/30 text-[#A29BFE]',
         accentColor: '#635BFF',
@@ -60,7 +60,7 @@ export default function PaymentMethodBadge({
       return {
         label: 'Multicaixa',
         subLabel: 'EMIS GPO • Angola',
-        logoSrc: '/gateways/emis.svg',
+        logoSrc: '/gateways/multicaixa.svg',
         bgLight: 'bg-[#0D47A1]/10 border-[#0D47A1]/30 text-[#0D47A1]',
         bgDark: 'bg-[#0D47A1]/15 border-[#0D47A1]/30 text-[#64B5F6]',
         accentColor: '#0D47A1',
@@ -71,7 +71,7 @@ export default function PaymentMethodBadge({
       return {
         label: 'PayFast',
         subLabel: 'South Africa • ZAR',
-        logoSrc: '/gateways/payfast.svg',
+        logoSrc: '/gateways/payfast.png',
         bgLight: 'bg-[#E51937]/10 border-[#E51937]/30 text-[#E51937]',
         bgDark: 'bg-[#E51937]/15 border-[#E51937]/30 text-[#FF6B81]',
         accentColor: '#E51937',
@@ -188,14 +188,14 @@ export function PaymentMethodOptionCard({
 
   const title = isMpesa ? 'M-Pesa' : isEmola ? 'e-Mola' : isStripe ? 'Cartão Visa/Master' : 'Banco (NIB)';
   const subtitle = prefixHelper || (isMpesa ? '84 • 85 (Vodacom)' : isEmola ? '86 • 87 (Movitel)' : isStripe ? 'Crédito / Débito' : 'Transferência');
-  const logo = isMpesa ? '/gateways/Mpesa.png' : isEmola ? '/gateways/emola.png' : isStripe ? '/gateways/stripe.svg' : '';
+  const logo = isMpesa ? '/gateways/mpesa.svg' : isEmola ? '/gateways/emola.svg' : isStripe ? '/gateways/stripe-cards.svg' : '';
   const brandAccent = isMpesa ? '#E60000' : isEmola ? '#FF6600' : isStripe ? '#635BFF' : '#10B981';
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`relative w-full p-3 sm:p-3.5 rounded-2xl border-2 transition-all duration-200 text-left flex items-center justify-between gap-3 cursor-pointer select-none group ${
+      className={`relative w-full p-3.5 sm:p-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center justify-between gap-3 cursor-pointer select-none group ${
         selected
           ? isMpesa
             ? 'border-[#E60000] bg-[#FF0000]/[0.06] shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/20'
@@ -205,13 +205,13 @@ export function PaymentMethodOptionCard({
           : 'border-slate-200 dark:border-[#252033] bg-white dark:bg-[#121018] hover:border-slate-300 dark:hover:border-[#352D48]'
       } ${className}`}
     >
-      <div className="flex items-center gap-3 min-w-0">
-        {/* Prominent Logo Container */}
+      <div className="flex items-center gap-3.5 min-w-0">
+        {/* Prominent Logo Container with Smooth Outline & No Sharp Corners */}
         <div
-          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl p-1 bg-white shadow-sm flex items-center justify-center shrink-0 border transition-transform duration-200 group-hover:scale-105 ${
+          className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl p-2 bg-white shadow-xs flex items-center justify-center shrink-0 border-2 transition-transform duration-200 group-hover:scale-105 ${
             selected
               ? 'border-transparent shadow-md'
-              : 'border-slate-200 dark:border-white/10'
+              : 'border-slate-200 dark:border-white/15'
           }`}
           style={{ borderColor: selected ? brandAccent : undefined }}
         >
@@ -219,8 +219,8 @@ export function PaymentMethodOptionCard({
             <Image
               src={logo}
               alt={title}
-              width={38}
-              height={38}
+              width={48}
+              height={48}
               className="w-full h-full object-contain"
             />
           ) : (

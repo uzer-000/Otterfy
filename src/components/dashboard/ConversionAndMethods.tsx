@@ -110,12 +110,12 @@ export default function ConversionAndMethods({
           <div className="space-y-2 p-2.5 rounded-xl bg-orange-500/[0.04] border border-orange-500/10">
             <div className="flex justify-between items-center text-xs">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center p-1 shrink-0 border border-slate-200">
+                <div className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center p-1.5 shrink-0 border border-slate-200/90 dark:border-white/10">
                   <Image
-                    src="/gateways/emola.png"
+                    src="/gateways/emola.svg"
                     alt="e-Mola"
-                    width={24}
-                    height={24}
+                    width={28}
+                    height={28}
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -146,12 +146,12 @@ export default function ConversionAndMethods({
           <div className="space-y-2 p-2.5 rounded-xl bg-red-500/[0.04] border border-red-500/10">
             <div className="flex justify-between items-center text-xs">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center p-1 shrink-0 border border-slate-200">
+                <div className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center p-1.5 shrink-0 border border-slate-200/90 dark:border-white/10">
                   <Image
-                    src="/gateways/Mpesa.png"
+                    src="/gateways/mpesa.svg"
                     alt="M-Pesa"
-                    width={24}
-                    height={24}
+                    width={28}
+                    height={28}
                     className="w-full h-full object-contain"
                   />
                 </div>

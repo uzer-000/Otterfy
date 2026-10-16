@@ -32,7 +32,7 @@ const OFFICIAL_GATEWAYS: GatewaySpec[] = [
     id: 'mpesa',
     name: 'M-Pesa (Vodacom)',
     iconType: 'mobile',
-    logoUrl: '/gateways/Mpesa.png',
+    logoUrl: '/gateways/mpesa.svg',
     badge: 'Moçambique • Vodacom',
     description: 'Mobile money payments via Vodacom M-Pesa in Mozambique. Push STK e confirmação automática USSD.',
     currencies: 'MZN (settlement)',
@@ -53,7 +53,7 @@ const OFFICIAL_GATEWAYS: GatewaySpec[] = [
     id: 'emola',
     name: 'e-Mola (Movitel)',
     iconType: 'money',
-    logoUrl: '/gateways/emola.png',
+    logoUrl: '/gateways/emola.svg',
     badge: 'Moçambique • Movitel',
     description: 'Direct API payment & Hosted checkout via Movitel e-Mola in Mozambique. Alta conversão para mobile money.',
     currencies: 'MZN (settlement)',
@@ -73,7 +73,7 @@ const OFFICIAL_GATEWAYS: GatewaySpec[] = [
     id: 'stripe',
     name: 'Cards (Stripe)',
     iconType: 'card',
-    logoUrl: '/gateways/stripe.svg',
+    logoUrl: '/gateways/stripe-cards.svg',
     badge: 'Internacional • Visa/Master',
     description: 'International Visa, Mastercard and digital wallets. Aceite cartões em MZN, USD, AOA e ZAR com proteção 3D Secure.',
     currencies: 'MZN, USD, AOA, ZAR',
@@ -93,7 +93,7 @@ const OFFICIAL_GATEWAYS: GatewaySpec[] = [
     id: 'emis',
     name: 'Multicaixa (EMIS GPO)',
     iconType: 'bank',
-    logoUrl: '/gateways/emis.svg',
+    logoUrl: '/gateways/multicaixa.svg',
     badge: 'Angola • EMIS GPO',
     description: 'Multicaixa Express and card payments in Angola. Processamento em Kwanzas com liquidação direta.',
     currencies: 'AOA (settlement)',
@@ -113,7 +113,7 @@ const OFFICIAL_GATEWAYS: GatewaySpec[] = [
     id: 'payfast',
     name: 'PayFast (South Africa)',
     iconType: 'globe',
-    logoUrl: '/gateways/payfast.svg',
+    logoUrl: '/gateways/payfast.png',
     badge: 'África do Sul • ZAR',
     description: 'Cards and regional methods via PayFast in South Africa. Suporte a EFT Instantâneo e cartões sul-africanos.',
     currencies: 'ZAR (settlement)',
@@ -545,43 +545,43 @@ export default function GatewaysPage() {
                 }`}
               >
                 <div>
-                  {/* Top: Branded Logo Container + Title + Status Switch */}
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3">
-                      {/* Prominent High-Definition Logo Container */}
-                      <div className="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-200 dark:border-white/10 p-2 flex items-center justify-center shrink-0">
-                        {g.logoUrl ? (
-                          <Image
-                            src={g.logoUrl}
-                            alt={g.name}
-                            width={44}
-                            height={44}
-                            className="w-full h-full object-contain"
-                          />
-                        ) : (
-                          renderIcon(g.iconType)
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-[#F8FAFC] leading-snug">{g.name}</h3>
-                        <span className="text-[11px] text-[#94A3B8] block">{g.badge}</span>
-                      </div>
-                    </div>
+                  {/* Top: Region Badge + Status Switch */}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/10 text-[#CBD5E1]">
+                      {g.badge}
+                    </span>
 
                     {/* Quick Status Toggle Button */}
                     <button
                       type="button"
                       onClick={(e) => handleToggleGatewayQuick(g, e)}
                       title={`Clique para alternar status (${g.status})`}
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-xs'
                           : 'bg-[#1E1B26] border-[#2D2838] text-[#94A3B8]'
                       }`}
                     >
                       {g.status}
                     </button>
                   </div>
+
+                  {/* Payzeno Branded Logo Banner Container with Smooth Outline & No Sharp Corners */}
+                  <div className="w-full h-24 rounded-2xl bg-white shadow-xs border border-slate-200 dark:border-white/10 p-3.5 flex items-center justify-center my-3 overflow-hidden group">
+                    {g.logoUrl ? (
+                      <Image
+                        src={g.logoUrl}
+                        alt={g.name}
+                        width={220}
+                        height={60}
+                        className="max-h-12 w-auto max-w-[85%] object-contain transition-transform duration-200 group-hover:scale-105"
+                      />
+                    ) : (
+                      renderIcon(g.iconType)
+                    )}
+                  </div>
+
+                  <h3 className="text-base font-bold text-[#F8FAFC] leading-snug mb-1">{g.name}</h3>
 
                   <p className="text-xs text-[#94A3B8] leading-relaxed mb-4">{g.description}</p>
 
