@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 950" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Chassis Shadow -->
+    <filter id="phoneShadow" x="-20%" y="-10%" width="140%" height="130%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="25" stdDeviation="30" flood-color="#000000" flood-opacity="0.45" />
+      <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#10B981" flood-opacity="0.15" />
+    </filter>
+
+    <!-- Metallic Edge Gradient -->
+    <linearGradient id="chassisEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4B5563" />
+      <stop offset="25%" stop-color="#1F2937" />
+      <stop offset="50%" stop-color="#374151" />
+      <stop offset="75%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#4B5563" />
+    </linearGradient>
+
+    <!-- Glass Reflection Gradient -->
+    <linearGradient id="glassGlare" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.18" />
+      <stop offset="35%" stop-color="#FFFFFF" stop-opacity="0.05" />
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.03" />
+    </linearGradient>
+
+    <!-- WhatsApp Header Gradient -->
+    <linearGradient id="waHeader" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#075E54" />
+      <stop offset="100%" stop-color="#128C7E" />
+    </linearGradient>
+
+    <clipPath id="screenClip">
+      <rect x="24" y="24" width="452" height="902" rx="42" />
+    </clipPath>
+  </defs>
+
+  <!-- External Phone Body / Chassis with Filter -->
+  <g filter="url(#phoneShadow)">
+    <!-- Outer Titanium Bezel -->
+    <rect x="18" y="18" width="464" height="914" rx="48" fill="#18181B" stroke="url(#chassisEdge)" stroke-width="5" />
+    <!-- Inner Dark Bezel -->
+    <rect x="22" y="22" width="456" height="906" rx="44" fill="#09090B" />
+  </g>
+
+  <!-- Phone Screen with Clip -->
+  <g clip-path="url(#screenClip)">
+    <!-- Screen Dark Background -->
+    <rect x="24" y="24" width="452" height="902" fill="#0B141A" />
+    
+    <!-- Subtle WhatsApp Chat Wallpaper Pattern -->
+    <g opacity="0.06">
+      <circle cx="80" cy="180" r="30" stroke="#FFFFFF" stroke-width="2" fill="none" />
+      <rect x="320" y="220" width="40" height="40" rx="10" stroke="#FFFFFF" stroke-width="2" fill="none" />
+      <path d="M150 400 L180 430 L210 400" stroke="#FFFFFF" stroke-width="2" fill="none" />
+      <circle cx="380" cy="500" r="25" stroke="#FFFFFF" stroke-width="2" fill="none" />
+      <rect x="60" y="620" width="35" height="35" rx="8" stroke="#FFFFFF" stroke-width="2" fill="none" />
+    </g>
+
+    <!-- TOP BAR / WHATSAPP HEADER -->
+    <rect x="24" y="24" width="452" height="110" fill="url(#waHeader)" />
+    
+    <!-- Status Bar Icons (Time, Battery, Wifi) -->
+    <text x="50" y="52" fill="#FFFFFF" font-family="-apple-system, system-ui, sans-serif" font-size="13" font-weight="600">09:41</text>
+    <g transform="translate(415, 42)">
+      <!-- Battery Icon -->
+      <rect x="0" y="0" width="22" height="11" rx="3" stroke="#FFFFFF" stroke-width="1.5" fill="none" />
+      <rect x="2" y="2" width="15" height="7" rx="1.5" fill="#FFFFFF" />
+      <rect x="23" y="3.5" width="2" height="4" rx="1" fill="#FFFFFF" />
+    </g>
+
+    <!-- WhatsApp Group Info in Header -->
+    <g transform="translate(45, 78)">
+      <!-- Back Arrow -->
+      <path d="M 0 16 L 8 8 M 0 16 L 8 24" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      
+      <!-- Group Avatar (Otterfy Logo in Circle) -->
+      <g transform="translate(22, -2)">
+        <circle cx="18" cy="18" r="18" fill="#1E1B26" stroke="#25D366" stroke-width="1.5" />
+        <!-- Otter Logo Mini Shape -->
+        <circle cx="18" cy="18" r="10" fill="#A855F7" opacity="0.3" />
+        <text x="18" y="23" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="14" font-weight="900" text-anchor="middle">O</text>
+      </g>
+
+      <!-- Group Name and Status -->
+      <text x="70" y="14" fill="#FFFFFF" font-family="-apple-system, system-ui, sans-serif" font-size="15" font-weight="700">Otterfy • Apex Sellers VIP 🇲🇿</text>
+      <text x="70" y="30" fill="#8696A0" font-family="-apple-system, system-ui, sans-serif" font-size="11">Pedro, Yuran, Amilcar, +2.480 membros</text>
+    </g>
+
+    <!-- CHAT MESSAGES AREA -->
+    <!-- Message Date Divider -->
+    <g transform="translate(250, 160)">
+      <rect x="-45" y="-12" width="90" height="22" rx="11" fill="#182229" />
+      <text x="0" y="3" fill="#8696A0" font-family="system-ui, sans-serif" font-size="10" font-weight="600" text-anchor="middle">HOJE</text>
+    </g>
+
+    <!-- Incoming Message 1 (Seller Success) -->
+    <g transform="translate(40, 195)">
+      <rect x="0" y="0" width="310" height="84" rx="16" fill="#202C33" />
+      <text x="14" y="20" fill="#53BDEB" font-family="system-ui, sans-serif" font-size="11" font-weight="700">Pedro Matsinhe (Ecom MZ)</text>
+      <text x="14" y="42" fill="#E9EDEF" font-family="system-ui, sans-serif" font-size="13">Bati a meta dos 100K hoje na Otterfy!</text>
+      <text x="14" y="62" fill="#E9EDEF" font-family="system-ui, sans-serif" font-size="13">A taxa de aprovação no M-Pesa é insana 🔥</text>
+      <text x="270" y="74" fill="#8696A0" font-family="system-ui, sans-serif" font-size="10">09:32</text>
+    </g>
+
+    <!-- Incoming Message 2 (Community Hype) -->
+    <g transform="translate(40, 295)">
+      <rect x="0" y="0" width="280" height="66" rx="16" fill="#202C33" />
+      <text x="14" y="20" fill="#25D366" font-family="system-ui, sans-serif" font-size="11" font-weight="700">Yuran C. • Produtor</text>
+      <text x="14" y="44" fill="#E9EDEF" font-family="system-ui, sans-serif" font-size="13">Parabéns irmão! A minha placa 500K já chegou.</text>
+      <text x="240" y="56" fill="#8696A0" font-family="system-ui, sans-serif" font-size="10">09:34</text>
+    </g>
+
+    <!-- Outgoing Message (Current User) -->
+    <g transform="translate(140, 380)">
+      <rect x="0" y="0" width="320" height="88" rx="16" fill="#005C4B" />
+      <text x="14" y="22" fill="#E9EDEF" font-family="system-ui, sans-serif" font-size="13">Acabei de desbloquear o acesso 25K!</text>
+      <text x="14" y="44" fill="#E9EDEF" font-family="system-ui, sans-serif" font-size="13">Partiu escalar para a Placa Prata agora 🚀</text>
+      <text x="14" y="66" fill="#8696A0" font-family="system-ui, sans-serif" font-size="11">Otterfy Checkout 100% no ar</text>
+      <text x="275" y="76" fill="#8696A0" font-family="system-ui, sans-serif" font-size="10">09:38 ✓✓</text>
+    </g>
+
+    <!-- Pinned Highlight Badge inside Chat -->
+    <g transform="translate(250, 500)">
+      <rect x="-170" y="-22" width="340" height="56" rx="16" fill="#182229" stroke="#10B981" stroke-width="1.5" />
+      <circle cx="-135" cy="6" r="14" fill="#10B981" fill-opacity="0.2" />
+      <text x="-135" y="11" fill="#10B981" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" text-anchor="middle">★</text>
+      <text x="-110" y="1" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="12" font-weight="700">Sala Exclusiva de Networking 25K</text>
+      <text x="-110" y="18" fill="#8696A0" font-family="system-ui, sans-serif" font-size="10">Estratégias de escala de tráfego em Moçambique</text>
+    </g>
+
+    <!-- Bottom Message Input Bar Mockup -->
+    <g transform="translate(24, 850)">
+      <rect x="0" y="0" width="452" height="76" fill="#202C33" />
+      <rect x="20" y="12" width="340" height="44" rx="22" fill="#2A3942" />
+      <text x="44" y="38" fill="#8696A0" font-family="system-ui, sans-serif" font-size="13">Mensagem...</text>
+      <!-- Audio/Send Button -->
+      <circle cx="395" cy="34" r="20" fill="#00A884" />
+      <path d="M 391 28 L 401 34 L 391 40 Z" fill="#FFFFFF" />
+    </g>
+
+    <!-- Top Dynamic Island Pill -->
+    <rect x="180" y="32" width="140" height="32" rx="16" fill="#000000" />
+    <circle cx="295" cy="48" r="5.5" fill="#1C1C1E" />
+
+    <!-- Glass Reflection Diagonal Overlay -->
+    <polygon points="24,24 220,24 80,926 24,926" fill="url(#glassGlare)" />
+  </g>
+</svg>

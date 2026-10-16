@@ -1,8 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { formatMZN } from '@/lib/utils';
+
+const PlaqueViewer3D = dynamic(() => import('@/components/dashboard/PlaqueViewer3D'), {
+  ssr: false,
+});
 
 export interface MilestoneData {
   id: number;
@@ -15,6 +19,7 @@ export interface MilestoneData {
   description: string;
   imageSrc: string;
   badgeSrc?: string;
+  modelGlb?: string;
   type: 'community' | 'bracelet' | 'plaque';
   format?: string;
   specifications: string;
@@ -31,7 +36,7 @@ export const MILESTONES: MilestoneData[] = [
     tag: '1/7',
     category: 'Comunidade & Networking',
     description: 'Acesso exclusivo ao grupo secreto de Top Sellers Otterfy no WhatsApp. Troca direta de estratégias, networking com quem fatura alto e suporte prioritário.',
-    imageSrc: '/awards/whatsapp_25k.svg',
+    imageSrc: '/awards/phone_mockup_whatsapp.svg',
     type: 'community',
     specifications: 'Grupo fechado no WhatsApp, canal de avisos antecipados, acesso a estratégias de tráfego pago e suporte VIP direto.',
     highlights: ['Networking com Apex Sellers', 'Estratégias de Escala', 'Avisos & Atualizações em Primeira Mão'],
@@ -60,8 +65,9 @@ export const MILESTONES: MilestoneData[] = [
     category: 'Placa Emoldurada A4',
     format: 'Formato A4 (21 x 29.7 cm)',
     description: 'A renomada Placa A4 com moldura de alumínio preto fosco, fundo dark texturizado e emblema Apex Predator em aço escovado prata gravado a laser com o seu nome.',
-    imageSrc: '/awards/frame_100k.png',
+    imageSrc: '/awards/placa_100k_frente.png',
     badgeSrc: '/awards/badge_silver.png',
+    modelGlb: '/awards/models/placa-100k.glb',
     type: 'plaque',
     specifications: 'Moldura de alumínio laqueado preto, vidro antirreflexo de cristal, placa metálica com corte a laser e acabamento escovado prata.',
     highlights: ['Personalizada com seu Nome/Loja', 'Emblema Prata 3D Escovado', 'Certificado de Apex Predator'],
@@ -76,8 +82,9 @@ export const MILESTONES: MilestoneData[] = [
     category: 'Placa Emoldurada A3',
     format: 'Formato A3 (29.7 x 42 cm)',
     description: 'Troféu comemorativo A3 emoldurado de luxo com emblema 3D espelhado banhado a ouro metálico, celebrando o marco histórico de meio milhão de Meticais faturados.',
-    imageSrc: '/awards/frame_500k.png',
+    imageSrc: '/awards/placa_500k_frente.png',
     badgeSrc: '/awards/badge_gold.png',
+    modelGlb: '/awards/models/placa-500k.glb',
     type: 'plaque',
     specifications: 'Moldura maciça A3 em madeira nobre laqueada, emblema dourado com efeito escovado espelhado, placa de identificação oficial.',
     highlights: ['Tamanho Gigante A3 de Luxo', 'Brasão Banhado a Ouro Metálico', 'Gravação a Laser de Precisão'],
@@ -92,8 +99,9 @@ export const MILESTONES: MilestoneData[] = [
     category: 'Clube do Milhão A3',
     format: 'Formato A3 (29.7 x 42 cm)',
     description: 'A consagração no seleto Clube do Milhão Otterfy. Fundo velvet púrpura luxuoso, moldura A3 premium e condecoração máxima como multimilionário digital moçambicano.',
-    imageSrc: '/awards/frame_1m.png',
+    imageSrc: '/awards/placa_1m_frente.png',
     badgeSrc: '/awards/badge_purple.png',
+    modelGlb: '/awards/models/placa-1m.glb',
     type: 'plaque',
     specifications: 'Moldura nobre laqueada preta fosca A3, fundo degradê royal violet, emblema metálico diamante e selo numerado de autenticidade.',
     highlights: ['Membro do Clube do Milhão', 'Fundo Imperial Violet & Diamante', 'Condecoração de Honra Máxima'],
@@ -108,8 +116,9 @@ export const MILESTONES: MilestoneData[] = [
     category: 'Titanium Black A3',
     format: 'Formato A3 (29.7 x 42 cm)',
     description: 'Placa ultra-exclusiva Otterfy Black para operações titânicas de escala massiva. Acabamento Black on Black com emblema em titânio escovado escurecido.',
-    imageSrc: '/awards/frame_5m.png',
+    imageSrc: '/awards/placa_5m_frente.png',
     badgeSrc: '/awards/badge_black.png',
+    modelGlb: '/awards/models/placa-5m.glb',
     type: 'plaque',
     specifications: 'Acabamento Black on Black em alumínio escovado anodizado escurecido, vidro duplo especial e selo de excelência e-commerce África.',
     highlights: ['Edição Restrita Black Titanium', 'Design Stealth Monocromático', 'Status de Elite Continental'],
@@ -124,8 +133,9 @@ export const MILESTONES: MilestoneData[] = [
     category: 'Titan Supremo A3',
     format: 'Formato A3 (29.7 x 42 cm)',
     description: 'A premiação máxima e o ápice da jornada digital na Otterfy. Emblema Titan Violet metálico 3D reservado exclusivamente para os maiores impérios do e-commerce.',
-    imageSrc: '/awards/frame_10m.png',
+    imageSrc: '/awards/placa_10m_frente.png',
     badgeSrc: '/awards/badge_purple.png',
+    modelGlb: '/awards/models/placa-10m.glb',
     type: 'plaque',
     specifications: 'Moldura personalizada Titan A3, emblema tridimensional em liga metálica violeta especial, certificado de honra assinado pelos fundadores.',
     highlights: ['Troféu de 10 Milhões de Meticais', 'Brasão Titan Violeta Metalizado 3D', 'O Ponto Mais Alto da Escala'],
@@ -168,8 +178,26 @@ export default function AwardsPage() {
   // Modals state
   const [claimModalMilestone, setClaimModalMilestone] = useState<MilestoneData | null>(null);
   const [previewMilestone, setPreviewMilestone] = useState<MilestoneData | null>(null);
+  const [viewer3DMilestone, setViewer3DMilestone] = useState<MilestoneData | null>(null);
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+  // 3D Perspective Card Tilt on Mouse Move
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = ((y - centerY) / centerY) * -5;
+    const rotateY = ((x - centerX) / centerX) * 5;
+    card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-4px)`;
+  };
+
+  const handleCardMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+  };
 
   // Shipping form state
   const [shippingAddress, setShippingAddress] = useState({
@@ -383,12 +411,15 @@ export default function AwardsPage() {
             return (
               <div
                 key={m.id}
-                className={`otter-widget-card rounded-3xl p-5 sm:p-6 border transition-all duration-300 flex flex-col justify-between group relative overflow-hidden ${
+                onMouseMove={handleCardMouseMove}
+                onMouseLeave={handleCardMouseLeave}
+                style={{ transition: 'transform 0.15s ease-out, border-color 0.2s ease, box-shadow 0.2s ease' }}
+                className={`otter-widget-card rounded-3xl p-5 sm:p-6 border flex flex-col justify-between group relative overflow-hidden will-change-transform ${
                   isCurrent
                     ? 'border-violet-500/80 ring-2 ring-violet-500/20 shadow-xl'
                     : isUnlocked
                     ? 'hover:border-violet-400/50 shadow-md'
-                    : 'opacity-95 hover:opacity-100'
+                    : 'opacity-95 hover:opacity-100 hover:border-slate-300 dark:hover:border-[#2A2438]'
                 }`}
               >
                 {/* Header do Card: Tag e Status */}
@@ -426,8 +457,16 @@ export default function AwardsPage() {
 
                 {/* Vitrine Central com Contorno Suave Arredondado (Clean & Smooth) */}
                 <div
-                  onClick={() => setPreviewMilestone(m)}
-                  className="w-full h-64 sm:h-72 rounded-2xl border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-[#08070C] p-4 flex items-center justify-center relative overflow-hidden group-hover:border-violet-500/40 transition-all cursor-pointer shadow-inner mb-4"
+                  onClick={() => {
+                    if (m.modelGlb) {
+                      setViewer3DMilestone(m);
+                    } else if (m.type === 'community') {
+                      setWhatsappModalOpen(true);
+                    } else {
+                      setPreviewMilestone(m);
+                    }
+                  }}
+                  className="w-full h-64 sm:h-72 rounded-2xl border border-slate-200/90 dark:border-white/10 bg-slate-50/80 dark:bg-[#08070C] p-4 flex items-center justify-center relative overflow-hidden group-hover:border-violet-500/40 transition-all cursor-pointer shadow-inner mb-4"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -436,13 +475,29 @@ export default function AwardsPage() {
                     className="max-h-full max-w-full object-contain filter drop-shadow-md group-hover:scale-105 transition-transform duration-300"
                   />
 
-                  {/* Botão sutil de zoom no hover */}
-                  <div className="absolute right-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-md text-white p-2 rounded-xl text-xs flex items-center gap-1 border border-white/10">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
-                    </svg>
-                    <span>Ver Detalhes</span>
-                  </div>
+                  {/* Badge Flutuante no Hover */}
+                  {m.modelGlb ? (
+                    <div className="absolute right-3 bottom-3 opacity-90 group-hover:opacity-100 transition-all bg-black/75 hover:bg-violet-600 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-white/15 shadow-lg">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                      </svg>
+                      <span>Girar 360° em 3D</span>
+                    </div>
+                  ) : m.type === 'community' ? (
+                    <div className="absolute right-3 bottom-3 opacity-90 group-hover:opacity-100 transition-all bg-emerald-950/80 hover:bg-emerald-600 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-emerald-500/30 shadow-lg">
+                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2" />
+                      </svg>
+                      <span>Ver Celular & Grupo</span>
+                    </div>
+                  ) : (
+                    <div className="absolute right-3 bottom-3 opacity-90 group-hover:opacity-100 transition-all bg-black/75 hover:bg-violet-600 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 border border-white/10">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                      </svg>
+                      <span>Ver Colecionável</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Títulos & Descrições */}
@@ -514,11 +569,45 @@ export default function AwardsPage() {
                         onClick={() => setWhatsappModalOpen(true)}
                         className="w-full py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#1E1B26] bg-slate-50 dark:bg-[#0B0911] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer flex items-center justify-center gap-2"
                       >
-                        <span>Ver Benefícios do Grupo</span>
+                        <span>Ver Celular & Benefícios</span>
+                      </button>
+                    )
+                  ) : m.modelGlb ? (
+                    // Cards 3D de Placas: 100K a 10M
+                    isUnlocked ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setViewer3DMilestone(m)}
+                          className="py-2.5 px-3 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#262132] bg-slate-50 dark:bg-[#121016] text-slate-800 dark:text-[#E2E8F0] hover:border-violet-500/50 hover:bg-violet-500/10 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <svg className="w-3.5 h-3.5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                          </svg>
+                          <span>Girar 3D</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setClaimModalMilestone(m)}
+                          className="py-2.5 px-3 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <span>Resgatar</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setViewer3DMilestone(m)}
+                        className="w-full py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#1E1B26] bg-slate-50 dark:bg-[#0B0911] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white hover:border-violet-500/40 transition-all cursor-pointer flex items-center justify-center gap-2 group-hover:bg-violet-600/10"
+                      >
+                        <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                        </svg>
+                        <span>Inspecionar em 3D (360°)</span>
                       </button>
                     )
                   ) : (
-                    // Cards Físicos: Pulseira e Placas
+                    // Cards de Colecionável (50K Pulseiras)
                     isUnlocked ? (
                       <button
                         type="button"
@@ -528,7 +617,7 @@ export default function AwardsPage() {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                         </svg>
-                        <span>Resgatar Troféu (Frete Grátis)</span>
+                        <span>Resgatar Pulseiras (Frete Grátis)</span>
                       </button>
                     ) : (
                       <button
@@ -536,7 +625,7 @@ export default function AwardsPage() {
                         onClick={() => setPreviewMilestone(m)}
                         className="w-full py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#1E1B26] bg-slate-50 dark:bg-[#0B0911] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer flex items-center justify-center gap-2"
                       >
-                        <span>Ver Detalhes do Troféu</span>
+                        <span>Ver Detalhes do Colecionável</span>
                       </button>
                     )
                   )}
@@ -600,7 +689,15 @@ export default function AwardsPage() {
                     {/* Visual & Textos */}
                     <div className="flex items-start sm:items-center gap-4 sm:gap-6 min-w-0">
                       <div
-                        onClick={() => setPreviewMilestone(milestone)}
+                        onClick={() => {
+                          if (milestone.modelGlb) {
+                            setViewer3DMilestone(milestone);
+                          } else if (milestone.type === 'community') {
+                            setWhatsappModalOpen(true);
+                          } else {
+                            setPreviewMilestone(milestone);
+                          }
+                        }}
                         className="w-20 h-24 sm:w-24 sm:h-28 shrink-0 rounded-xl bg-slate-50 dark:bg-[#08070C] border border-slate-200/90 dark:border-[#1E1B26] overflow-hidden flex items-center justify-center relative p-1.5 shadow-inner group-hover:scale-105 transition-transform cursor-pointer"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -742,7 +839,7 @@ export default function AwardsPage() {
       {/* ========================================================================= */}
       {whatsappModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#121018] border border-slate-200 dark:border-[#252033] rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl relative text-slate-900 dark:text-[#F8FAFC]">
+          <div className="bg-white dark:bg-[#121018] border border-slate-200 dark:border-[#252033] rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative text-slate-900 dark:text-[#F8FAFC]">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#252033]">
               <div className="flex items-center gap-2.5">
@@ -769,54 +866,65 @@ export default function AwardsPage() {
               </button>
             </div>
 
-            {/* Visual do Badge */}
-            <div className="w-full h-44 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900 to-violet-950/40 border border-emerald-500/20 p-4 flex flex-col items-center justify-center text-center space-y-2 relative overflow-hidden">
-              <span className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">
-                GRUPO EXCLUSIVO DE SELLERS
-              </span>
-              <div className="text-3xl font-black text-white font-mono">
-                25K VIP CLUB
+            {/* Conteúdo em 2 Colunas */}
+            <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              {/* Coluna 1: Mockup de Celular com Contorno Suave */}
+              <div className="md:col-span-5 flex items-center justify-center">
+                <div className="w-full max-w-[210px] h-[320px] sm:h-[350px] rounded-3xl p-3 bg-gradient-to-b from-slate-100 to-slate-200/80 dark:from-[#0B0911] dark:to-[#171422] border border-slate-200 dark:border-white/10 shadow-xl flex items-center justify-center relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-emerald-500/10 rounded-3xl blur-xl pointer-events-none" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/awards/phone_mockup_whatsapp.svg"
+                    alt="Smartphone Mockup WhatsApp VIP Otterfy"
+                    className="w-full h-full object-contain filter drop-shadow-xl relative z-10 group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
               </div>
-              <p className="text-xs text-slate-300 max-w-xs">
-                Troca de estratégias de vendas, parcerias, fornecedores e suporte prioritário Otterfy.
-              </p>
-            </div>
 
-            {/* Aviso de Link Pendente (Conforme solicitado pelo usuário) */}
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2">
-              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                <span>Link em Preparação pelo Administrador</span>
+              {/* Coluna 2: Informações e Status Pendente */}
+              <div className="md:col-span-7 space-y-4">
+                {/* Aviso de Link Pendente Configurado pelo Administrador */}
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
+                    <span>Link em Preparação pelo Administrador</span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-[#CBD5E1] leading-relaxed">
+                    O link oficial de convite para a sala fechada no WhatsApp está em processo de validação pela administração da Otterfy e será liberado automaticamente aqui no painel.
+                  </p>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    O que você terá no grupo ao ser liberado:
+                  </span>
+                  <ul className="space-y-2 text-slate-600 dark:text-[#94A3B8]">
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-500 font-bold mt-0.5">✓</span>
+                      <span>Networking direto com os maiores operadores de e-commerce e afiliados em MZ.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-500 font-bold mt-0.5">✓</span>
+                      <span>Novidades em primeira mão sobre taxas, gateways e atualizações do ecossistema.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-emerald-500 font-bold mt-0.5">✓</span>
+                      <span>Estratégias validadas para otimização de campanhas e aprovação em M-Pesa & e-Mola.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappModalOpen(false)}
+                    className="w-full py-3 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1E1B26] dark:hover:bg-[#2A2438] text-slate-800 dark:text-white transition-all cursor-pointer"
+                  >
+                    Entendido, aguardar liberação
+                  </button>
+                </div>
               </div>
-              <p className="text-xs text-slate-600 dark:text-[#CBD5E1] leading-relaxed">
-                O link direto para a comunidade privada no WhatsApp está sendo configurado pela equipe de gestão da Otterfy e estará disponível em breve aqui no seu painel.
-              </p>
             </div>
-
-            <div className="space-y-2 text-xs">
-              <span className="font-bold text-slate-700 dark:text-slate-300">
-                O que você terá no grupo ao ser liberado:
-              </span>
-              <ul className="space-y-1 text-slate-600 dark:text-[#94A3B8]">
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-500 font-bold">✓</span> Contato direto com o ecossistema de sellers em Moçambique
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-500 font-bold">✓</span> Atualizações antecipadas de recursos e taxas do checkout
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-500 font-bold">✓</span> Dicas práticas para aumentar aprovação em M-Pesa e e-Mola
-                </li>
-              </ul>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setWhatsappModalOpen(false)}
-              className="w-full py-2.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-[#1E1B26] hover:bg-slate-200 dark:hover:bg-[#252033] text-slate-800 dark:text-white transition-all cursor-pointer"
-            >
-              Entendido, aguardar liberação
-            </button>
           </div>
         </div>
       )}
@@ -1065,6 +1173,30 @@ export default function AwardsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 9. MODAL INTERATIVO 3D (THREE.JS / WEBGL COM GLTF LOADER 360°)            */}
+      {/* ========================================================================= */}
+      {viewer3DMilestone && viewer3DMilestone.modelGlb && (
+        <PlaqueViewer3D
+          modelUrl={viewer3DMilestone.modelGlb}
+          fallbackImage={viewer3DMilestone.imageSrc}
+          title={viewer3DMilestone.name}
+          level={viewer3DMilestone.level}
+          format={viewer3DMilestone.format}
+          category={viewer3DMilestone.category}
+          specifications={viewer3DMilestone.specifications}
+          targetAmount={viewer3DMilestone.target}
+          currentRevenue={totalRevenue}
+          isUnlocked={totalRevenue >= viewer3DMilestone.target}
+          onClose={() => setViewer3DMilestone(null)}
+          onClaim={() => {
+            const target = viewer3DMilestone;
+            setViewer3DMilestone(null);
+            setClaimModalMilestone(target);
+          }}
+        />
       )}
     </div>
   );

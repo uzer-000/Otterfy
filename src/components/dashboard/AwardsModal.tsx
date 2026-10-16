@@ -23,7 +23,7 @@ export const MILESTONES: Milestone[] = [
     target: 25000,
     tag: '1/7',
     description: 'Acesso VIP exclusivo ao grupo secreto de Top Sellers Otterfy no WhatsApp para networking e estratégias.',
-    imageSrc: '/awards/whatsapp_25k.svg',
+    imageSrc: '/awards/phone_mockup_whatsapp.svg',
     type: 'community',
   },
   {
@@ -33,7 +33,7 @@ export const MILESTONES: Milestone[] = [
     target: 50000,
     tag: '2/7',
     description: 'Kit de 2 Pulseiras oficiais de silicone (Roxa e Branca com logo 3D), entregues no seu endereço.',
-    imageSrc: '/awards/50k.png',
+    imageSrc: '/awards/wristbands_50k.png',
     type: 'bracelet',
   },
   {
@@ -43,7 +43,7 @@ export const MILESTONES: Milestone[] = [
     target: 100000,
     tag: '3/7',
     description: 'Placa comemorativa A4 em alumínio anodizado preto e aço escovado prata gravado a laser com o seu nome.',
-    imageSrc: '/awards/100k.png',
+    imageSrc: '/awards/placa_100k_frente.png',
     type: 'plaque',
   },
   {
@@ -53,7 +53,7 @@ export const MILESTONES: Milestone[] = [
     target: 500000,
     tag: '4/7',
     description: 'Troféu gigante A3 com moldura preta maciça e brasão 3D banhado a ouro metálico comemorando 500.000 MT.',
-    imageSrc: '/awards/500k.png',
+    imageSrc: '/awards/placa_500k_frente.png',
     type: 'plaque',
   },
   {
@@ -63,7 +63,7 @@ export const MILESTONES: Milestone[] = [
     target: 1000000,
     tag: '5/7',
     description: 'Clube do Milhão Otterfy. Fundo velvet púrpura luxo, moldura A3 premium e condecoração máxima.',
-    imageSrc: '/awards/1m.png',
+    imageSrc: '/awards/placa_1m_frente.png',
     type: 'plaque',
   },
   {
@@ -73,7 +73,7 @@ export const MILESTONES: Milestone[] = [
     target: 5000000,
     tag: '6/7',
     description: 'Operação de alta escala nacional. Acabamento Black on Black com titânio escovado escurecido.',
-    imageSrc: '/awards/5m.png',
+    imageSrc: '/awards/placa_5m_frente.png',
     type: 'plaque',
   },
   {
@@ -83,7 +83,7 @@ export const MILESTONES: Milestone[] = [
     target: 10000000,
     tag: '7/7',
     description: 'A última parada e premiação máxima da Otterfy com brasão Titan Violeta 3D metálico.',
-    imageSrc: '/awards/10m.png',
+    imageSrc: '/awards/placa_10m_frente.png',
     type: 'plaque',
   },
 ];
