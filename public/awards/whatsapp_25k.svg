@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c1612" />
+      <stop offset="50%" stop-color="#0a121d" />
+      <stop offset="100%" stop-color="#120c1d" />
+    </linearGradient>
+    <linearGradient id="emeraldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.6" />
+      <stop offset="50%" stop-color="#8B5CF6" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0.2" />
+    </linearGradient>
+    <linearGradient id="waGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#25D366" />
+      <stop offset="100%" stop-color="#128C7E" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#10B981" flood-opacity="0.25" />
+    </filter>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Frame Background -->
+  <rect x="20" y="20" width="760" height="960" rx="40" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="4" />
+
+  <!-- Ambient Light Orbs -->
+  <circle cx="400" cy="380" r="180" fill="#10B981" opacity="0.12" filter="blur(40px)" />
+  <circle cx="400" cy="720" r="140" fill="#8B5CF6" opacity="0.1" filter="blur(40px)" />
+
+  <!-- Header Otterfy Brand -->
+  <g transform="translate(400, 100)" text-anchor="middle">
+    <text font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="900" fill="#FFFFFF" letter-spacing="2">
+      OTTER<tspan fill="#A855F7">FY</tspan> <tspan font-weight="500" font-size="20" fill="#10B981">VIP</tspan>
+    </text>
+    <text y="32" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#94A3B8" letter-spacing="4">
+      COMUNIDADE DE TOP SELLERS
+    </text>
+  </g>
+
+  <!-- WhatsApp 3D Emblem Container -->
+  <g transform="translate(400, 360)">
+    <!-- Outer Glow Ring -->
+    <circle r="130" fill="none" stroke="#10B981" stroke-width="2" stroke-dasharray="8 8" opacity="0.4" />
+    <circle r="110" fill="url(#waGrad)" filter="url(#shadow)" />
+    <circle r="106" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.3" />
+    
+    <!-- WhatsApp Icon Shape -->
+    <path d="M -45,45 L -35,10 C -42, -3 -40, -18 -32, -30 C -20, -48 2, -56 25, -50 C 47, -43 62, -24 64, 0 C 65, 24 50, 46 27, 54 C 15, 58 2, 57 -10, 52 Z" fill="none" />
+    
+    <!-- WhatsApp Phone SVG Path in center -->
+    <g transform="scale(3.2) translate(-12, -12)">
+      <path fill="#FFFFFF" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19.01L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.33C9.33 7.33 9 7.4 8.73 7.69C8.46 7.98 7.7 8.7 7.7 10.15C7.7 11.61 8.76 13.01 8.91 13.21C9.06 13.41 11 16.39 13.94 17.66C14.64 17.96 15.18 18.14 15.61 18.28C16.31 18.5 16.95 18.47 17.45 18.39C18.01 18.31 19.18 17.68 19.42 17C19.66 16.32 19.66 15.74 19.59 15.62C19.52 15.5 19.33 15.43 19.04 15.29C18.75 15.14 17.33 14.44 17.07 14.34C16.81 14.24 16.62 14.19 16.43 14.48C16.24 14.77 15.7 15.41 15.54 15.6C15.38 15.79 15.22 15.81 14.93 15.67C14.64 15.52 13.71 15.22 12.61 14.24C11.75 13.48 11.17 12.53 11 12.24C10.83 11.95 10.98 11.79 11.13 11.65C11.26 11.52 11.42 11.31 11.56 11.14C11.7 10.97 11.75 10.85 11.85 10.66C11.95 10.47 11.9 10.3 11.82 10.15C11.74 10.01 11.17 8.6 10.93 8.03C10.7 7.47 10.46 7.55 10.28 7.54C10.12 7.53 9.92 7.53 9.73 7.53C9.53 7.33 9.33 7.33 9.53 7.33Z"/>
+    </g>
+  </g>
+
+  <!-- Typography 25K Milestone -->
+  <g transform="translate(400, 600)" text-anchor="middle">
+    <text font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#10B981" letter-spacing="3">
+      MARCO DE ENTRADA EXCLUSIVO
+    </text>
+    <text y="70" font-family="Impact, system-ui, sans-serif" font-size="90" font-weight="900" fill="#FFFFFF" letter-spacing="4">
+      25K
+    </text>
+    <text y="115" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800" fill="#E2E8F0">
+      Grupo VIP de Sellers WhatsApp
+    </text>
+    <text y="150" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500" fill="#94A3B8">
+      Networking com os maiores infoprodutores e sellers da Otterfy
+    </text>
+  </g>
+
+  <!-- Status Ribbon Footer -->
+  <g transform="translate(400, 850)">
+    <rect x="-180" y="-24" width="360" height="48" rx="24" fill="#10B981" fill-opacity="0.15" stroke="#10B981" stroke-width="1.5" />
+    <circle cx="-130" cy="0" r="5" fill="#10B981" />
+    <text x="10" y="5" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#34D399" letter-spacing="1" text-anchor="middle">
+      LIBERADO AOS 25.000 MT
+    </text>
+  </g>
+</svg>
