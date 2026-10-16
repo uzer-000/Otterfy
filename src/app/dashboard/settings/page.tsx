@@ -222,10 +222,11 @@ export default function AccountSettingsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
           {/* Nome completo */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+            <label htmlFor="settings-full-name" className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
               Nome completo
             </label>
             <input
+              id="settings-full-name"
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -235,10 +236,11 @@ export default function AccountSettingsPage() {
 
           {/* Apelido */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+            <label htmlFor="settings-nickname" className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
               Apelido
             </label>
             <input
+              id="settings-nickname"
               type="text"
               placeholder="Como você gostaria de ser chamado"
               value={nickname}
@@ -249,10 +251,11 @@ export default function AccountSettingsPage() {
 
           {/* E-mail */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+            <label htmlFor="settings-email" className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
               E-mail
             </label>
             <input
+              id="settings-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -262,11 +265,13 @@ export default function AccountSettingsPage() {
 
           {/* Telefone com prefixo */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+            <label htmlFor="settings-phone" className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
               Telefone
             </label>
             <div className="flex rounded-xl bg-[var(--bg-input)] border border-[var(--border-color)] focus-within:border-[#7C3AED] overflow-hidden transition-colors">
               <select
+                id="settings-country-code"
+                aria-label="Código telefónico do país"
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value)}
                 className="bg-transparent px-3 text-xs sm:text-sm font-medium text-[var(--text-primary)] border-r border-[var(--border-color)] focus:outline-none cursor-pointer"
@@ -277,12 +282,13 @@ export default function AccountSettingsPage() {
                 <option value="+1" className="bg-[#121016] text-white">🇺🇸 +1</option>
               </select>
               <div className="flex items-center pl-3 pr-2 text-xs text-[var(--text-muted)]">
-                <svg className="w-4 h-4 mr-1 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg aria-hidden="true" className="w-4 h-4 mr-1 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
               </div>
               <input
-                type="text"
+                id="settings-phone"
+                type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-full h-11 px-3 bg-transparent text-sm text-[var(--text-primary)] focus:outline-none"
@@ -585,6 +591,7 @@ export default function AccountSettingsPage() {
                 <button
                   type="button"
                   onClick={() => showToast('Lista de dispositivos atualizada!')}
+                  aria-label="Atualizar lista de dispositivos"
                   className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
                   title="Atualizar"
                 >
@@ -600,7 +607,7 @@ export default function AccountSettingsPage() {
                   className="flex items-center justify-between p-3.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)]"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">
+                    <span aria-hidden="true" className="text-xl">
                       {dev.type === 'mobile' ? '📱' : '🖥️'}
                     </span>
                     <div>
@@ -621,6 +628,7 @@ export default function AccountSettingsPage() {
                   <button
                     type="button"
                     onClick={() => handleRemoveDevice(dev.id)}
+                    aria-label={`Remover dispositivo ${dev.name}`}
                     className="p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-950/20 transition-colors"
                     title="Remover dispositivo"
                   >
@@ -665,7 +673,7 @@ export default function AccountSettingsPage() {
           </div>
 
           <div className="p-3.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)]/70 text-xs text-[var(--text-secondary)] leading-relaxed">
-            🔒 Sua conta utiliza criptografia padrão bancário. Nunca compartilhe links de redefinição com terceiros.
+            🔒 A sua palavra-passe é protegida com hash criptográfico (bcrypt) e transmissão TLS. Nunca partilhe links de redefinição com terceiros.
           </div>
         </section>
       </div>

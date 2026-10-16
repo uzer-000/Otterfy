@@ -3,7 +3,7 @@ import { z } from 'zod';
 import dbStore from '@/lib/store';
 
 const createProductSchema = z.object({
-  name: z.string().min(1, 'O nome é obrigatório.'),
+  name: z.string().trim().min(1, 'O nome é obrigatório.'),
   price: z.number().positive('O preço deve ser maior que zero.'),
   description: z.string().optional(),
   imageUrl: z.string().optional().or(z.literal('')),

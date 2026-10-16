@@ -6,15 +6,15 @@ import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@
 
 export async function POST(req: Request) {
   try {
+    if (Number(req.headers.get('content-length') || 0) > 131_072) {
+      return NextResponse.json({ error: 'Payload demasiado grande.' }, { status: 413 });
+    }
     const rawBody = await req.text();
     const signature = req.headers.get('x-signature') || req.headers.get('X-Signature');
     const eventType = req.headers.get('x-event') || req.headers.get('X-Event');
 
-    if (process.env.ZENOFY_WEBHOOK_SECRET && signature) {
-      const isValid = zenofyProvider.verifyWebhookSignature(rawBody, signature);
-      if (!isValid) {
-        console.warn('[Zenofy Webhook] Assinatura inválida recebida.');
-      }
+    if (!process.env.ZENOFY_WEBHOOK_SECRET || !signature || !zenofyProvider.verifyWebhookSignature(rawBody, signature)) {
+      return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 });
     }
 
     let payload: any = {};
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Corpo da requisição inválido.' }, { status: 400 });
     }
 
-    console.log('[Zenofy Webhook Received]:', { eventType, payload });
+    console.info('[Zenofy Webhook Received]:', { eventType });
 
     const checkoutId =
       payload.checkout_id ||

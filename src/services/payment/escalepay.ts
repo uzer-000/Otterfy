@@ -102,7 +102,7 @@ export class EscalePayProvider {
   }
 
   verifyWebhookSignature(rawBody: string, signature: string): boolean {
-    if (!this.secretKey) return true;
+    if (!this.secretKey || !signature) return false;
 
     try {
       const hash = crypto
@@ -110,7 +110,10 @@ export class EscalePayProvider {
         .update(rawBody)
         .digest('hex');
 
-      return hash === signature || signature.includes(hash);
+      const normalized = signature.replace(/^sha256=/i, '').trim();
+      const provided = Buffer.from(normalized, 'hex');
+      const expected = Buffer.from(hash, 'hex');
+      return provided.length === expected.length && crypto.timingSafeEqual(provided, expected);
     } catch {
       return false;
     }

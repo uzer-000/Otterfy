@@ -11,50 +11,50 @@ function getLocalProfile() {
       const content = fs.readFileSync(PROFILE_FILE, 'utf-8');
       return JSON.parse(content);
     }
-  } catch (e) {
-    console.error('Error reading local profile:', e);
+  } catch (err) {
+    console.error('Error reading profile.json:', err);
   }
+
   return {
-    name: 'Pedro Hill',
+    name: 'Admin Otterfy',
     email: 'nhacossfilipe@gmail.com',
-    phone: '+258 84 123 4567',
+    phone: '+258 84 000 0000',
     avatarImage: '',
-    role: 'Administrador',
   };
 }
 
-function saveLocalProfile(data: any) {
+function saveLocalProfile(data: Record<string, unknown>) {
   try {
     const dir = path.dirname(PROFILE_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(PROFILE_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('Error saving local profile:', e);
+  } catch (err) {
+    console.error('Error saving profile.json:', err);
   }
 }
 
 export async function GET() {
   try {
     const profile = getLocalProfile();
-    // Try to get from DB as well
     try {
-      const user = await prisma.user.findFirst({
-        where: { email: { equals: 'nhacossfilipe@gmail.com', mode: 'insensitive' } },
-      });
-      if (user) {
-        profile.name = user.name || profile.name;
-        profile.email = user.email || profile.email;
+      const dbUser = await prisma.user.findFirst();
+      if (dbUser) {
+        return NextResponse.json({
+          name: profile.name || dbUser.name || 'Admin Otterfy',
+          email: profile.email || dbUser.email || 'nhacossfilipe@gmail.com',
+          phone: profile.phone || '+258 84 000 0000',
+          avatarImage: profile.avatarImage || '',
+        });
       }
-    } catch {}
+    } catch {
+      // ignore DB error and use local
+    }
 
-    return NextResponse.json({
-      success: true,
-      profile,
-    });
+    return NextResponse.json(profile);
   } catch (error) {
-    console.error('Profile GET error:', error);
+    console.error('Error in GET /api/user:', error);
     return NextResponse.json({ error: 'Erro ao carregar perfil.' }, { status: 500 });
   }
 }
@@ -65,35 +65,32 @@ export async function POST(req: Request) {
     const current = getLocalProfile();
 
     const updated = {
-      ...current,
       name: body.name !== undefined ? body.name : current.name,
       email: body.email !== undefined ? body.email : current.email,
       phone: body.phone !== undefined ? body.phone : current.phone,
       avatarImage: body.avatarImage !== undefined ? body.avatarImage : current.avatarImage,
-      updatedAt: new Date().toISOString(),
     };
 
     saveLocalProfile(updated);
 
-    // Also update in Prisma User table if name or email changed
     try {
-      const user = await prisma.user.findFirst({
-        where: { email: { equals: 'nhacossfilipe@gmail.com', mode: 'insensitive' } },
-      });
-      if (user && body.name) {
+      const dbUser = await prisma.user.findFirst();
+      if (dbUser) {
         await prisma.user.update({
-          where: { id: user.id },
-          data: { name: body.name },
+          where: { id: dbUser.id },
+          data: {
+            name: updated.name,
+            email: updated.email,
+          },
         });
       }
-    } catch {}
+    } catch {
+      // ignore DB update error if offline
+    }
 
-    return NextResponse.json({
-      success: true,
-      profile: updated,
-    });
+    return NextResponse.json({ success: true, user: updated });
   } catch (error) {
-    console.error('Profile POST error:', error);
-    return NextResponse.json({ error: 'Erro ao salvar perfil.' }, { status: 500 });
+    console.error('Error in POST /api/user:', error);
+    return NextResponse.json({ error: 'Erro ao atualizar perfil.' }, { status: 500 });
   }
 }

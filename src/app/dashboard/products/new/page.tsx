@@ -242,7 +242,7 @@ export default function NewProductWizardPage() {
           name: title,
           description,
           price: parsedPrice,
-          imageUrl: imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&auto=format&fit=crop&q=60',
+          imageUrl: imageUrl || undefined,
           category: selectedCategory ? categoryNames[selectedCategory] : 'Digital',
           currency: 'MZN',
           zenofyProductId: zenofyProductId || undefined,
@@ -327,6 +327,7 @@ export default function NewProductWizardPage() {
               </div>
               <Link
                 href="/dashboard/products"
+                aria-label="Fechar janela de seleção de categoria"
                 className="w-8 h-8 rounded-full bg-[#1A1820] text-[#94A3B8] hover:text-white flex items-center justify-center text-sm shrink-0"
               >
                 ✕
@@ -337,7 +338,15 @@ export default function NewProductWizardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
               {/* 1. E-book */}
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => handleSelectCategory('ebook')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelectCategory('ebook');
+                  }
+                }}
                 className="group relative bg-[#0F0E14] hover:bg-[#16131F] border border-[#1E1B26] hover:border-violet-500/60 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between"
               >
                 <div>
@@ -346,7 +355,7 @@ export default function NewProductWizardPage() {
                       Mais Popular
                     </span>
                     <div className="w-8 h-8 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                       </svg>
                     </div>
@@ -358,7 +367,7 @@ export default function NewProductWizardPage() {
                   <ul className="mt-3.5 space-y-1.5 text-xs text-[#94A3B8]">
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                      PDF automático
+                      Entrega imediata em PDF
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
@@ -366,25 +375,33 @@ export default function NewProductWizardPage() {
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                      Proteção DRM
+                      Acesso pós-pagamento
                     </li>
                   </ul>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#1E1B26] flex items-center justify-between text-xs text-violet-400 font-semibold">
-                  <span>Selecionar</span>
+                  <span>Selecionar E-book</span>
                   <span>→</span>
                 </div>
               </div>
 
               {/* 2. Curso Online */}
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => handleSelectCategory('course')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelectCategory('course');
+                  }
+                }}
                 className="group relative bg-[#0F0E14] hover:bg-[#16131F] border border-[#1E1B26] hover:border-violet-500/60 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-200 shadow-sm flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-8 h-8 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -405,7 +422,7 @@ export default function NewProductWizardPage() {
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                      Certificado
+                      Área de entrega dedicada
                     </li>
                   </ul>
                 </div>

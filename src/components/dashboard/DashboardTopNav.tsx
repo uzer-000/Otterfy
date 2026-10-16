@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import AwardsModal from './AwardsModal';
 import NotificationStack from './NotificationStack';
 import { formatMZN, formatSaleNotificationMessage } from '@/lib/utils';
@@ -15,6 +15,7 @@ declare global {
 
 export default function DashboardTopNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [awardsModalOpen, setAwardsModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -148,18 +149,28 @@ export default function DashboardTopNav() {
 
   const isFetchingRef = useRef(false);
 
-  // Fetch approved orders & handle real-time push alerts
+  // Fetch approved orders & handle real-time push alerts with auto-sync
   useEffect(() => {
     // Request permission once user interacts with dashboard
     requestPushPermission();
 
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isCancelled = false;
+
     async function checkOrdersAndAlert() {
-      if (isFetchingRef.current) return;
+      if (isCancelled || isFetchingRef.current) return;
       if (typeof document !== 'undefined' && document.hidden) return;
 
       isFetchingRef.current = true;
+      const controller = new AbortController();
+      const abortTimer = setTimeout(() => controller.abort(), 6000);
+
       try {
-        const res = await fetch('/api/payments?status=APPROVED');
+        const res = await fetch('/api/payments?status=APPROVED', {
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+        clearTimeout(abortTimer);
         if (!res.ok) return;
 
         const json = await res.json();
@@ -220,6 +231,14 @@ export default function DashboardTopNav() {
             });
 
             localStorage.setItem('otterfy_notified_orders', JSON.stringify(Array.from(notifiedSet)));
+
+            // Sincroniza e atualiza automaticamente os gráficos e KPIs da dashboard sem reload!
+            try {
+              router.refresh();
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('orders_updated'));
+              }
+            } catch {}
           }
         }
 
@@ -251,29 +270,36 @@ export default function DashboardTopNav() {
         }
 
       } catch {
-        // keep fallback
+        // Silently handle temporary connection glitches
       } finally {
+        clearTimeout(abortTimer);
         isFetchingRef.current = false;
       }
     }
 
-    checkOrdersAndAlert();
+    async function poll() {
+      if (isCancelled) return;
+      await checkOrdersAndAlert();
+      if (!isCancelled) {
+        timeoutId = setTimeout(poll, 4000);
+      }
+    }
 
-    // Poll every 4 seconds in real time for instant mobile push & sound ping
-    const interval = setInterval(checkOrdersAndAlert, 4000);
+    poll();
 
     const handleVisibility = () => {
-      if (!document.hidden) {
+      if (!document.hidden && !isFetchingRef.current) {
         checkOrdersAndAlert();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      clearInterval(interval);
+      isCancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [pathname]);
+  }, [pathname, router]);
 
   // Dynamic Milestone calculation (6 marcos oficiais Otterfy)
   const getNextMilestone = (rev: number) => {
@@ -365,15 +391,16 @@ export default function DashboardTopNav() {
             <button
               type="button"
               onClick={toggleTheme}
+              aria-label={`Alternar para tema ${theme === 'dark' ? 'Claro' : 'Escuro'}`}
               className="w-9 h-9 rounded-xl bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] text-[#94A3B8] hover:text-[#F8FAFC] flex items-center justify-center transition-colors cursor-pointer"
               title={`Alternar para tema ${theme === 'dark' ? 'Claro' : 'Escuro'}`}
             >
               {theme === 'dark' ? (
-                <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
                 </svg>
               )}
@@ -383,6 +410,7 @@ export default function DashboardTopNav() {
             <button
               type="button"
               onClick={() => setProfileModalOpen(true)}
+              aria-label="Abrir perfil do utilizador"
               className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600/30 to-violet-900/40 border border-violet-500/30 flex items-center justify-center text-xs font-black text-violet-300 hover:border-violet-500 transition-all cursor-pointer relative overflow-hidden"
               title="Perfil Administrador"
             >
@@ -392,7 +420,7 @@ export default function DashboardTopNav() {
               ) : (
                 <span>AD</span>
               )}
-              <span className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-[#121016]" />
+              <span className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-[#121016]" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -407,11 +435,11 @@ export default function DashboardTopNav() {
 
       {/* Simple Profile Modal */}
       {profileModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn" role="dialog" aria-modal="true" aria-label="Perfil do Utilizador">
           <div className="bg-[#121016] border border-[#1E1B26] rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl text-[#F8FAFC]">
             <div className="flex items-center justify-between pb-3 border-b border-[#1E1B26]">
               <h3 className="font-bold text-sm">Perfil do Usuário</h3>
-              <button onClick={() => setProfileModalOpen(false)} className="text-[#64748B] hover:text-white text-xs">✕</button>
+              <button onClick={() => setProfileModalOpen(false)} aria-label="Fechar janela de perfil" className="text-[#94A3B8] hover:text-white text-xs">✕</button>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-sm font-bold text-violet-400 overflow-hidden">

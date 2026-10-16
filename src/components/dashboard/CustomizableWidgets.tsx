@@ -37,6 +37,7 @@ export interface PeriodMetric {
   vsLabel: string;
   expiredLabel: string;
   periodBadge?: string;
+  hourlyBadge?: string;
   hourlyTitle?: string;
   hourlySubtitle?: string;
   barChartTitle?: string;
@@ -54,7 +55,7 @@ export interface PeriodMetric {
 
 const DEFAULT_BLOCKS: DashboardBlock[] = [
   { id: 'kpis', label: 'Indicadores Principais (KPIs)', visible: true, type: 'kpis' },
-  { id: 'hourly', label: 'Gráfico 24h: Fluxo por Horário (00:00 - 23:59)', visible: true, type: 'hourly' },
+  { id: 'hourly', label: 'Gráfico 24h do Dia: Fluxo por Horário (00:00 – 23:59)', visible: true, type: 'hourly' },
   { id: 'dailyCharts', label: 'Gráficos Diários (Vendas por Dia & Carrinhos Aprovados vs Total)', visible: true, type: 'dailyCharts' },
   { id: 'conversion', label: 'Conversão & Métodos (eMola / M-Pesa)', visible: true, type: 'conversion' },
   { id: 'transactions', label: 'Últimas Transações (6 itens)', visible: true, type: 'transactions' },
@@ -145,6 +146,63 @@ export default function CustomizableWidgets({
   const [draggedKpiIndex, setDraggedKpiIndex] = useState<number | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [awardsModalOpen, setAwardsModalOpen] = useState(false);
+  const [liveHourlyToday, setLiveHourlyToday] = useState<{ hour: string; iniciados: number; aprovados: number }[] | null>(null);
+  const [liveHourlyYesterday, setLiveHourlyYesterday] = useState<{ hour: string; iniciados: number; aprovados: number }[] | null>(null);
+
+  // Live 24-hour daily flow synchronization (00:00 - 23:59 in local timezone)
+  useEffect(() => {
+    let active = true;
+    const hoursList = [
+      '00:00', '01:00', '02:00', '03:00', '04:00', '05:00',
+      '06:00', '07:00', '08:00', '09:00', '10:00', '11:00',
+      '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
+      '18:00', '19:00', '20:00', '21:00', '22:00', '23:59'
+    ];
+
+    const syncLive24hFlow = async () => {
+      try {
+        const res = await fetch('/api/payments', { cache: 'no-store' });
+        if (!res.ok) return;
+        const json = await res.json();
+        const orders: { createdAt: string; status: string }[] = Array.isArray(json.orders) ? json.orders : [];
+        if (!active) return;
+
+        const now = new Date();
+        const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const startYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+
+        const todayList = orders.filter((o) => new Date(o.createdAt) >= startToday);
+        const yesterdayList = orders.filter((o) => {
+          const d = new Date(o.createdAt);
+          return d >= startYesterday && d < startToday;
+        });
+
+        const build24h = (list: typeof orders) =>
+          hoursList.map((hour, idx) => {
+            const inHour = list.filter((o) => new Date(o.createdAt).getHours() === idx);
+            return {
+              hour,
+              iniciados: inHour.length,
+              aprovados: inHour.filter((o) => o.status === 'APPROVED').length,
+            };
+          });
+
+        setLiveHourlyToday(build24h(todayList));
+        setLiveHourlyYesterday(build24h(yesterdayList));
+      } catch {
+        // Keep server-rendered 24h series if offline
+      }
+    };
+
+    syncLive24hFlow();
+    const interval = setInterval(syncLive24hFlow, 15000);
+    window.addEventListener('focus', syncLive24hFlow);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      window.removeEventListener('focus', syncLive24hFlow);
+    };
+  }, []);
 
   const getNextMilestone = (rev: number) => {
     if (rev < 50000) return { name: 'Pulseira Bronze (50K)', target: 50000, level: '50K', imageSrc: '/awards/50k.png' };
@@ -617,15 +675,19 @@ export default function CustomizableWidgets({
         );
 
       case 'hourly': {
-        const syncedHourly = activeStats.hourlyData || hourlyData;
+        const isYesterday = selectedPeriod === 'yesterday';
+        const liveHourly = isYesterday ? liveHourlyYesterday : liveHourlyToday;
+        const syncedHourly = liveHourly || activeStats.hourlyData || hourlyData;
+        const hourlyBadge =
+          activeStats.hourlyBadge || (isYesterday ? 'Ontem (24 Horas)' : 'Hoje (24 Horas)');
         return (
           <div key={block.id} className="w-full max-w-full min-w-0">
             <HourlyCartsLineChart
               data={syncedHourly}
-              title={activeStats.hourlyTitle || 'Fluxo por Horário (00:00 – 23:59)'}
+              title={activeStats.hourlyTitle || 'Fluxo por Horário do Dia (00:00 – 23:59)'}
               subtitle={activeStats.hourlySubtitle}
-              badgeLabel={activeStats.periodBadge || 'Período Selecionado'}
-              animationKey={selectedPeriod}
+              badgeLabel={hourlyBadge}
+              animationKey={isYesterday ? 'yesterday-24h' : 'today-24h'}
             />
           </div>
         );

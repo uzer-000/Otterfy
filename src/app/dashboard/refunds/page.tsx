@@ -36,42 +36,6 @@ interface RefundItem {
   status: 'Pendente' | 'Aprovado' | 'Recusado';
 }
 
-const DEFAULT_REFUNDS: RefundItem[] = [
-  {
-    id: 'ref_1',
-    orderId: 'OTF-8812A',
-    customerName: 'Alberto Chissano',
-    customerPhone: '+258 84 332 1199',
-    productName: 'Curso de Marketing Digital Pro',
-    amount: 1500,
-    reason: 'Comprou por engano (queria o e-book)',
-    date: 'Ontem às 16:40',
-    status: 'Pendente',
-  },
-  {
-    id: 'ref_2',
-    orderId: 'OTF-5541B',
-    customerName: 'Luisa Diogo',
-    customerPhone: '+258 86 441 0022',
-    productName: 'E-book Estratégias Secretas M-Pesa',
-    amount: 500,
-    reason: 'Não conseguiu abrir o arquivo no telemóvel antigo',
-    date: '24/03/2026',
-    status: 'Pendente',
-  },
-  {
-    id: 'ref_3',
-    orderId: 'OTF-1109C',
-    customerName: 'Manuel Tome',
-    customerPhone: '+258 87 990 8833',
-    productName: 'Curso de Marketing Digital Pro',
-    amount: 1500,
-    reason: 'Desistência no período de 7 dias de garantia',
-    date: '20/03/2026',
-    status: 'Aprovado',
-  },
-];
-
 export default function RefundsPage() {
   const [refunds, setRefunds] = useState<RefundItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -95,17 +59,17 @@ export default function RefundsPage() {
     <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-6 pb-16">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-[#121016] border border-violet-500/50 shadow-2xl text-violet-200 text-sm flex items-center gap-3 animate-fadeIn">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+        <div role="status" className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-[#121016] border border-violet-500/50 shadow-2xl text-violet-200 text-sm flex items-center gap-3 animate-fadeIn">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
           <span>{toastMessage}</span>
-          <button onClick={() => setToastMessage(null)} className="ml-2 text-[#94A3B8] hover:text-white">✕</button>
+          <button onClick={() => setToastMessage(null)} aria-label="Fechar notificação" className="ml-2 text-[#94A3B8] hover:text-white">✕</button>
         </div>
       )}
 
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-2xl bg-violet-600/15 border border-violet-500/25 flex items-center justify-center text-violet-400">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
         </div>
@@ -126,7 +90,7 @@ export default function RefundsPage() {
           <p className="text-2xl font-black text-amber-400 mt-2">
             {pendingRefunds.length} pedidos
           </p>
-          <span className="text-[11px] text-[#64748B] mt-1 block">Total: {formatMZN(totalPendingAmount)}</span>
+          <span className="text-[11px] text-[#94A3B8] mt-1 block">Total: {formatMZN(totalPendingAmount)}</span>
         </div>
 
         <div className="bg-[#121016] border border-[#1E1B26] p-5 rounded-2xl">
@@ -134,29 +98,29 @@ export default function RefundsPage() {
             Taxa de Estorno
           </span>
           <p className="text-2xl font-black text-emerald-400 mt-2">
-            0.6%
+            0.0%
           </p>
-          <span className="text-[11px] text-[#64748B] mt-1 block">Excelente (abaixo de 2%)</span>
+          <span className="text-[11px] text-[#94A3B8] mt-1 block">Sem estornos registados</span>
         </div>
 
         <div className="bg-[#121016] border border-[#1E1B26] p-5 rounded-2xl">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] block">
-            Garantia Padrão
+            Prazo Legal Mínimo
           </span>
           <p className="text-2xl font-black text-white mt-2">
             7 Dias
           </p>
-          <span className="text-[11px] text-violet-400 mt-1 block">Garantia incondicional</span>
+          <span className="text-[11px] text-violet-400 mt-1 block">Direito legal de arrependimento (Lei n.º 22/2009)</span>
         </div>
 
         <div className="bg-[#121016] border border-[#1E1B26] p-5 rounded-2xl">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] block">
-            Tempo Médio de Estorno
+            Prazo de Processamento
           </span>
           <p className="text-2xl font-black text-white mt-2">
-            3h 20m
+            Até 5 dias úteis
           </p>
-          <span className="text-[11px] text-[#64748B] mt-1 block">Crédito direto na carteira</span>
+          <span className="text-[11px] text-[#94A3B8] mt-1 block">Estorno via M-Pesa / e-Mola</span>
         </div>
       </div>
 

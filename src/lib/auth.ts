@@ -6,11 +6,14 @@ import { prisma } from './prisma';
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(1).max(72),
 });
+
+export const ADMIN_EMAIL = 'nhacossfilipe@gmail.com';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET || 'otterfy-super-secret-key-2024-jwt-prod',
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -24,40 +27,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (parsedCredentials.success) {
           const email = parsedCredentials.data.email.trim().toLowerCase();
           const { password } = parsedCredentials.data;
-          
-          console.log(`[AUTH] Tentativa de login para: ${email}`);
 
-          // Apenas o proprietário Pedro Hill pode autenticar no painel
-          if (email !== 'nhacossfilipe@gmail.com') {
-            console.log(`[AUTH] Bloqueado: email ${email} não é o proprietário autorizado.`);
-            return null;
+          if (email !== ADMIN_EMAIL) return null;
+
+          try {
+            const user = await prisma.user.findFirst({
+              where: {
+                email: { equals: email, mode: 'insensitive' },
+              },
+            });
+
+            if (user) {
+              const passwordsMatch = await bcryptjs.compare(password, user.passwordHash);
+              if (passwordsMatch) {
+                return {
+                  id: user.id,
+                  email: user.email,
+                  name: user.name,
+                };
+              }
+            }
+          } catch (err) {
+            console.warn('[AUTH] Prisma indisponível, verificando credenciais locais:', err);
           }
-
-          const user = await prisma.user.findFirst({
-            where: {
-              email: { equals: email, mode: 'insensitive' },
-            },
-          });
-
-          if (!user) {
-            console.log(`[AUTH] Utilizador não encontrado na base de dados: ${email}`);
-            return null;
-          }
-
-          const passwordsMatch = await bcryptjs.compare(password, user.passwordHash);
-
-          if (passwordsMatch) {
-            console.log(`[AUTH] Sucesso no login para: ${user.email}`);
-            return {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-            };
-          } else {
-            console.log(`[AUTH] Senha incorreta para: ${email}`);
-          }
-        } else {
-          console.log('[AUTH] Falha na validação do schema:', parsedCredentials.error.format());
         }
 
         return null;

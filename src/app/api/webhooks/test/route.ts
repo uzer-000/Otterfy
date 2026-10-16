@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { buildWebhookPayload, sendSingleWebhook } from '@/services/tracking/dispatcher';
+import { requireAdminResponse } from '@/lib/security';
 
 export async function POST(req: Request) {
+  const denied = await requireAdminResponse();
+  if (denied) return denied;
   try {
     const body = await req.json();
     const {
@@ -56,10 +59,10 @@ export async function POST(req: Request) {
       ...result,
       payloadSent: payload,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error in POST /api/webhooks/test:', err);
     return NextResponse.json(
-      { ok: false, error: err?.message || 'Erro ao disparar webhook de teste.' },
+      { ok: false, error: err instanceof Error ? err.message : 'Erro ao disparar webhook de teste.' },
       { status: 500 }
     );
   }

@@ -12,6 +12,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,8 +33,10 @@ export default function SignUpPage() {
   const validateForm = (): string | null => {
     if (name.trim().length < 2) return 'O nome deve ter pelo menos 2 caracteres.';
     if (!email.includes('@')) return 'Insira um email válido.';
-    if (password.length < 6) return 'A senha deve ter pelo menos 6 caracteres.';
+    if (password.length < 12) return 'A senha deve ter pelo menos 12 caracteres.';
+    if (new TextEncoder().encode(password).length > 72) return 'A senha excede o limite seguro de bytes.';
     if (password !== confirmPassword) return 'As senhas não coincidem.';
+    if (!acceptedTerms) return 'Deve aceitar os Termos e Condições e a Política de Privacidade para criar a sua conta.';
     return null;
   };
 
@@ -51,13 +54,16 @@ export default function SignUpPage() {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const cleanPassword = password.trim();
-
       // Create the account
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: cleanEmail, password: cleanPassword }),
+        body: JSON.stringify({
+          name: name.trim(),
+          email: cleanEmail,
+          password,
+          acceptedTerms: true,
+        }),
       });
 
       const data = await res.json();
@@ -79,12 +85,12 @@ export default function SignUpPage() {
   const inputClass = (isDark: boolean) =>
     `w-full rounded-xl px-4 py-3 text-sm border outline-none transition-all duration-200 ${
       isDark
-        ? 'bg-[#0F0E14] border-[#1E1B26] text-white placeholder-slate-600 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20'
-        : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 focus:bg-white'
+        ? 'bg-[#0F0E14] border-[#1E1B26] text-white placeholder-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20'
+        : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 focus:bg-white'
     }`;
 
   const labelClass = (isDark: boolean) =>
-    `block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-gray-700'}`;
+    `block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-200' : 'text-gray-800'}`;
 
   return (
     <div
@@ -317,9 +323,10 @@ export default function SignUpPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={`${inputClass(isDark)} pr-11`}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Mínimo 12 caracteres"
                     required
-                    minLength={6}
+                    minLength={12}
+                    maxLength={72}
                     autoComplete="new-password"
                   />
                   <button
@@ -387,11 +394,42 @@ export default function SignUpPage() {
                   </button>
                 </div>
                 {confirmPassword && password !== confirmPassword && (
-                  <p className="mt-1.5 text-xs text-red-500">As senhas não coincidem</p>
+                  <p role="alert" className="mt-1.5 text-xs text-red-600 font-medium">As senhas não coincidem</p>
                 )}
-                {confirmPassword && password === confirmPassword && password.length >= 6 && (
-                  <p className="mt-1.5 text-xs text-emerald-600">Senhas coincidem ✓</p>
+                {confirmPassword && password === confirmPassword && password.length >= 12 && (
+                  <p className="mt-1.5 text-xs text-emerald-700 font-medium">Senhas coincidem ✓</p>
                 )}
+              </div>
+
+              {/* Mandatory Terms & Privacy Consent Checkbox */}
+              <div className={`rounded-xl p-3.5 border ${isDark ? 'bg-[#0F0E14] border-[#1E1B26]' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-start gap-2.5">
+                  <input
+                    id="acceptedTerms"
+                    name="acceptedTerms"
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    required
+                    aria-required="true"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-400 text-violet-600 focus:ring-2 focus:ring-violet-600 cursor-pointer"
+                  />
+                  <label htmlFor="acceptedTerms" className={`text-xs leading-relaxed cursor-pointer ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
+                    Li e concordo com os{' '}
+                    <Link href="/termos" target="_blank" className="font-bold text-violet-600 underline hover:text-violet-700">
+                      Termos e Condições
+                    </Link>
+                    , a{' '}
+                    <Link href="/privacidade" target="_blank" className="font-bold text-violet-600 underline hover:text-violet-700">
+                      Política de Privacidade
+                    </Link>{' '}
+                    e a{' '}
+                    <Link href="/reembolso" target="_blank" className="font-bold text-violet-600 underline hover:text-violet-700">
+                      Política de Reembolso
+                    </Link>
+                    .
+                  </label>
+                </div>
               </div>
 
               {/* Submit button */}
@@ -402,14 +440,14 @@ export default function SignUpPage() {
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                     A criar conta...
                   </span>
                 ) : (
-                  'Criar conta'
+                  'Criar Conta de Produtor'
                 )}
               </button>
             </form>
@@ -418,15 +456,26 @@ export default function SignUpPage() {
             <div className={`my-6 border-t ${isDark ? 'border-[#1E1B26]' : 'border-gray-100'}`} />
 
             {/* Login link */}
-            <p className={`text-center text-sm ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>
+            <p className={`text-center text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
               Já tem conta?{' '}
               <Link
                 href="/auth/login"
-                className="text-violet-600 hover:text-violet-700 font-medium transition-colors"
+                className="text-violet-600 hover:text-violet-700 font-semibold transition-colors underline"
               >
-                Entrar
+                Entrar na Conta
               </Link>
             </p>
+
+            {/* Legal policy links */}
+            <div className={`mt-6 pt-4 border-t text-center text-xs flex flex-wrap items-center justify-center gap-3 ${isDark ? 'border-[#1E1B26] text-slate-400' : 'border-gray-100 text-gray-600'}`}>
+              <Link href="/privacidade" className="hover:underline">Privacidade</Link>
+              <span aria-hidden="true">•</span>
+              <Link href="/termos" className="hover:underline">Termos</Link>
+              <span aria-hidden="true">•</span>
+              <Link href="/cookies" className="hover:underline">Cookies</Link>
+              <span aria-hidden="true">•</span>
+              <Link href="/reembolso" className="hover:underline">Reembolso</Link>
+            </div>
           </div>
         </div>
       </div>

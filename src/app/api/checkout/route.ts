@@ -6,17 +6,20 @@ import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@
 import { getZenofyTierByPrice, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
 
 const checkoutSchema = z.object({
-  productId: z.string(),
-  customerName: z.string().min(1, 'O nome é obrigatório.'),
-  customerPhone: z.string().startsWith('+258', 'O telefone deve começar com +258.'),
-  customerEmail: z.string().email('Email inválido.').optional().or(z.literal('')),
+  productId: z.string().min(1),
+  customerName: z.string().trim().min(1, 'O nome é obrigatório.'),
+  customerPhone: z.string().min(9, 'Número de telefone inválido.'),
+  customerEmail: z.union([z.string().email(), z.literal('')]).optional(),
   paymentMethod: z.enum(['MPESA', 'EMOLA']).optional(),
   hasOrderBump: z.boolean().optional(),
-  orderBumpPrice: z.number().optional(),
   orderBumpTitle: z.string().optional(),
+  orderBumpAmount: z.number().optional(),
+  selectedBumpKeys: z.array(z.string()).optional(),
   affiliateRef: z.string().optional(),
-  couponCode: z.string().optional(),
-  discountAmount: z.number().optional(),
+  couponCode: z.string().trim().optional(),
+  discountPercent: z.number().optional(),
+  acceptedTerms: z.boolean().optional(),
+  marketingConsent: z.boolean().optional(),
   utmParams: z.object({
     source: z.string().optional(),
     medium: z.string().optional(),
@@ -32,7 +35,10 @@ export async function POST(req: Request) {
     const result = checkoutSchema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error.issues[0]?.message || 'Dados inválidos.' }, { status: 400 });
+      return NextResponse.json(
+        { error: result.error.issues[0]?.message || 'Dados inválidos.' },
+        { status: 400 }
+      );
     }
 
     const {
@@ -41,27 +47,97 @@ export async function POST(req: Request) {
       customerPhone,
       customerEmail,
       paymentMethod,
+      selectedBumpKeys = [],
       hasOrderBump,
-      orderBumpPrice = 250,
       orderBumpTitle,
+      orderBumpAmount,
       affiliateRef,
       couponCode,
-      discountAmount = 0,
+      discountPercent: clientDiscountPercent,
+      marketingConsent = true,
       utmParams,
     } = result.data;
 
-    // Fetch product
-    const product = await dbStore.getProductById(productId);
+    let product = await dbStore.getProductById(productId);
+    if (!product && productId.toLowerCase() === 'demo') {
+      product = {
+        id: 'demo',
+        name: 'Curso de Marketing Digital Pro',
+        description: 'Aprenda tráfego pago, funis de conversão e estratégias práticas de vendas online para Moçambique.',
+        price: 1500,
+        imageUrl: null,
+        status: 'ACTIVE',
+        userId: 'admin-user-otterfy',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
 
     if (!product || product.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Produto não encontrado ou inativo.' }, { status: 404 });
     }
 
-    // Calculate total amount with Order Bump and Coupon discount
-    const calculatedBase = product.price + (hasOrderBump ? orderBumpPrice : 0);
-    const totalAmount = Math.max(1, calculatedBase - (discountAmount || 0));
+    const checkoutSettings = product.checkoutSettings;
+    const extraOffers = checkoutSettings?.extraOffers || [];
+    const configuredOffers =
+      extraOffers.length > 0
+        ? extraOffers.map((offer, index) => ({
+            key: String(offer.id || offer.productId || `bump_${index}`),
+            title: String(offer.title || '').trim(),
+            price: Number(offer.price) || 0,
+          }))
+        : checkoutSettings?.orderBump?.enabled === true
+        ? [
+            {
+              key: 'default_bump',
+              title: String(checkoutSettings.orderBump.title || '').trim(),
+              price: Number(checkoutSettings.orderBump.price) || 0,
+            },
+          ]
+        : [];
 
-    // Create Order in store
+    const selectedKeys = [...new Set(selectedBumpKeys)];
+    const validSelectedOffers = selectedKeys
+      .map((key) => configuredOffers.find((offer) => offer.key === key))
+      .filter((offer): offer is { key: string; title: string; price: number } => Boolean(offer && offer.price > 0));
+
+    const resolvedBumpAmount =
+      validSelectedOffers.length > 0
+        ? validSelectedOffers.reduce((sum, offer) => sum + offer.price, 0)
+        : hasOrderBump && orderBumpAmount
+        ? Number(orderBumpAmount)
+        : 0;
+
+    const resolvedBumpTitle =
+      validSelectedOffers.length > 0
+        ? validSelectedOffers.map((offer) => offer.title).filter(Boolean).join(' + ')
+        : orderBumpTitle || '';
+
+    const resolvedHasOrderBump = resolvedBumpAmount > 0;
+
+    let discountPercent = 0;
+    if (couponCode) {
+      const coupon = checkoutSettings?.coupons?.find(
+        (item) => item.code.trim().toUpperCase() === couponCode.toUpperCase()
+      );
+      if (coupon && Number.isFinite(Number(coupon.discountPercent))) {
+        discountPercent = Math.min(100, Math.max(0, Number(coupon.discountPercent)));
+      }
+    } else if (clientDiscountPercent && clientDiscountPercent > 0 && clientDiscountPercent <= 95) {
+      discountPercent = clientDiscountPercent;
+    }
+
+    const subtotal = product.price + resolvedBumpAmount;
+    const totalAmount = Math.max(1, Math.round(subtotal * (1 - discountPercent / 100) * 100) / 100);
+
+    let reqOrigin = 'http://localhost:3000';
+    try {
+      reqOrigin = new URL(req.url).origin;
+    } catch {
+      // ignore
+    }
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || reqOrigin || 'http://localhost:3000';
+
     const order = await dbStore.createOrder({
       productId: product.id,
       customerName,
@@ -69,28 +145,17 @@ export async function POST(req: Request) {
       customerEmail: customerEmail || undefined,
       amount: totalAmount,
       paymentMethod,
-      hasOrderBump,
-      orderBumpTitle: hasOrderBump ? (orderBumpTitle || 'Item Adicional (Order Bump)') : undefined,
-      orderBumpAmount: hasOrderBump ? orderBumpPrice : undefined,
+      hasOrderBump: resolvedHasOrderBump,
+      orderBumpTitle: resolvedHasOrderBump ? resolvedBumpTitle : undefined,
+      orderBumpAmount: resolvedHasOrderBump ? resolvedBumpAmount : undefined,
       affiliateRef,
       utmParams,
     });
 
-    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
-    const proto = req.headers.get('x-forwarded-proto') || 'https';
-    const origin = req.headers.get('origin');
-    const baseUrl =
-      origin && !origin.includes('localhost')
-        ? origin
-        : host && !host.includes('localhost')
-        ? `${proto}://${host}`
-        : process.env.NEXT_PUBLIC_APP_URL || (origin || `http://${host || 'localhost:3000'}`);
-
-    // Dispatch payment through the currently active gateway (Zenofy, E2Payment, EscalePay, or Demo)
     const resolvedZenofyProductId =
-      (product as any).zenofyProductId ||
-      (product as any).checkoutSettings?.zenofyProductId ||
-      (product as any).checkoutSettings?.customCheckout?.zenofyProductId ||
+      product.zenofyProductId ||
+      product.checkoutSettings?.zenofyProductId ||
+      product.checkoutSettings?.customCheckout?.zenofyProductId ||
       getZenofyTierByPrice(totalAmount)?.id ||
       getZenofyTierByPrice(product.price)?.id ||
       DEFAULT_ZENOFY_PRODUCT_ID;
@@ -99,8 +164,8 @@ export async function POST(req: Request) {
       orderId: order.id,
       amount: totalAmount,
       productName: product.name,
-      hasOrderBump,
-      orderBumpTitle,
+      hasOrderBump: resolvedHasOrderBump,
+      orderBumpTitle: resolvedBumpTitle,
       zenofyProductId: resolvedZenofyProductId,
       customer: {
         name: customerName,
@@ -112,16 +177,15 @@ export async function POST(req: Request) {
     });
 
     const upsellUrl =
-      (product.checkoutSettings as any)?.postPurchase?.upsellUrl?.trim() ||
-      (product.checkoutSettings as any)?.upsellUrl?.trim() ||
+      product.checkoutSettings?.postPurchase?.upsellUrl?.trim() ||
+      product.checkoutSettings?.upsellUrl?.trim() ||
       undefined;
     const downsellUrl =
-      (product.checkoutSettings as any)?.postPurchase?.downsellUrl?.trim() ||
-      (product.checkoutSettings as any)?.downsellUrl?.trim() ||
+      product.checkoutSettings?.postPurchase?.downsellUrl?.trim() ||
+      product.checkoutSettings?.downsellUrl?.trim() ||
       undefined;
 
     if (dispatchResult.status === 'APPROVED') {
-      // Instant demo approval
       await dbStore.updateOrderTransaction(order.id, {
         status: 'APPROVED',
         zenofyCheckoutId: dispatchResult.transactionId,
@@ -129,13 +193,17 @@ export async function POST(req: Request) {
         method: paymentMethod,
       });
 
-      // Asynchronously trigger Webhooks, Meta CAPI and Utmify in background
-      Promise.allSettled([
+      const tasks: Promise<unknown>[] = [
         dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
         dispatchProductWebhook(product, 'order.approved', { ...order, status: 'APPROVED' }),
-        dispatchMetaCapi(product, 'Purchase', { ...order, status: 'APPROVED' }),
-        dispatchUtmifyOrder(product, { ...order, status: 'APPROVED' }),
-      ]).catch((e) => console.warn('Background tracking dispatch error:', e));
+      ];
+      if (marketingConsent) {
+        tasks.push(
+          dispatchMetaCapi(product, 'Purchase', { ...order, status: 'APPROVED' }),
+          dispatchUtmifyOrder(product, { ...order, status: 'APPROVED' })
+        );
+      }
+      Promise.allSettled(tasks).catch((e) => console.warn('Background tracking dispatch error:', e));
 
       return NextResponse.json({
         checkoutUrl: upsellUrl || dispatchResult.checkoutUrl,
@@ -146,7 +214,6 @@ export async function POST(req: Request) {
         status: 'APPROVED',
       });
     } else {
-      // Real gateway pending approval (USSD or external checkout redirect)
       await dbStore.updateOrderTransaction(order.id, {
         zenofyCheckoutId: dispatchResult.transactionId,
         zenofyCheckoutUrl: dispatchResult.checkoutUrl,
@@ -154,10 +221,15 @@ export async function POST(req: Request) {
         method: paymentMethod,
       });
 
-      Promise.allSettled([
+      const pendingTasks: Promise<unknown>[] = [
         dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
-        dispatchUtmifyOrder(product, { ...order, status: 'PENDING' }),
-      ]).catch((e) => console.warn('Background order.created webhook dispatch error:', e));
+      ];
+      if (marketingConsent) {
+        pendingTasks.push(dispatchUtmifyOrder(product, { ...order, status: 'PENDING' }));
+      }
+      Promise.allSettled(pendingTasks).catch((e) =>
+        console.warn('Background order.created webhook dispatch error:', e)
+      );
 
       return NextResponse.json({
         checkoutUrl: dispatchResult.checkoutUrl,
@@ -169,8 +241,9 @@ export async function POST(req: Request) {
         message: dispatchResult.message,
       });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Checkout error:', error);
-    return NextResponse.json({ error: 'Erro interno do servidor.' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Erro interno do servidor.';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

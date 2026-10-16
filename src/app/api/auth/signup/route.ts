@@ -2,20 +2,28 @@ import { NextResponse } from 'next/server';
 import bcryptjs from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { clientIp, enforceRateLimit, rateLimitResponse } from '@/lib/security';
 
 const schema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(6),
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email().max(254),
+  password: z.string().min(12).max(72).refine((value) => Buffer.byteLength(value, 'utf8') <= 72),
+  acceptedTerms: z.literal(true, {
+    message: 'É necessário aceitar os Termos e Condições e a Política de Privacidade.',
+  }),
 });
 
 export async function POST(req: Request) {
   try {
+    const limit = await enforceRateLimit(`signup:${clientIp(req)}`, { limit: 3, windowMs: 60 * 60 * 1000 });
+    if (!limit.success) return rateLimitResponse(limit.reset);
+    const contentLength = Number(req.headers.get('content-length') || 0);
+    if (contentLength > 16_384) return NextResponse.json({ error: 'Pedido demasiado grande.' }, { status: 413 });
     const body = await req.json();
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 });
+      return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Dados inválidos.' }, { status: 400 });
     }
 
     const { name, email, password } = parsed.data;

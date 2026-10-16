@@ -4,8 +4,11 @@ import "./globals.css";
 
 import OtterSplashScreen from "@/components/ui/OtterSplashScreen";
 import GlobalLoadingProvider from "@/components/ui/GlobalLoadingProvider";
+import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 
-// Satoshi (Fontshare, licença gratuita) — fonte geométrica usada no novo menu lateral
+export const dynamic = "force-dynamic";
+
+// Satoshi (Fontshare, licença gratuita) — fonte geométrica auto-alojada localmente
 const satoshi = localFont({
   src: "./fonts/Satoshi-Variable.woff2",
   variable: "--font-satoshi",
@@ -25,8 +28,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Otterfy — Checkout de Pagamentos",
-  description: "Checkout de pagamentos para Moçambique. eMola & M-Pesa.",
+  title: "Otterfy — Checkout de Pagamentos para Moçambique",
+  description: "Plataforma de checkout e entrega de produtos digitais para Moçambique compatível com M-Pesa e e-Mola.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -50,8 +53,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt" className={`${satoshi.variable} h-full w-full max-w-[100vw] overflow-x-hidden antialiased`} suppressHydrationWarning>
       <head>
-        <link rel="dns-prefetch" href="https://connect.facebook.net" />
-        <link rel="dns-prefetch" href="https://cdn.utmify.com.br" />
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -82,10 +83,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-full w-full max-w-[100vw] overflow-x-hidden flex flex-col bg-[#0e0b12] text-[#F8FAFC] font-sans">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[10000] focus:px-4 focus:py-2.5 focus:rounded-xl focus:bg-emerald-700 focus:text-white focus:font-bold focus:text-sm focus:shadow-xl"
+        >
+          Saltar para o conteúdo principal
+        </a>
         <OtterSplashScreen />
         <GlobalLoadingProvider>
           {children}
         </GlobalLoadingProvider>
+        <CookieConsentBanner />
       </body>
     </html>
   );

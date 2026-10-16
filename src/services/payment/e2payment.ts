@@ -111,11 +111,7 @@ export class E2PaymentProvider {
    */
   verifyWebhook(headers: Headers, rawBody: string): boolean {
     const signature = headers.get('x-e2-signature') || headers.get('authorization');
-    if (!signature) {
-      // If no secret configured, accept in development
-      if (!this.clientSecret) return true;
-      return false;
-    }
+    if (!signature || !this.clientSecret) return false;
 
     // Check HMAC-SHA256
     try {
@@ -124,7 +120,10 @@ export class E2PaymentProvider {
         .update(rawBody)
         .digest('hex');
 
-      return signature.includes(expected);
+      const normalized = signature.replace(/^sha256=/i, '').trim();
+      const provided = Buffer.from(normalized, 'hex');
+      const wanted = Buffer.from(expected, 'hex');
+      return provided.length === wanted.length && crypto.timingSafeEqual(provided, wanted);
     } catch {
       return false;
     }

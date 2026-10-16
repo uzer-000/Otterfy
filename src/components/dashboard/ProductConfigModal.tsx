@@ -141,7 +141,7 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
   const [downsellUrl, setDownsellUrl] = useState('');
 
   const [customGuarantee, setCustomGuarantee] = useState(7);
-  const [customTimer, setCustomTimer] = useState(true);
+  const [customTimer, setCustomTimer] = useState(false);
   const [customBannerUrl, setCustomBannerUrl] = useState('');
   const [timerMinutes, setTimerMinutes] = useState(6);
   const [timerText, setTimerText] = useState('Esta oferta especial termina em:');
@@ -218,7 +218,7 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
       );
 
       setCustomGuarantee(product.checkoutSettings?.customCheckout?.guaranteeDays || 7);
-      setCustomTimer(product.checkoutSettings?.customCheckout?.urgencyTimer ?? true);
+      setCustomTimer(product.checkoutSettings?.customCheckout?.urgencyTimer ?? false);
       setCustomBannerUrl(product.checkoutSettings?.customCheckout?.bannerUrl || '');
       setTimerMinutes(product.checkoutSettings?.customCheckout?.timerMinutes || 6);
       setTimerText(product.checkoutSettings?.customCheckout?.timerText || 'Esta oferta especial termina em:');
@@ -422,10 +422,11 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
             )}
             <button
               onClick={onClose}
+              aria-label="Fechar janela de configurações"
               className="p-2 rounded-xl bg-[#1A1820] hover:bg-[#231F2E] border border-[#1E1B26] text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
               title="Fechar"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -732,7 +733,8 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
               <button
                 type="button"
                 onClick={() => setActiveItem(null)}
-                className="text-[#64748B] hover:text-white text-sm cursor-pointer"
+                aria-label="Fechar painel de configuração"
+                className="text-[#94A3B8] hover:text-white text-sm cursor-pointer"
               >
                 ✕
               </button>
@@ -1128,8 +1130,9 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
 
                 {/* Guarantee days */}
                 <div>
-                  <label className="block text-[#94A3B8] font-semibold mb-1">Selo de Garantia Incondicional</label>
+                  <label htmlFor="custom-guarantee-select" className="block text-[#94A3B8] font-semibold mb-1">Prazo de Garantia de Reembolso (Lei n.º 22/2009: mín. 7 dias)</label>
                   <select
+                    id="custom-guarantee-select"
                     value={customGuarantee}
                     onChange={(e) => setCustomGuarantee(parseInt(e.target.value))}
                     className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] focus:outline-none"

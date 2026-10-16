@@ -60,7 +60,12 @@ export default function CheckoutUrgencyTimer({
   const timeString = `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
 
   return (
-    <div className="w-full bg-[#EF4444] text-white py-2.5 px-4 text-center text-xs sm:text-sm font-bold tracking-wide shadow-sm flex items-center justify-center gap-1.5 animate-fadeIn">
+    <div
+      role="timer"
+      aria-live="off"
+      aria-label={`${timerText || 'Oferta expira em'} ${timeString}`}
+      className="w-full bg-[#B91C1C] text-white py-2.5 px-4 text-center text-xs sm:text-sm font-bold tracking-wide shadow-sm flex items-center justify-center gap-1.5 animate-fadeIn"
+    >
       <span>{timerText || 'Oferta expira em'}</span>
       <span className="font-mono font-black text-xs sm:text-sm tracking-wider">
         {timeString}

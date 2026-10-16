@@ -44,7 +44,7 @@ interface HourlyCartsLineChartProps {
 
 export default function HourlyCartsLineChart({
   data = defaultHourlyData,
-  title = 'Fluxo por Horário (00:00 – 23:59)',
+  title = 'Fluxo por Horário do Dia (00:00 – 23:59)',
   subtitle,
   badgeLabel = 'Hoje (24 Horas)',
   animationKey = 'default',
@@ -68,7 +68,7 @@ export default function HourlyCartsLineChart({
   const peakRangeText =
     peakEntry.score > 0
       ? `${peakEntry.hour} e ${nextPeakHour}`
-      : 'sem picos registados no período';
+      : 'sem picos registados no dia';
 
   return (
     <div className="otter-widget-card rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-xl w-full max-w-full min-w-0 overflow-hidden">
@@ -86,7 +86,8 @@ export default function HourlyCartsLineChart({
           <p className="text-xs text-[#94A3B8] mt-1">
             {subtitle || (
               <>
-                Comparativo sincronizado: <span className="text-[#A78BFA] font-medium">Carrinhos Iniciados</span> vs.{' '}
+                Movimento em tempo real ao longo das 24 horas do dia (00:00 – 23:59):{' '}
+                <span className="text-[#A78BFA] font-medium">Carrinhos Iniciados</span> vs.{' '}
                 <span className="text-emerald-400 font-medium">Vendas Aprovadas</span>
               </>
             )}
@@ -97,17 +98,17 @@ export default function HourlyCartsLineChart({
         <div className="flex items-center flex-wrap gap-2">
           {/* Quick Metrics Badges */}
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-xs">
-            <span className="text-[#94A3B8]">Iniciados:</span>
+            <span className="text-[#94A3B8]">Iniciados (24h):</span>
             <span className="text-[#A78BFA] font-bold font-mono">{totalIniciados}</span>
           </div>
 
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-xs">
-            <span className="text-[#94A3B8]">Aprovados:</span>
+            <span className="text-[#94A3B8]">Aprovados (24h):</span>
             <span className="text-emerald-400 font-bold font-mono">{totalAprovados}</span>
           </div>
 
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-xs">
-            <span className="text-[#94A3B8]">Conversão:</span>
+            <span className="text-[#94A3B8]">Conversão (Dia):</span>
             <span className="text-violet-300 font-bold font-mono">{taxaMedia}%</span>
           </div>
 
@@ -243,13 +244,13 @@ export default function HourlyCartsLineChart({
           <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse shrink-0" />
           <span className="truncate">
             {peakEntry.score > 0 ? (
-              <>Pico registado entre as <strong>{peakRangeText}</strong></>
+              <>Pico do dia registado entre as <strong>{peakRangeText}</strong></>
             ) : (
-              <span>Sem picos registados neste período ({badgeLabel})</span>
+              <span>Sem picos registados nas 24 horas do dia ({badgeLabel})</span>
             )}
           </span>
         </div>
-        <span className="text-[11px] text-[#64748B]">Sincronizado com o filtro ({badgeLabel})</span>
+        <span className="text-[11px] text-[#64748B]">Sincronizado em tempo real • Fluxo diário 24h (00:00 – 23:59)</span>
       </div>
     </div>
   );

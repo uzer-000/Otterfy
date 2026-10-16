@@ -22,8 +22,8 @@
   --bg-input: #0F0E14;
   --border-color: #1E1B26;
   --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
 }
 
 [data-theme="light"] {
@@ -31,10 +31,10 @@
   --bg-surface: #FFFFFF;
   --bg-surface-hover: #EDE9FE;
   --bg-input: #F8FAFC;
-  --border-color: #E2E8F0;
+  --border-color: #CBD5E1;
   --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #94A3B8;
+  --text-secondary: #334155;
+  --text-muted: #475569;
 }
 
 [data-theme="light"] body {
@@ -60,6 +60,17 @@ body {
 
 button, a, input, select, textarea, [role="button"] {
   touch-action: manipulation;
+}
+
+/* Keyboard accessibility: visible focus ring across interactive controls */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
 }
 
 /* Base surface overrides in Light Mode */
@@ -471,7 +482,7 @@ button, a, input, select, textarea, [role="button"] {
 
 [data-theme="light"] input::placeholder,
 [data-theme="light"] textarea::placeholder {
-  color: #94A3B8 !important; opacity: 1;
+  color: #64748B !important; opacity: 1;
 }
 
 [data-theme="light"] ::selection {

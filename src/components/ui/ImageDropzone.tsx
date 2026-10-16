@@ -141,11 +141,20 @@ export default function ImageDropzone({
 
       {/* Main Interactive Dropzone Box */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={`${label}: clique ou pressione Enter para selecionar ficheiro de imagem`}
         onClick={handleBoxClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleBoxClick();
+          }
+        }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative group cursor-pointer transition-all duration-200 rounded-2xl border-2 border-dashed overflow-hidden flex flex-col items-center justify-center text-center select-none ${
+        className={`relative group cursor-pointer transition-all duration-200 rounded-2xl border-2 border-dashed overflow-hidden flex flex-col items-center justify-center text-center select-none focus:outline-none focus:ring-2 focus:ring-violet-500 ${
           aspectRatio === 'banner' ? 'aspect-[3.2/1] min-h-[140px]' : 'aspect-square min-h-[180px] max-h-[280px]'
         } ${
           isDragging
@@ -166,14 +175,14 @@ export default function ImageDropzone({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={value}
-              alt="Preview"
+              alt={`Pré-visualização de ${label}`}
               className={`w-full h-full ${aspectRatio === 'banner' ? 'object-cover' : 'object-contain sm:object-cover'}`}
             />
 
             {/* Hover Actions Overlay */}
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2.5 p-4">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2.5 p-4">
               <span className="text-xs font-semibold text-white bg-violet-600/90 px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 Alterar Imagem
@@ -183,7 +192,7 @@ export default function ImageDropzone({
                 onClick={handleRemove}
                 className="text-[11px] font-semibold text-red-300 hover:text-red-200 bg-red-500/20 hover:bg-red-500/30 px-3 py-1 rounded-lg border border-red-500/30 transition-colors"
               >
-                Remover
+                Remover Imagem
               </button>
             </div>
           </div>
@@ -193,7 +202,7 @@ export default function ImageDropzone({
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 ${
               isDragging ? 'bg-violet-600 text-white scale-110' : 'bg-violet-600/10 border border-violet-500/20 text-violet-400 group-hover:scale-105'
             }`}>
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <svg aria-hidden="true" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
               </svg>
             </div>
@@ -204,18 +213,23 @@ export default function ImageDropzone({
                 {isDragging ? 'Solte a imagem aqui...' : 'Arraste e solte a imagem aqui'}
               </p>
               <p className="text-[11px] text-[#94A3B8]">
-                ou <span className="text-violet-400 font-semibold underline underline-offset-2">clique para procurar</span> no seu computador
+                ou <span className="text-violet-400 font-semibold underline underline-offset-2">clique ou prima Enter para procurar</span>
               </p>
-              <p className="text-[10px] text-[#64748B] pt-1">{sublabel}</p>
+              <p className="text-[10px] text-[#94A3B8] pt-1">{sublabel}</p>
             </div>
           </div>
         )}
       </div>
 
+      {/* Copyright Notice */}
+      <p className="text-[11px] text-[#94A3B8] leading-snug">
+        Ao carregar uma imagem, declara deter os respetivos direitos de autor ou licença comercial válida (Lei n.º 4/2001).
+      </p>
+
       {/* Error feedback */}
       {error && (
-        <p className="text-xs text-red-400 font-medium animate-fadeIn flex items-center gap-1.5">
-          <span>⚠️</span> {error}
+        <p role="alert" className="text-xs text-red-400 font-medium animate-fadeIn flex items-center gap-1.5">
+          <span aria-hidden="true">⚠️</span> {error}
         </p>
       )}
     </div>

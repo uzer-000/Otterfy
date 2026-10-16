@@ -237,12 +237,7 @@ export default function IntegrationsPage() {
     }
 
     try {
-      const savedData = localStorage.getItem(`otterfy-integration-data-${integration.id}`);
-      if (savedData) {
-        setFormValues(JSON.parse(savedData));
-      } else {
-        setFormValues({});
-      }
+      setFormValues({});
     } catch {
       setFormValues({});
     }
@@ -316,7 +311,6 @@ export default function IntegrationsPage() {
 
     setIntegrations(updated);
     localStorage.setItem('otterfy-integrations-v1', JSON.stringify(updated.map((u) => ({ id: u.id, status: u.status }))));
-    localStorage.setItem(`otterfy-integration-data-${selectedIntegration.id}`, JSON.stringify(formValues));
 
     try {
       await fetch('/api/webhooks/config', {

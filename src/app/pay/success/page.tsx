@@ -5,6 +5,8 @@ import dbStore from '@/lib/store';
 import prisma from '@/lib/prisma';
 import { zenofyProvider } from '@/services/payment/zenofy';
 import { formatMZN } from '@/lib/utils';
+import { LegalFooter } from '@/components/legal/LegalFooter';
+import { BUSINESS_INFO } from '@/lib/legal';
 
 interface PageProps {
   searchParams: Promise<{
@@ -14,6 +16,16 @@ interface PageProps {
     id?: string;
     checkout_id?: string;
   }>;
+}
+
+function safeHttpsUrl(value?: string | null) {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 async function SuccessContent({ orderId }: { orderId?: string }) {
@@ -60,14 +72,6 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
     } catch {}
   }
 
-  // If still not found, check the most recent approved order as a safety fallback
-  if (!order) {
-    const recentApproved = await dbStore.getOrders({ status: 'APPROVED' });
-    if (recentApproved.length > 0) {
-      order = recentApproved[0];
-    }
-  }
-
   if (!order) {
     return (
       <div className="bg-white border border-gray-200 rounded-3xl p-8 max-w-lg w-full mx-auto text-center space-y-4 shadow-xl">
@@ -83,25 +87,35 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
     );
   }
 
+  if (order.status !== 'APPROVED') {
+    return (
+      <div className="bg-white border border-gray-200 rounded-3xl p-8 max-w-lg w-full mx-auto text-center space-y-4 shadow-xl">
+        <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-2xl border border-amber-200">…</div>
+        <h2 className="text-xl font-bold text-gray-900">Pagamento em confirmação</h2>
+        <p className="text-sm text-gray-600">Ainda não recebemos a confirmação do pagamento. Atualize esta página daqui a pouco.</p>
+      </div>
+    );
+  }
+
   const fullProduct = (await dbStore.getProductById(order.productId)) || order.product;
   const product = fullProduct;
 
   // Redirecionamento automático para Upsell se configurado no produto
-  const upsellUrl =
+  const configuredUpsellUrl =
     product?.checkoutSettings?.postPurchase?.upsellUrl?.trim() ||
     product?.checkoutSettings?.upsellUrl?.trim() ||
     '';
-  if (upsellUrl && /^https?:\/\//i.test(upsellUrl)) {
+  const upsellUrl = safeHttpsUrl(configuredUpsellUrl);
+  if (upsellUrl) {
     redirect(upsellUrl);
   }
 
   const transaction = order.transaction;
-  const materials = product?.materials && Array.isArray(product.materials) && product.materials.length > 0
-    ? product.materials
-    : [
-        { name: `${product?.name || 'Material Oficial'} - Arquivo Completo.pdf`, type: 'pdf' }
-      ];
-  const accessUrl = product?.contentUrl || `https://conteudo.otterfy.co.mz/access/${order.id}`;
+  const materials: { name: string; type: string; url?: string }[] =
+    product?.materials && Array.isArray(product.materials) && product.materials.length > 0
+      ? product.materials.map((material) => ({ ...material, url: safeHttpsUrl(material.url) }))
+      : [{ name: `${product?.name || 'Material Oficial'} - Arquivo Completo.pdf`, type: 'pdf' }];
+  const accessUrl = safeHttpsUrl(product?.contentUrl) || `https://conteudo.otterfy.co.mz/access/${order.id}`;
 
   return (
     <div className="w-full max-w-xl mx-auto space-y-6">
@@ -215,7 +229,7 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
               <div className="flex items-center justify-between gap-2 bg-gray-50 p-2 px-3 rounded-lg border border-gray-200">
                 <span className="text-xs text-gray-800 font-mono truncate">{product.contentUrl}</span>
                 <a
-                  href={product.contentUrl}
+                href={safeHttpsUrl(product.contentUrl) || accessUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-purple-700 hover:text-purple-800 font-bold shrink-0 underline"
@@ -276,34 +290,40 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
           </div>
         </div>
 
-        {/* WhatsApp Support Button */}
-        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2.5">
-            <svg className="w-5 h-5 text-[#059669] shrink-0" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.472 14.382c-.301-.15-1.777-.877-2.052-.977-.276-.101-.477-.15-.678.15-.2.3-.778.977-.954 1.178-.175.2-.351.226-.652.075-.301-.15-1.272-.469-2.423-1.496-.896-.799-1.5-1.786-1.676-2.087-.175-.301-.019-.464.132-.614.136-.135.301-.351.452-.527.15-.175.2-.301.301-.501.101-.2.05-.376-.025-.526-.075-.15-.678-1.631-.93-2.235-.245-.589-.494-.509-.678-.519-.176-.01-.376-.01-.577-.01-.2 0-.527.075-.803.376s-1.054 1.029-1.054 2.509 1.079 2.91 1.229 3.111c.15.201 2.124 3.243 5.145 4.549.718.311 1.279.497 1.716.636.721.229 1.377.197 1.895.12.577-.087 1.777-.727 2.028-1.429.25-.702.25-1.303.175-1.429-.075-.126-.276-.201-.577-.351zM12 21.82c-1.782 0-3.48-.466-4.966-1.28l-.356-.197-3.69 1.018 1.002-3.582-.232-.37C3.003 16.035 2.5 14.07 2.5 12c0-5.238 4.262-9.5 9.5-9.5 2.538 0 4.924.988 6.718 2.782A9.444 9.444 0 0121.5 12c0 5.238-4.262 9.5-9.5 9.5z"/>
+        {/* Support & Refund Rights Notice */}
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-start gap-2.5">
+            <svg aria-hidden="true" className="w-5 h-5 text-[#059669] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
             </svg>
             <div>
-              <p className="font-bold text-gray-900">Dúvidas sobre o seu acesso?</p>
-              <p className="text-[11px] text-gray-600">O suporte do criador está disponível no WhatsApp</p>
+              <p className="font-bold text-gray-900">Suporte ao Cliente &amp; Garantia de {BUSINESS_INFO.refundPeriodDays} Dias</p>
+              <p className="text-[11px] text-gray-700 leading-relaxed">
+                Tem dúvidas ou pretende exercer o seu direito de reembolso? Consulte a nossa{' '}
+                <Link href="/reembolso" className="font-bold text-[#047857] underline">
+                  Política de Reembolso
+                </Link>{' '}
+                ou contacte o suporte.
+              </p>
             </div>
           </div>
-          <a
-            href={`https://wa.me/258840000000?text=Ol%C3%A1!%20Acabei%20de%20comprar%20o%20produto%20${encodeURIComponent(product?.name || '')}%20(Pedido%20${order.id})`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3.5 py-1.5 bg-[#059669] hover:bg-[#047857] text-white font-bold rounded-xl transition-all shrink-0"
-          >
-            Falar no WhatsApp
-          </a>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center pt-2">
-          <p className="text-gray-500 text-xs flex items-center justify-center gap-1.5">
-            <span>Processado com segurança por</span>
-            <img src="/logo.png" alt="Otterfy" className="w-3.5 h-3.5 object-contain inline-block align-middle" />
-            <strong className="text-gray-900">Otterfy</strong>
-          </p>
+          {product?.checkoutSettings?.whatsappSupport?.phone ? (
+            <a
+              href={`https://wa.me/${product.checkoutSettings.whatsappSupport.phone.replace(/\D/g, '')}?text=Ol%C3%A1!%20Acabei%20de%20comprar%20o%20produto%20${encodeURIComponent(product?.name || '')}%20(Pedido%20${order.id})`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2 bg-[#059669] hover:bg-[#047857] text-white font-bold rounded-xl transition-all shrink-0 text-center"
+            >
+              Falar com o Vendedor
+            </a>
+          ) : (
+            <a
+              href={`mailto:${BUSINESS_INFO.supportEmail}?subject=${encodeURIComponent(`Suporte Pedido ${order.id}`)}`}
+              className="px-3.5 py-2 bg-[#059669] hover:bg-[#047857] text-white font-bold rounded-xl transition-all shrink-0 text-center"
+            >
+              Contactar Suporte
+            </a>
+          )}
         </div>
       </div>
     </div>
@@ -314,10 +334,13 @@ export default async function SuccessPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const resolvedOrderId = params.ref || params.orderId || params.order_id || params.id || params.checkout_id;
   return (
-    <main className="min-h-screen py-10 px-4 flex flex-col items-center justify-center">
-      <Suspense fallback={<div className="text-gray-600 text-sm animate-pulse">A carregar os seus conteúdos...</div>}>
-        <SuccessContent orderId={resolvedOrderId} />
-      </Suspense>
-    </main>
+    <div className="min-h-screen flex flex-col justify-between bg-[#F8F9FA]">
+      <main id="main-content" className="flex-1 py-10 px-4 flex flex-col items-center justify-center">
+        <Suspense fallback={<div className="text-gray-700 text-sm animate-pulse">A carregar os seus conteúdos...</div>}>
+          <SuccessContent orderId={resolvedOrderId} />
+        </Suspense>
+      </main>
+      <LegalFooter variant="light" />
+    </div>
   );
 }

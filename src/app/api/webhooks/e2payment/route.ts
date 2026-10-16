@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbStore from '@/lib/store';
 import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@/services/tracking/dispatcher';
+import { e2paymentProvider } from '@/services/payment/e2payment';
 
 /**
  * E2Payment IPN Webhook
@@ -8,7 +9,13 @@ import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@
  */
 export async function POST(req: Request) {
   try {
+    if (Number(req.headers.get('content-length') || 0) > 131_072) {
+      return NextResponse.json({ error: 'Payload demasiado grande.' }, { status: 413 });
+    }
     const rawBody = await req.text();
+    if (!process.env.E2PAYMENT_CLIENT_SECRET || !e2paymentProvider.verifyWebhook(req.headers, rawBody)) {
+      return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 });
+    }
     let payload: any;
 
     try {
@@ -75,7 +82,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[E2Payment Webhook Error]:', error);
     return NextResponse.json({ error: 'Erro interno no processamento do webhook.' }, { status: 500 });
   }

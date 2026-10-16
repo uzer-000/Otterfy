@@ -5,7 +5,7 @@ import { E2PaymentProvider } from './e2payment';
 import { EscalePayProvider } from './escalepay';
 
 export interface StoredGatewayConfig {
-  id: string; // 'zenofy' | 'e2payment' | 'escalepay' | 'lojou'
+  id: string;
   name: string;
   status: 'Ativo' | 'Inativo';
   environment: 'Produção' | 'Sandbox';
@@ -21,22 +21,22 @@ function ensureGatewaysFile() {
     fs.mkdirSync(dir, { recursive: true });
   }
   if (!fs.existsSync(GATEWAYS_FILE_PATH)) {
-    const initialConfigs: StoredGatewayConfig[] = [
+    const initial: StoredGatewayConfig[] = [
       {
         id: 'zenofy',
         name: 'Zenofy APIs',
-        status: process.env.ZENOFY_API_KEY ? 'Ativo' : 'Ativo',
+        status: 'Ativo',
         environment: 'Produção',
         credentials: {
-          apiKey: process.env.ZENOFY_API_KEY || '',
-          productId: process.env.ZENOFY_PRODUCT_ID || '',
+          apiKey: process.env.ZENOFY_API_KEY || 'pco_ck_Slm1ZREq0Mp5Fsrn6uZiR-SXQ8WBlheCXzESal0S73Y',
+          productId: process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2',
           webhookSecret: process.env.ZENOFY_WEBHOOK_SECRET || '',
         },
       },
       {
         id: 'e2payment',
         name: 'E2 Payment',
-        status: process.env.E2PAYMENT_CLIENT_ID ? 'Ativo' : 'Inativo',
+        status: 'Inativo',
         environment: 'Produção',
         credentials: {
           clientId: process.env.E2PAYMENT_CLIENT_ID || '',
@@ -47,7 +47,7 @@ function ensureGatewaysFile() {
       {
         id: 'escalepay',
         name: 'EscalePay API',
-        status: process.env.ESCALEPAY_PUBLIC_KEY ? 'Ativo' : 'Inativo',
+        status: 'Inativo',
         environment: 'Produção',
         credentials: {
           publicKey: process.env.ESCALEPAY_PUBLIC_KEY || '',
@@ -67,7 +67,7 @@ function ensureGatewaysFile() {
         },
       },
     ];
-    fs.writeFileSync(GATEWAYS_FILE_PATH, JSON.stringify(initialConfigs, null, 2), 'utf8');
+    fs.writeFileSync(GATEWAYS_FILE_PATH, JSON.stringify(initial, null, 2), 'utf8');
   }
 }
 
@@ -80,11 +80,6 @@ export function getAllGateways(): StoredGatewayConfig[] {
     console.error('Erro ao ler gateways.json:', e);
     return [];
   }
-}
-
-export function getGatewayById(id: string): StoredGatewayConfig | undefined {
-  const all = getAllGateways();
-  return all.find((g) => g.id === id);
 }
 
 export function saveGatewayConfig(
@@ -122,8 +117,7 @@ export function saveGatewayConfig(
 
 export function getActiveGateway(): StoredGatewayConfig | null {
   const all = getAllGateways();
-  // Return the first active gateway
-  return all.find((g) => g.status === 'Ativo') || null;
+  return all.find((g) => g.status === 'Ativo') || all[0] || null;
 }
 
 export interface DispatchCheckoutParams {
@@ -251,30 +245,26 @@ export async function dispatchCheckout(params: DispatchCheckoutParams): Promise<
     }
   }
 
-  // 4. Fallback to Zenofy with default credentials if active
+  // 4. Fallback to Zenofy with default credentials
   const fallbackApiKey = process.env.ZENOFY_API_KEY || 'pco_ck_Slm1ZREq0Mp5Fsrn6uZiR-SXQ8WBlheCXzESal0S73Y';
   const fallbackProductId = params.zenofyProductId || process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2';
 
-  if (fallbackApiKey) {
-    const res = await zenofyProvider.createCheckoutOrder({
-      productId: fallbackProductId,
-      amount: params.amount,
-      reference: params.orderId,
-      description,
-      customer: params.customer,
-      apiKey: fallbackApiKey,
-      successUrl: `${params.baseUrl}/pay/success?ref=${params.orderId}`,
-      cancelUrl: `${params.baseUrl}/pay/cancel?ref=${params.orderId}`,
-    });
+  const res = await zenofyProvider.createCheckoutOrder({
+    productId: fallbackProductId,
+    amount: params.amount,
+    reference: params.orderId,
+    description,
+    customer: params.customer,
+    apiKey: fallbackApiKey,
+    successUrl: `${params.baseUrl}/pay/success?ref=${params.orderId}`,
+    cancelUrl: `${params.baseUrl}/pay/cancel?ref=${params.orderId}`,
+  });
 
-    return {
-      gatewayId: 'zenofy',
-      checkoutUrl: res.checkout_url,
-      transactionId: res.checkout_id,
-      status: 'REDIRECT',
-      mode: 'real',
-    };
-  }
-
-  throw new Error('Nenhum gateway de pagamento ativo configurado.');
+  return {
+    gatewayId: 'zenofy',
+    checkoutUrl: res.checkout_url,
+    transactionId: res.checkout_id,
+    status: 'REDIRECT',
+    mode: 'real',
+  };
 }

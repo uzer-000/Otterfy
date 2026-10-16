@@ -4,13 +4,18 @@ import bcryptjs from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcryptjs.hash('otterfy2024', 10);
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const initialPassword = process.env.ADMIN_INITIAL_PASSWORD || '';
+  if (adminEmail !== 'nhacossfilipe@gmail.com' || initialPassword.length < 16 || initialPassword.length > 72) {
+    throw new Error('Set ADMIN_EMAIL to the configured owner and provide a unique ADMIN_INITIAL_PASSWORD (16-72 characters) before seeding.');
+  }
+  const passwordHash = await bcryptjs.hash(initialPassword, 12);
 
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@otterfy.co.mz' },
+    where: { email: adminEmail },
     update: {},
     create: {
-      email: 'admin@otterfy.co.mz',
+      email: adminEmail,
       name: 'Admin',
       passwordHash,
     },

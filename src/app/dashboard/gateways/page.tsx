@@ -155,12 +155,7 @@ export default function GatewaysPage() {
     setTestResult(null);
 
     try {
-      const savedData = localStorage.getItem(`otterfy-gateway-data-${gateway.id}`);
-      if (savedData) {
-        setFormValues(JSON.parse(savedData));
-      } else {
-        setFormValues({});
-      }
+      setFormValues({});
     } catch {
       setFormValues({});
     }
@@ -196,7 +191,6 @@ export default function GatewaysPage() {
       'otterfy-gateways-config-v1',
       JSON.stringify(updated.map((u) => ({ id: u.id, status: u.status, environment: u.environment })))
     );
-    localStorage.setItem(`otterfy-gateway-data-${selectedGateway.id}`, JSON.stringify(formValues));
 
     // Save to server backend API so checkout routes dynamically
     try {
@@ -207,7 +201,6 @@ export default function GatewaysPage() {
           id: selectedGateway.id,
           status: newStatus,
           environment: environmentToggle,
-          credentials: formValues,
         }),
       });
     } catch (e) {

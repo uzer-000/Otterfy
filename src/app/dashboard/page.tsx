@@ -3,6 +3,8 @@ import CustomizableWidgets from '@/components/dashboard/CustomizableWidgets';
 import DashboardGreetingBanner from '@/components/dashboard/DashboardGreetingBanner';
 import dbStore from '@/lib/store';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   const allOrders = await dbStore.getOrders();
   const data = await dbStore.getKPIs(allOrders);
@@ -284,6 +286,9 @@ export default async function DashboardPage() {
   const yearCharts = buildYearSeries(thisYearOrders, `${now.getFullYear()}`);
   const allCharts = buildYearSeries(allOrders, 'Histórico');
 
+  const todayHourlySeries = buildHourlySeries(todayOrders);
+  const yesterdayHourlySeries = buildHourlySeries(yesterdayOrders);
+
   const buildPeriodMetric = (
     ordersInPeriod: typeof allOrders,
     ordersInPrevPeriod: typeof allOrders,
@@ -291,8 +296,10 @@ export default async function DashboardPage() {
     expiredLabel: string,
     chartsConfig: {
       periodBadge: string;
+      hourlyBadge: string;
       hourlyTitle: string;
       hourlySubtitle: string;
+      hourlyData: { hour: string; iniciados: number; aprovados: number }[];
       barChartTitle: string;
       barChartSubtitle: string;
       lineChartTitle: string;
@@ -351,13 +358,14 @@ export default async function DashboardPage() {
       vsLabel,
       expiredLabel,
       periodBadge: chartsConfig.periodBadge,
+      hourlyBadge: chartsConfig.hourlyBadge,
       hourlyTitle: chartsConfig.hourlyTitle,
       hourlySubtitle: chartsConfig.hourlySubtitle,
       barChartTitle: chartsConfig.barChartTitle,
       barChartSubtitle: chartsConfig.barChartSubtitle,
       lineChartTitle: chartsConfig.lineChartTitle,
       lineChartSubtitle: chartsConfig.lineChartSubtitle,
-      hourlyData: buildHourlySeries(ordersInPeriod),
+      hourlyData: chartsConfig.hourlyData,
       barChartData: chartsConfig.barChartData,
       approvalsVsVolumeData: chartsConfig.approvalsVsVolumeData,
       conversionRate: periodConversionRate,
@@ -370,8 +378,10 @@ export default async function DashboardPage() {
   const periodStats = {
     yesterday: buildPeriodMetric(yesterdayOrders, twoDaysAgoOrders, 'vs. dia anterior', 'ontem', {
       periodBadge: 'Ontem (24h)',
-      hourlyTitle: 'Fluxo por Horário — Ontem (00:00 – 23:59)',
-      hourlySubtitle: 'Carrinhos iniciados vs. vendas aprovadas ao longo de ontem',
+      hourlyBadge: 'Ontem (24 Horas)',
+      hourlyTitle: 'Fluxo por Horário do Dia — Ontem (00:00 – 23:59)',
+      hourlySubtitle: 'Movimento hora a hora durante as 24 horas de ontem (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
+      hourlyData: yesterdayHourlySeries,
       barChartTitle: 'Vendas por Faixa Horária (Ontem)',
       barChartSubtitle: 'Distribuição das vendas aprovadas em janelas de 3h ontem',
       lineChartTitle: 'Carrinhos Aprovados vs Total (Ontem)',
@@ -380,8 +390,10 @@ export default async function DashboardPage() {
     }),
     today: buildPeriodMetric(todayOrders, yesterdayOrders, 'vs. ontem', 'hoje', {
       periodBadge: 'Hoje (24h)',
-      hourlyTitle: 'Fluxo por Horário — Hoje (00:00 – 23:59)',
-      hourlySubtitle: 'Carrinhos iniciados vs. vendas aprovadas em tempo real hoje',
+      hourlyBadge: 'Hoje (24 Horas)',
+      hourlyTitle: 'Fluxo por Horário do Dia (00:00 – 23:59)',
+      hourlySubtitle: 'Movimento em tempo real ao longo das 24 horas de hoje (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
+      hourlyData: todayHourlySeries,
       barChartTitle: 'Vendas por Faixa Horária (Hoje)',
       barChartSubtitle: 'Distribuição das vendas aprovadas em janelas de 3h hoje',
       lineChartTitle: 'Carrinhos Aprovados vs Total (Hoje)',
@@ -390,8 +402,10 @@ export default async function DashboardPage() {
     }),
     week: buildPeriodMetric(thisWeekOrders, lastWeekOrders, 'vs. semana anterior', 'na última semana', {
       periodBadge: 'Esta Semana',
-      hourlyTitle: 'Fluxo por Horário — Esta Semana (00:00 – 23:59)',
-      hourlySubtitle: 'Horários de maior movimento acumulado nesta semana',
+      hourlyBadge: 'Hoje (24 Horas)',
+      hourlyTitle: 'Fluxo por Horário do Dia (00:00 – 23:59)',
+      hourlySubtitle: 'Movimento em tempo real ao longo das 24 horas de hoje (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
+      hourlyData: todayHourlySeries,
       barChartTitle: 'Vendas por Dia (Semana)',
       barChartSubtitle: 'Ciclo semanal atual (Segunda a Domingo)',
       lineChartTitle: 'Carrinhos Aprovados vs Total (Semana)',
@@ -400,8 +414,10 @@ export default async function DashboardPage() {
     }),
     month: buildPeriodMetric(thisMonthOrders, lastMonthOrders, 'vs. mês anterior', 'no último mês', {
       periodBadge: 'Este Mês',
-      hourlyTitle: 'Fluxo por Horário — Este Mês (00:00 – 23:59)',
-      hourlySubtitle: 'Horários de maior movimento acumulado neste mês',
+      hourlyBadge: 'Hoje (24 Horas)',
+      hourlyTitle: 'Fluxo por Horário do Dia (00:00 – 23:59)',
+      hourlySubtitle: 'Movimento em tempo real ao longo das 24 horas de hoje (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
+      hourlyData: todayHourlySeries,
       barChartTitle: 'Vendas por Semana (Mês Atual)',
       barChartSubtitle: 'Evolução semanal ao longo do mês atual',
       lineChartTitle: 'Carrinhos Aprovados vs Total (Mês)',
@@ -410,8 +426,10 @@ export default async function DashboardPage() {
     }),
     year: buildPeriodMetric(thisYearOrders, lastYearOrders, 'vs. ano anterior', 'no último ano', {
       periodBadge: 'Este Ano',
-      hourlyTitle: 'Fluxo por Horário — Este Ano (00:00 – 23:59)',
-      hourlySubtitle: 'Horários de maior movimento acumulado neste ano',
+      hourlyBadge: 'Hoje (24 Horas)',
+      hourlyTitle: 'Fluxo por Horário do Dia (00:00 – 23:59)',
+      hourlySubtitle: 'Movimento em tempo real ao longo das 24 horas de hoje (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
+      hourlyData: todayHourlySeries,
       barChartTitle: 'Vendas por Mês (Ano Atual)',
       barChartSubtitle: `Evolução mensal de vendas em ${now.getFullYear()}`,
       lineChartTitle: 'Carrinhos Aprovados vs Total (Ano)',
@@ -420,8 +438,10 @@ export default async function DashboardPage() {
     }),
     all: buildPeriodMetric(allOrders, [], 'desde o início', 'em todo o período', {
       periodBadge: 'Todo o Período',
-      hourlyTitle: 'Fluxo por Horário — Todo o Período (00:00 – 23:59)',
-      hourlySubtitle: 'Horários de maior movimento em todo o histórico da conta',
+      hourlyBadge: 'Hoje (24 Horas)',
+      hourlyTitle: 'Fluxo por Horário do Dia (00:00 – 23:59)',
+      hourlySubtitle: 'Movimento em tempo real ao longo das 24 horas de hoje (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
+      hourlyData: todayHourlySeries,
       barChartTitle: 'Vendas Acumuladas por Mês',
       barChartSubtitle: 'Histórico completo de vendas aprovadas',
       lineChartTitle: 'Carrinhos Aprovados vs Total (Histórico)',
@@ -456,7 +476,7 @@ export default async function DashboardPage() {
         recentTransactions={data.recentTransactions}
         totalRevenue={finalTotalRevenue}
         approvedCount={finalApprovedCount}
-        hourlyData={weekCharts ? periodStats.today.hourlyData : []}
+        hourlyData={todayHourlySeries}
         weeklyData={weekCharts.barChartData}
         approvalsVsVolumeData={weekCharts.approvalsVsVolumeData}
         periodStats={periodStats}

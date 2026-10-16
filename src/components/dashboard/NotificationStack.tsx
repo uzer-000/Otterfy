@@ -122,7 +122,10 @@ export default function NotificationStack() {
           setItems(stored);
         }
 
-        const res = await fetch('/api/payments?status=APPROVED&limit=100');
+        const res = await fetch('/api/payments?status=APPROVED&limit=100', {
+          signal: AbortSignal.timeout(6000),
+          cache: 'no-store',
+        });
         if (res.ok) {
           const json = await res.json();
           const list = json.data || [];
@@ -142,11 +145,15 @@ export default function NotificationStack() {
           saveToStorage(mapped);
         }
       } catch (err) {
-        console.warn('Erro ao carregar vendas:', err);
+        // Silently ignore temporary fetch glitches
       }
     }
 
     loadApprovedSales();
+    window.addEventListener('orders_updated', loadApprovedSales);
+    return () => {
+      window.removeEventListener('orders_updated', loadApprovedSales);
+    };
   }, []);
 
   /* API pública */

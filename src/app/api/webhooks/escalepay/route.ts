@@ -8,11 +8,13 @@ import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@
  */
 export async function POST(req: Request) {
   try {
+    if (Number(req.headers.get('content-length') || 0) > 131_072) {
+      return NextResponse.json({ error: 'Payload demasiado grande.' }, { status: 413 });
+    }
     const rawBody = await req.text();
     const signature = req.headers.get('x-signature') || req.headers.get('x-escalepay-signature') || '';
 
-    // Verify signature if configured
-    if (signature && !escalepayProvider.verifyWebhookSignature(rawBody, signature)) {
+    if (!process.env.ESCALEPAY_SECRET_KEY || !signature || !escalepayProvider.verifyWebhookSignature(rawBody, signature)) {
       return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 });
     }
 
@@ -81,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[EscalePay Webhook Error]:', error);
     return NextResponse.json({ error: 'Erro interno no processamento do webhook.' }, { status: 500 });
   }

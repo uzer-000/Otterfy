@@ -325,14 +325,14 @@ export default function LoginPage() {
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    A entrar...
+                    A entrar na conta...
                   </span>
                 ) : (
-                  'Entrar'
+                  'Entrar na Conta'
                 )}
               </button>
             </form>
@@ -341,15 +341,26 @@ export default function LoginPage() {
             <div className={`my-6 border-t ${isDark ? 'border-[#1E1B26]' : 'border-gray-100'}`} />
 
             {/* Sign up link */}
-            <p className={`text-center text-sm ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>
+            <p className={`text-center text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
               Não tem conta?{' '}
               <Link
                 href="/auth/signup"
-                className="text-violet-600 hover:text-violet-700 font-medium transition-colors"
+                className="text-violet-600 hover:text-violet-700 font-semibold transition-colors underline"
               >
                 Criar conta grátis
               </Link>
             </p>
+
+            {/* Legal policy links */}
+            <div className={`mt-6 pt-4 border-t text-center text-xs flex flex-wrap items-center justify-center gap-3 ${isDark ? 'border-[#1E1B26] text-slate-400' : 'border-gray-100 text-gray-600'}`}>
+              <Link href="/privacidade" className="hover:underline">Privacidade</Link>
+              <span aria-hidden="true">•</span>
+              <Link href="/termos" className="hover:underline">Termos</Link>
+              <span aria-hidden="true">•</span>
+              <Link href="/cookies" className="hover:underline">Cookies</Link>
+              <span aria-hidden="true">•</span>
+              <Link href="/reembolso" className="hover:underline">Reembolso</Link>
+            </div>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import dbStore from '@/lib/store';
 
 const updateProductSchema = z.object({
-  name: z.string().min(1, 'O nome é obrigatório.').optional(),
+  name: z.string().trim().min(1, 'O nome é obrigatório.').optional(),
   price: z.number().positive('O preço deve ser maior que zero.').optional(),
   description: z.string().optional(),
   imageUrl: z.string().optional().or(z.literal('')),
@@ -14,6 +14,8 @@ const updateProductSchema = z.object({
   zenofyProductId: z.string().optional(),
   contentDeliveryType: z.string().optional(),
   contentUrl: z.string().optional(),
+  allowAffiliation: z.boolean().optional(),
+  paymentMethods: z.array(z.string()).optional(),
   materials: z.array(z.object({
     name: z.string(),
     type: z.string(),
@@ -30,31 +32,31 @@ const updateProductSchema = z.object({
     utmifyPixelId: z.string().optional(),
     utmifyToken: z.string().optional(),
     gtmId: z.string().optional(),
-  }).optional(),
+  }).passthrough().optional(),
   checkoutSettings: z.object({
     zenofyProductId: z.string().optional(),
     coupons: z.array(z.object({
       code: z.string(),
       discountPercent: z.number(),
-    })).optional(),
+    }).passthrough()).optional(),
     orderBump: z.object({
       enabled: z.boolean(),
       title: z.string(),
       price: z.number(),
       description: z.string().optional(),
       productId: z.string().optional(),
-    }).optional(),
+    }).passthrough().optional(),
     extraOffers: z.array(z.object({
       id: z.string().optional(),
       productId: z.string().optional(),
       title: z.string(),
       price: z.number(),
       description: z.string().optional(),
-    })).optional(),
+    }).passthrough()).optional(),
     postPurchase: z.object({
       upsellUrl: z.string().optional(),
       downsellUrl: z.string().optional(),
-    }).optional(),
+    }).passthrough().optional(),
     upsellUrl: z.string().optional(),
     downsellUrl: z.string().optional(),
     customCheckout: z.object({
@@ -66,20 +68,20 @@ const updateProductSchema = z.object({
       timerText: z.string().optional(),
       bannerUrl: z.string().optional().or(z.literal('')),
       zenofyProductId: z.string().optional(),
-    }).optional(),
+    }).passthrough().optional(),
     whatsappSupport: z.object({
       enabled: z.boolean(),
       phone: z.string(),
       message: z.string().optional(),
-    }).optional(),
+    }).passthrough().optional(),
   }).passthrough().optional(),
   automation: z.object({
     webhookUrl: z.string().optional(),
     webhookEvents: z.array(z.string()).optional(),
     cartRecoveryEmail: z.boolean().optional(),
     cartRecoveryWhatsapp: z.boolean().optional(),
-  }).optional(),
-});
+  }).passthrough().optional(),
+}).passthrough();
 
 export async function GET(
   req: Request,
