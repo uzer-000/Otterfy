@@ -224,6 +224,19 @@ export default function PlaqueViewer3D({
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       controls.dispose();
+      if (modelRef.current) {
+        modelRef.current.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            mesh.geometry?.dispose();
+            if (Array.isArray(mesh.material)) {
+              mesh.material.forEach((m) => m.dispose());
+            } else {
+              mesh.material?.dispose();
+            }
+          }
+        });
+      }
       renderer?.dispose();
       scene.clear();
     };
@@ -310,7 +323,7 @@ export default function PlaqueViewer3D({
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.12)_0%,transparent_70%)] pointer-events-none" />
 
           {/* Canvas */}
-          <canvas ref={canvasRef} className="w-full h-full block relative z-10" />
+          <canvas ref={canvasRef} style={{ touchAction: 'none' }} className="w-full h-full block relative z-10" />
 
           {/* Loading Overlay */}
           {loading && (

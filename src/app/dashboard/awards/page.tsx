@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { formatMZN } from '@/lib/utils';
 
+// Lazy-loaded 3D WebGL Three.js Inspector (ultra lightweight until clicked)
 const PlaqueViewer3D = dynamic(() => import('@/components/dashboard/PlaqueViewer3D'), {
   ssr: false,
 });
@@ -12,6 +13,7 @@ export interface MilestoneData {
   id: number;
   level: string;
   name: string;
+  badgeTag: string;
   heading: string;
   target: number;
   tag: string;
@@ -20,7 +22,7 @@ export interface MilestoneData {
   imageSrc: string;
   badgeSrc?: string;
   modelGlb?: string;
-  type: 'community' | 'bracelet' | 'plaque';
+  type: 'starter_community' | 'community' | 'bracelet' | 'plaque';
   format?: string;
   specifications: string;
   highlights: string[];
@@ -29,76 +31,96 @@ export interface MilestoneData {
 export const MILESTONES: MilestoneData[] = [
   {
     id: 1,
-    level: '25K',
-    name: 'Comunidade VIP WhatsApp',
-    heading: '25.000 MT faturados',
-    target: 25000,
-    tag: '1/7',
+    level: '0 MT',
+    name: 'Comunidade Otterfy',
+    badgeTag: 'Comunidade',
+    heading: 'Cresça junto com quem já fatura',
+    target: 0,
+    tag: 'Starter',
     category: 'Comunidade & Networking',
-    description: 'Acesso exclusivo ao grupo secreto de Top Sellers Otterfy no WhatsApp. Troca direta de estratégias, networking com quem fatura alto e suporte prioritário.',
+    description: 'WhatsApp e canal exclusivo, com quem já está vendendo todo dia na Otterfy. Networking em tempo real, suporte e avisos oficiais.',
     imageSrc: '/awards/phone_mockup_whatsapp.svg',
-    type: 'community',
-    specifications: 'Grupo fechado no WhatsApp, canal de avisos antecipados, acesso a estratégias de tráfego pago e suporte VIP direto.',
-    highlights: ['Networking com Apex Sellers', 'Estratégias de Escala', 'Avisos & Atualizações em Primeira Mão'],
+    type: 'starter_community',
+    specifications: 'Acesso imediato à comunidade de sellers, canal de novidades da plataforma e suporte.',
+    highlights: ['Networking Aberto', 'Canal de Avisos', 'Acesso Imediato'],
   },
   {
     id: 2,
+    level: '25K',
+    name: 'Grupo Network WhatsApp',
+    badgeTag: 'VIP Club',
+    heading: '25.000 MT faturados',
+    target: 25000,
+    tag: '1/7',
+    category: 'Comunidade VIP',
+    description: 'Sala exclusiva no WhatsApp com os outros sellers de alta performance da plataforma. Troca de estratégias de tráfego e fornecedores.',
+    imageSrc: '/awards/phone_mockup_whatsapp.svg',
+    type: 'community',
+    specifications: 'Grupo restrito a sellers com faturamento comprovado acima de 25.000 MT, com moderação e suporte prioritário.',
+    highlights: ['Networking com Apex Sellers', 'Estratégias de Escala', 'Avisos & Atualizações em Primeira Mão'],
+  },
+  {
+    id: 3,
     level: '50K',
-    name: 'Pulseiras Oficiais Otterfy',
+    name: 'Pulseiras Otterfy',
+    badgeTag: 'Colecionável',
     heading: '50.000 MT faturados',
     target: 50000,
     tag: '2/7',
     category: 'Colecionável Físico',
-    description: 'Kit com as 2 Pulseiras oficiais de silicone de alta densidade Otterfy (Edição Roxa e Branca com o logo em relevo). O primeiro troféu de pulso que atesta o seu compromisso.',
+    description: 'Kit com as 2 Pulseiras oficiais de silicone de alta densidade Otterfy (Roxa e Branca com o logo em relevo 3D). Entregues no seu endereço com frete grátis.',
     imageSrc: '/awards/wristbands_50k.png',
     type: 'bracelet',
     specifications: 'Silicone hipoalergênico premium, gravação em alto-relevo 3D, acabamento aveludado, tamanho universal ajustável.',
-    highlights: ['2 Pulseiras Exclusivas (Roxa + Branca)', 'Gravação em Alto-Relevo 3D', 'Frete 100% Gratuito'],
+    highlights: ['2 Pulseiras Exclusivas (Roxa + Branca)', 'Gravação em Alto-Relevo 3D', 'Frete 100% Gratuito em MZ'],
   },
   {
-    id: 3,
+    id: 4,
     level: '100K',
-    name: 'Placa Otterfy Prata',
+    name: 'Placa Otterfy 100K',
+    badgeTag: '100 MIL',
     heading: '100.000 MT faturados',
     target: 100000,
     tag: '3/7',
     category: 'Placa Emoldurada A4',
     format: 'Formato A4 (21 x 29.7 cm)',
-    description: 'A renomada Placa A4 com moldura de alumínio preto fosco, fundo dark texturizado e emblema Apex Predator em aço escovado prata gravado a laser com o seu nome.',
+    description: 'A primeira grande consagração com moldura de alumínio preto fosco, fundo dark texturizado e emblema em aço escovado prata gravado a laser com seu nome.',
     imageSrc: '/awards/placa_100k_frente.png',
     badgeSrc: '/awards/badge_silver.png',
     modelGlb: '/awards/models/placa-100k.glb',
     type: 'plaque',
     specifications: 'Moldura de alumínio laqueado preto, vidro antirreflexo de cristal, placa metálica com corte a laser e acabamento escovado prata.',
-    highlights: ['Personalizada com seu Nome/Loja', 'Emblema Prata 3D Escovado', 'Certificado de Apex Predator'],
+    highlights: ['Personalizada com seu Nome/Loja', 'Emblema Prata 3D Escovado', 'Certificado Oficial Apex Predator'],
   },
   {
-    id: 4,
+    id: 5,
     level: '500K',
-    name: 'Placa Otterfy Ouro',
+    name: 'Placa Otterfy 500K',
+    badgeTag: '500 MIL',
     heading: '500.000 MT faturados',
     target: 500000,
     tag: '4/7',
     category: 'Placa Emoldurada A3',
     format: 'Formato A3 (29.7 x 42 cm)',
-    description: 'Troféu comemorativo A3 emoldurado de luxo com emblema 3D espelhado banhado a ouro metálico, celebrando o marco histórico de meio milhão de Meticais faturados.',
+    description: 'Troféu comemorativo A3 de luxo com emblema 3D espelhado banhado a ouro metálico, celebrando meio milhão de Meticais faturados.',
     imageSrc: '/awards/placa_500k_frente.png',
     badgeSrc: '/awards/badge_gold.png',
     modelGlb: '/awards/models/placa-500k.glb',
     type: 'plaque',
     specifications: 'Moldura maciça A3 em madeira nobre laqueada, emblema dourado com efeito escovado espelhado, placa de identificação oficial.',
-    highlights: ['Tamanho Gigante A3 de Luxo', 'Brasão Banhado a Ouro Metálico', 'Gravação a Laser de Precisão'],
+    highlights: ['Tamanho Gigante A3 de Luxo', 'Brasão Banhado a Ouro Metálico', 'Gravação a Laser de Alta Precisão'],
   },
   {
-    id: 5,
+    id: 6,
     level: '1M',
-    name: 'Placa Otterfy Diamante',
+    name: 'Placa Otterfy 1M',
+    badgeTag: '1 MILHÃO',
     heading: '1.000.000 MT faturados',
     target: 1000000,
     tag: '5/7',
     category: 'Clube do Milhão A3',
     format: 'Formato A3 (29.7 x 42 cm)',
-    description: 'A consagração no seleto Clube do Milhão Otterfy. Fundo velvet púrpura luxuoso, moldura A3 premium e condecoração máxima como multimilionário digital moçambicano.',
+    description: 'A consagração no seleto Clube do Milhão Otterfy. Fundo velvet púrpura luxuoso, moldura A3 premium e condecoração máxima como multimilionário digital.',
     imageSrc: '/awards/placa_1m_frente.png',
     badgeSrc: '/awards/badge_purple.png',
     modelGlb: '/awards/models/placa-1m.glb',
@@ -107,9 +129,10 @@ export const MILESTONES: MilestoneData[] = [
     highlights: ['Membro do Clube do Milhão', 'Fundo Imperial Violet & Diamante', 'Condecoração de Honra Máxima'],
   },
   {
-    id: 6,
+    id: 7,
     level: '5M',
-    name: 'Placa Otterfy Black',
+    name: 'Placa Otterfy 5M',
+    badgeTag: '5 MILHÕES',
     heading: '5.000.000 MT faturados',
     target: 5000000,
     tag: '6/7',
@@ -124,9 +147,10 @@ export const MILESTONES: MilestoneData[] = [
     highlights: ['Edição Restrita Black Titanium', 'Design Stealth Monocromático', 'Status de Elite Continental'],
   },
   {
-    id: 7,
+    id: 8,
     level: '10M',
-    name: 'Placa Otterfy Titan',
+    name: 'Placa Otterfy 10M',
+    badgeTag: '10 MILHÕES',
     heading: '10.000.000 MT faturados',
     target: 10000000,
     tag: '7/7',
@@ -151,7 +175,7 @@ const FAQS = [
   {
     question: 'Como funciona o envio das placas e pulseiras físicas?',
     answer:
-      'Assim que você atingir a meta de faturamento correspondente (50K para pulseiras, 100K a 10M para as placas), o botão "Resgatar Troféu" fica ativo. Você preenche o seu nome para personalização e o endereço de entrega, e nossa equipe inicia a confecção e despacho.',
+      'Assim que você atingir a meta de faturamento correspondente (50K para pulseiras, 100K a 10M para as placas), o botão "Resgatar Troféu" fica ativo. Você preenche o seu nome para personalização e o endereço de entrega, e nossa equipe inicia a confecção e despacho com frete 100% gratuito.',
   },
   {
     question: 'O frete de entrega é gratuito?',
@@ -172,32 +196,13 @@ const FAQS = [
 
 export default function AwardsPage() {
   const [totalRevenue, setTotalRevenue] = useState(0);
-  const [viewMode, setViewMode] = useState<'gallery' | 'timeline'>('gallery');
-  const [filterTab, setFilterTab] = useState<'ALL' | 'UNLOCKED' | 'LOCKED'>('ALL');
-  
+
   // Modals state
   const [claimModalMilestone, setClaimModalMilestone] = useState<MilestoneData | null>(null);
   const [previewMilestone, setPreviewMilestone] = useState<MilestoneData | null>(null);
   const [viewer3DMilestone, setViewer3DMilestone] = useState<MilestoneData | null>(null);
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
-
-  // 3D Perspective Card Tilt on Mouse Move
-  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / centerY) * -5;
-    const rotateY = ((x - centerX) / centerX) * 5;
-    card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-4px)`;
-  };
-
-  const handleCardMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-  };
 
   // Shipping form state
   const [shippingAddress, setShippingAddress] = useState({
@@ -215,26 +220,25 @@ export default function AwardsPage() {
       .then((json) => {
         const list = json.data || [];
         const sum = list.reduce((acc: number, o: any) => acc + (Number(o.amount) || 0), 0);
-        // Se a conta for nova ou sem pagamentos na base local de teste, fallback suave de demonstração
-        setTotalRevenue(sum > 0 ? sum : 78500);
+        setTotalRevenue(sum > 0 ? sum : 0);
       })
       .catch(() => {
-        setTotalRevenue(78500);
+        setTotalRevenue(0);
       });
   }, []);
 
-  const conqueredCount = MILESTONES.filter((m) => totalRevenue >= m.target).length;
-  const nextMilestone = MILESTONES.find((m) => totalRevenue < m.target) || MILESTONES[MILESTONES.length - 1];
-  const remainingAmount = Math.max(0, nextMilestone.target - totalRevenue);
-  const progressToNext = nextMilestone.target > 0
-    ? Math.min(100, Math.round((totalRevenue / nextMilestone.target) * 100))
-    : 100;
+  // Filtered milestones excluding starter for progress counting
+  const progressiveMilestones = MILESTONES.filter((m) => m.target > 0);
+  const conqueredCount = progressiveMilestones.filter((m) => totalRevenue >= m.target).length;
+  const nextMilestone =
+    progressiveMilestones.find((m) => totalRevenue < m.target) ||
+    progressiveMilestones[progressiveMilestones.length - 1];
 
-  const filteredMilestones = MILESTONES.filter((m) => {
-    if (filterTab === 'UNLOCKED') return totalRevenue >= m.target;
-    if (filterTab === 'LOCKED') return totalRevenue < m.target;
-    return true;
-  });
+  const remainingAmount = Math.max(0, nextMilestone.target - totalRevenue);
+  const progressToNext =
+    nextMilestone.target > 0
+      ? Math.min(100, Math.round((totalRevenue / nextMilestone.target) * 100))
+      : 100;
 
   const handleClaimSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,549 +249,250 @@ export default function AwardsPage() {
     }, 2800);
   };
 
+  const handleMilestoneClick = (m: MilestoneData) => {
+    if (m.modelGlb) {
+      setViewer3DMilestone(m);
+    } else if (m.type === 'community' || m.type === 'starter_community') {
+      setWhatsappModalOpen(true);
+    } else {
+      setPreviewMilestone(m);
+    }
+  };
+
   return (
-    <div className="w-full max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 animate-in fade-in duration-300">
+    <div className="w-full max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 animate-in fade-in duration-200">
       {/* ========================================================================= */}
-      {/* 1. HERO HEADER: FATURAMENTO ACUMULADO & GAMIFICAÇÃO GG CHECKOUT           */}
+      {/* 1. HERO TOP BAR: FATURAMENTO & STATUS DA PRÓXIMA PARADA (GG CHECKOUT)     */}
       {/* ========================================================================= */}
-      <div className="otter-widget-card relative overflow-hidden rounded-3xl p-6 sm:p-8 lg:p-10 border shadow-2xl">
-        {/* Glow de fundo */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-[#1E1B26] bg-white dark:bg-[#07060B] shadow-sm">
+        {/* Glowing Decorative Stripes in Top Right (Otterfy Neon Accent) */}
+        <div className="absolute top-0 right-0 w-80 h-32 pointer-events-none overflow-hidden">
+          <div className="absolute -top-16 -right-16 w-48 h-48 bg-gradient-to-bl from-violet-600/25 via-indigo-500/15 to-transparent rounded-full blur-2xl" />
+          <div className="absolute top-0 right-8 w-2 h-24 bg-gradient-to-b from-blue-500 to-violet-600 rotate-45 transform origin-top-right opacity-70 blur-[1px]" />
+          <div className="absolute top-0 right-14 w-1.5 h-20 bg-gradient-to-b from-purple-500 to-pink-500 rotate-45 transform origin-top-right opacity-60 blur-[1px]" />
+        </div>
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-          {/* Lado Esquerdo: Estatísticas de Faturamento */}
-          <div className="space-y-3 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-violet-500/10 border border-violet-500/20 text-violet-700 dark:text-violet-300">
-              <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
-              Galeria Oficial de Premiações & Troféus
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          {/* Lado Esquerdo: Faturamento Total */}
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-[#94A3B8]">
+              FATURAMENTO TOTAL
+            </span>
+            <div className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-[#F8FAFC] font-mono">
+              {formatMZN(totalRevenue)}
             </div>
-
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-[#94A3B8]">
-                FATURAMENTO TOTAL ACUMULADO
+            <div className="text-xs text-slate-600 dark:text-[#94A3B8] flex items-center gap-2 pt-0.5">
+              <span>
+                Faltam <strong className="text-slate-800 dark:text-slate-200 font-mono">{formatMZN(remainingAmount)}</strong> para {nextMilestone.name}
               </span>
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-[#F8FAFC] font-mono mt-1">
-                {formatMZN(totalRevenue)}
-              </div>
+              <span>•</span>
+              <span className="font-mono text-violet-600 dark:text-violet-400 font-bold">
+                {progressToNext}% do caminho
+              </span>
             </div>
-
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed">
-              Reconhecemos o seu legado e cada marco que você conquista. Das pulseiras colecionáveis às imponentes placas A3 emolduradas, seu esforço como Apex Predator merece o mais alto prestígio.
-            </p>
           </div>
 
-          {/* Lado Direito: Próxima Conquista e Barra */}
-          <div className="lg:w-[420px] bg-slate-50/80 dark:bg-[#0B0911]/90 rounded-2xl p-5 border border-slate-200 dark:border-[#1E1B26] space-y-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
-                  Próxima Parada
-                </span>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
-                  {nextMilestone.name}
-                </h4>
-              </div>
-
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-violet-600/15 text-violet-700 dark:text-violet-300 border border-violet-500/30">
-                {conqueredCount} de {MILESTONES.length} desbloqueados
-              </span>
+          {/* Lado Direito: Conquistados e Próxima Parada */}
+          <div className="sm:text-right space-y-1">
+            <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-[#F8FAFC]">
+              {conqueredCount} de {progressiveMilestones.length} conquistados
             </div>
-
-            {/* Barra de Progresso */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-semibold">
-                <span className="text-slate-500 dark:text-[#94A3B8]">
-                  Progresso até {nextMilestone.level}
-                </span>
-                <span className="font-mono text-violet-600 dark:text-violet-400 font-bold">
-                  {progressToNext}%
-                </span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-200 dark:bg-[#1E1B26] rounded-full overflow-hidden p-0.5">
-                <div
-                  className="h-full bg-gradient-to-r from-violet-600 via-indigo-500 to-sky-400 rounded-full transition-all duration-700 ease-out shadow-sm"
-                  style={{ width: `${Math.min(100, Math.max(3, progressToNext))}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="text-xs text-slate-600 dark:text-[#94A3B8] flex items-center justify-between pt-1 border-t border-slate-200 dark:border-[#1E1B26]">
-              <span>Falta faturar:</span>
-              <strong className="text-slate-900 dark:text-[#F8FAFC] font-mono font-bold">
-                {formatMZN(remainingAmount)}
-              </strong>
+            <div className="text-xs text-slate-500 dark:text-[#94A3B8]">
+              próxima parada: <span className="text-violet-600 dark:text-violet-400 font-bold">{nextMilestone.name}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. BARRA DE CONTROLE: TABS DE VISUALIZAÇÃO & FILTROS                      */}
+      {/* 2. TÍTULO DA SESSÃO: SUA JORNADA DE CONQUISTAS                            */}
       {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-[#1E1B26]">
-        {/* Filtros de Status */}
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setFilterTab('ALL')}
-            className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-              filterTab === 'ALL'
-                ? 'bg-violet-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Todas as Premiações ({MILESTONES.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterTab('UNLOCKED')}
-            className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-              filterTab === 'UNLOCKED'
-                ? 'bg-violet-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Desbloqueadas ({conqueredCount})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterTab('LOCKED')}
-            className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-              filterTab === 'LOCKED'
-                ? 'bg-violet-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            A Conquistar ({MILESTONES.length - conqueredCount})
-          </button>
-        </div>
-
-        {/* Alternador de Modo de Exibição (Galeria vs Linha do Tempo) */}
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] text-xs font-semibold self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setViewMode('gallery')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-              viewMode === 'gallery'
-                ? 'bg-white dark:bg-[#1E1B26] text-violet-700 dark:text-violet-300 shadow-sm border border-slate-200 dark:border-white/10'
-                : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-            <span>Galeria 3D</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setViewMode('timeline')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-              viewMode === 'timeline'
-                ? 'bg-white dark:bg-[#1E1B26] text-violet-700 dark:text-violet-300 shadow-sm border border-slate-200 dark:border-white/10'
-                : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>Linha do Tempo</span>
-          </button>
-        </div>
+      <div className="space-y-1">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">
+          Sua Jornada de Conquistas
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-[#94A3B8]">
+          Cada marco alcançado traz recompensas exclusivas para você
+        </p>
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. MODO 1: GALERIA 3D (REVERSE ENGINEERING DO GG CHECKOUT)                */}
+      {/* 3. TIMELINE VERTICAL COM CARDS HORIZONTAIS (REVERSE ENG GG CHECKOUT)      */}
       {/* ========================================================================= */}
-      {viewMode === 'gallery' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredMilestones.map((m) => {
-            const isUnlocked = totalRevenue >= m.target;
-            const isCurrent = nextMilestone.id === m.id && !isUnlocked;
-            const needed = Math.max(0, m.target - totalRevenue);
-            const cardProgress = Math.min(100, Math.round((totalRevenue / m.target) * 100));
+      <div className="relative pl-8 sm:pl-12 space-y-4 sm:space-y-5">
+        {/* Linha vertical pontilhada / sólida do timeline */}
+        <div className="absolute left-[13px] sm:left-[21px] top-8 bottom-8 w-[2px] border-l-2 border-dashed border-slate-200 dark:border-[#221D2F] pointer-events-none" />
 
-            return (
+        {MILESTONES.map((milestone) => {
+          const isConquered = milestone.target === 0 || totalRevenue >= milestone.target;
+          const isCurrentTarget = nextMilestone.id === milestone.id && !isConquered;
+          const needed = Math.max(0, milestone.target - totalRevenue);
+          const percent = milestone.target > 0 ? Math.min(100, Math.round((totalRevenue / milestone.target) * 100)) : 100;
+
+          return (
+            <div key={milestone.id} className="relative group">
+              {/* Nó do Timeline à Esquerda */}
               <div
-                key={m.id}
-                onMouseMove={handleCardMouseMove}
-                onMouseLeave={handleCardMouseLeave}
-                style={{ transition: 'transform 0.15s ease-out, border-color 0.2s ease, box-shadow 0.2s ease' }}
-                className={`otter-widget-card rounded-3xl p-5 sm:p-6 border flex flex-col justify-between group relative overflow-hidden will-change-transform ${
-                  isCurrent
-                    ? 'border-violet-500/80 ring-2 ring-violet-500/20 shadow-xl'
-                    : isUnlocked
-                    ? 'hover:border-violet-400/50 shadow-md'
-                    : 'opacity-95 hover:opacity-100 hover:border-slate-300 dark:hover:border-[#2A2438]'
+                className={`absolute -left-8 sm:-left-12 top-6 -translate-x-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs z-10 transition-all ${
+                  isConquered
+                    ? 'bg-blue-600 dark:bg-violet-600 text-white shadow-md ring-4 ring-white dark:ring-[#07060B]'
+                    : isCurrentTarget
+                    ? 'bg-blue-600 dark:bg-violet-600 text-white ring-4 ring-blue-500/30 dark:ring-violet-500/30 shadow-lg shadow-violet-600/30'
+                    : 'bg-slate-100 dark:bg-[#121016] text-slate-400 dark:text-[#64748B] border border-slate-200 dark:border-[#1E1B26] ring-4 ring-white dark:ring-[#07060B]'
                 }`}
               >
-                {/* Header do Card: Tag e Status */}
-                <div className="flex items-center justify-between gap-2 mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-xl font-mono text-xs font-black bg-violet-600/10 text-violet-700 dark:text-violet-300 border border-violet-500/20 flex items-center justify-center">
-                      {m.level}
-                    </span>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
-                      {m.category}
-                    </span>
-                  </div>
-
-                  {isUnlocked ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Desbloqueado
-                    </span>
-                  ) : isCurrent ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-violet-500/15 text-violet-600 dark:text-violet-300 border border-violet-500/30 animate-pulse">
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
-                      Próxima Meta
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-[#64748B] border border-slate-200 dark:border-white/5">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      Bloqueado
-                    </span>
-                  )}
-                </div>
-
-                {/* Vitrine Central com Contorno Suave Arredondado (Clean & Smooth) */}
-                <div
-                  onClick={() => {
-                    if (m.modelGlb) {
-                      setViewer3DMilestone(m);
-                    } else if (m.type === 'community') {
-                      setWhatsappModalOpen(true);
-                    } else {
-                      setPreviewMilestone(m);
-                    }
-                  }}
-                  className="w-full h-64 sm:h-72 rounded-2xl border border-slate-200/90 dark:border-white/10 bg-slate-50/80 dark:bg-[#08070C] p-4 flex items-center justify-center relative overflow-hidden group-hover:border-violet-500/40 transition-all cursor-pointer shadow-inner mb-4"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={m.imageSrc}
-                    alt={m.name}
-                    className="max-h-full max-w-full object-contain filter drop-shadow-md group-hover:scale-105 transition-transform duration-300"
-                  />
-
-                  {/* Badge Flutuante no Hover */}
-                  {m.modelGlb ? (
-                    <div className="absolute right-3 bottom-3 opacity-90 group-hover:opacity-100 transition-all bg-black/75 hover:bg-violet-600 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-white/15 shadow-lg">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
-                      </svg>
-                      <span>Girar 360° em 3D</span>
-                    </div>
-                  ) : m.type === 'community' ? (
-                    <div className="absolute right-3 bottom-3 opacity-90 group-hover:opacity-100 transition-all bg-emerald-950/80 hover:bg-emerald-600 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-emerald-500/30 shadow-lg">
-                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2" />
-                      </svg>
-                      <span>Ver Celular & Grupo</span>
-                    </div>
-                  ) : (
-                    <div className="absolute right-3 bottom-3 opacity-90 group-hover:opacity-100 transition-all bg-black/75 hover:bg-violet-600 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 border border-white/10">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
-                      </svg>
-                      <span>Ver Colecionável</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Títulos & Descrições */}
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">
-                      {m.name}
-                    </h3>
-                    <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
-                      {m.heading}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed line-clamp-2">
-                    {m.description}
-                  </p>
-
-                  {/* Destaques rápidos */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {m.highlights.map((h) => (
-                      <span
-                        key={h}
-                        className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-[#94A3B8] border border-slate-200/80 dark:border-white/5"
-                      >
-                        • {h}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Barra de Progresso do Card */}
-                {!isUnlocked && (
-                  <div className="space-y-1 mb-4 pt-2 border-t border-slate-100 dark:border-[#1E1B26]">
-                    <div className="flex justify-between text-[11px] font-semibold">
-                      <span className="text-slate-500 dark:text-[#94A3B8]">
-                        Faltam {formatMZN(needed)}
-                      </span>
-                      <span className="font-mono text-slate-700 dark:text-slate-300">
-                        {cardProgress}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-100 dark:bg-[#1E1B26] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-violet-600 rounded-full transition-all duration-500"
-                        style={{ width: `${cardProgress}%` }}
-                      />
-                    </div>
-                  </div>
+                {isConquered ? (
+                  <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : isCurrentTarget ? (
+                  <span>{milestone.id}</span>
+                ) : (
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                  </svg>
                 )}
+              </div>
 
-                {/* Ações do Card */}
-                <div className="pt-2">
-                  {m.type === 'community' ? (
-                    // Card 25K: Comunidade WhatsApp
-                    isUnlocked ? (
-                      <button
-                        type="button"
-                        onClick={() => setWhatsappModalOpen(true)}
-                        className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-md shadow-emerald-600/25 transition-all cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                          <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19.01L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.33C9.33 7.33 9 7.4 8.73 7.69C8.46 7.98 7.7 8.7 7.7 10.15C7.7 11.61 8.76 13.01 8.91 13.21C9.06 13.41 11 16.39 13.94 17.66C14.64 17.96 15.18 18.14 15.61 18.28C16.31 18.5 16.95 18.47 17.45 18.39C18.01 18.31 19.18 17.68 19.42 17C19.66 16.32 19.66 15.74 19.59 15.62C19.52 15.5 19.33 15.43 19.04 15.29C18.75 15.14 17.33 14.44 17.07 14.34C16.81 14.24 16.62 14.19 16.43 14.48C16.24 14.77 15.7 15.41 15.54 15.6C15.38 15.79 15.22 15.81 14.93 15.67C14.64 15.52 13.71 15.22 12.61 14.24C11.75 13.48 11.17 12.53 11 12.24C10.83 11.95 10.98 11.79 11.13 11.65C11.26 11.52 11.42 11.31 11.56 11.14C11.7 10.97 11.75 10.85 11.85 10.66C11.95 10.47 11.9 10.3 11.82 10.15C11.74 10.01 11.17 8.6 10.93 8.03C10.7 7.47 10.46 7.55 10.28 7.54C10.12 7.53 9.92 7.53 9.73 7.53Z" />
-                        </svg>
-                        <span>Acessar Grupo VIP WhatsApp</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setWhatsappModalOpen(true)}
-                        className="w-full py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#1E1B26] bg-slate-50 dark:bg-[#0B0911] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <span>Ver Celular & Benefícios</span>
-                      </button>
-                    )
-                  ) : m.modelGlb ? (
-                    // Cards 3D de Placas: 100K a 10M
-                    isUnlocked ? (
-                      <div className="grid grid-cols-2 gap-2">
+              {/* Card Horizontal Estilo GG Checkout */}
+              <div
+                onClick={() => handleMilestoneClick(milestone)}
+                className={`rounded-2xl border p-4 sm:p-5 transition-all duration-200 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 cursor-pointer ${
+                  isCurrentTarget
+                    ? 'border-blue-500/90 dark:border-violet-500/90 ring-1 ring-blue-500/20 dark:ring-violet-500/25 bg-blue-50/20 dark:bg-[#0D0B14] shadow-lg shadow-violet-500/5'
+                    : isConquered
+                    ? 'border-slate-200 dark:border-[#1E1B26] bg-white dark:bg-[#0E0C15] hover:border-violet-400/50 shadow-xs'
+                    : 'border-slate-200/90 dark:border-[#16131F] bg-white/80 dark:bg-[#090810] hover:border-violet-500/30 hover:bg-slate-50/40 dark:hover:bg-[#0C0A13]'
+                }`}
+              >
+                {/* Lado Esquerdo: Imagem + Detalhes */}
+                <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+                  {/* Container da Imagem com Contorno Suave */}
+                  <div className="w-20 h-24 sm:w-24 sm:h-28 shrink-0 rounded-2xl bg-slate-50 dark:bg-[#06050A] border border-slate-200/90 dark:border-white/10 overflow-hidden flex items-center justify-center relative p-2 shadow-inner group-hover:scale-105 transition-transform duration-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={milestone.imageSrc}
+                      alt={milestone.name}
+                      className="w-full h-full object-contain filter drop-shadow-md"
+                    />
+
+                    {/* Badge 3D quando for placa */}
+                    {milestone.modelGlb && (
+                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-[9px] font-mono font-bold text-white border border-white/15">
+                        3D
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Textos & Botões de Ação */}
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-[#F8FAFC]">
+                        {milestone.name}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-[#94A3B8]">
+                        {milestone.badgeTag}
+                      </span>
+                    </div>
+
+                    <div className="text-xs sm:text-sm font-extrabold text-blue-600 dark:text-blue-400 font-mono">
+                      {milestone.heading}
+                    </div>
+
+                    <p className="text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed max-w-xl line-clamp-2">
+                      {milestone.description}
+                    </p>
+
+                    {/* Botões Internos conforme o Screenshot GG Checkout */}
+                    <div className="pt-1 flex items-center gap-2 flex-wrap">
+                      {milestone.type === 'starter_community' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setWhatsappModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs cursor-pointer transition-all"
+                          >
+                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2" />
+                            </svg>
+                            <span>Entrar no WhatsApp</span>
+                          </button>
+                        </>
+                      ) : isCurrentTarget ? (
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-blue-600 dark:bg-violet-600 px-3 py-1 rounded-lg shadow-sm">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                          Você está aqui
+                        </span>
+                      ) : milestone.modelGlb ? (
                         <button
                           type="button"
-                          onClick={() => setViewer3DMilestone(m)}
-                          className="py-2.5 px-3 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#262132] bg-slate-50 dark:bg-[#121016] text-slate-800 dark:text-[#E2E8F0] hover:border-violet-500/50 hover:bg-violet-500/10 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewer3DMilestone(milestone);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-violet-600 hover:text-white dark:bg-white/5 dark:hover:bg-violet-600 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 transition-all cursor-pointer"
                         >
-                          <svg className="w-3.5 h-3.5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg className="w-3 h-3 text-violet-500 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
                           </svg>
-                          <span>Girar 3D</span>
+                          <span>Ver em 3D (360°)</span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setClaimModalMilestone(m)}
-                          className="py-2.5 px-3 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          <span>Resgatar</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setViewer3DMilestone(m)}
-                        className="w-full py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#1E1B26] bg-slate-50 dark:bg-[#0B0911] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white hover:border-violet-500/40 transition-all cursor-pointer flex items-center justify-center gap-2 group-hover:bg-violet-600/10"
-                      >
-                        <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
-                        </svg>
-                        <span>Inspecionar em 3D (360°)</span>
-                      </button>
-                    )
-                  ) : (
-                    // Cards de Colecionável (50K Pulseiras)
-                    isUnlocked ? (
-                      <button
-                        type="button"
-                        onClick={() => setClaimModalMilestone(m)}
-                        className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 shadow-md shadow-violet-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                        </svg>
-                        <span>Resgatar Pulseiras (Frete Grátis)</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setPreviewMilestone(m)}
-                        className="w-full py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#1E1B26] bg-slate-50 dark:bg-[#0B0911] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <span>Ver Detalhes do Colecionável</span>
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 4. MODO 2: LINHA DO TEMPO SEQUENCIAL                                      */}
-      {/* ========================================================================= */}
-      {viewMode === 'timeline' && (
-        <div className="relative pl-6 sm:pl-10 space-y-6">
-          <div className="absolute left-[11px] sm:left-[19px] top-6 bottom-6 w-[2px] border-l-2 border-dashed border-slate-200 dark:border-[#1E1B26] pointer-events-none" />
-
-          {filteredMilestones.map((milestone) => {
-            const isConquered = totalRevenue >= milestone.target;
-            const isCurrentTarget = nextMilestone.id === milestone.id && !isConquered;
-            const needed = Math.max(0, milestone.target - totalRevenue);
-            const percent = Math.min(100, Math.round((totalRevenue / milestone.target) * 100));
-
-            return (
-              <div key={milestone.id} className="relative group">
-                {/* Nó do timeline */}
-                <div
-                  className={`absolute -left-6 sm:-left-10 top-6 -translate-x-1/2 w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm z-10 transition-all ${
-                    isConquered
-                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-4 ring-white dark:ring-[#08070C]'
-                      : isCurrentTarget
-                      ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/40 ring-4 ring-violet-500/20'
-                      : 'bg-slate-100 dark:bg-[#121016] text-slate-400 dark:text-[#64748B] border border-slate-200 dark:border-[#1E1B26] ring-4 ring-white dark:ring-[#08070C]'
-                  }`}
-                >
-                  {isConquered ? (
-                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  ) : isCurrentTarget ? (
-                    <span>{milestone.id}</span>
-                  ) : (
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                  )}
-                </div>
-
-                {/* Card de Conquista */}
-                <div
-                  className={`rounded-2xl border p-4 sm:p-6 transition-all relative overflow-hidden ${
-                    isCurrentTarget
-                      ? 'border-violet-500/80 bg-violet-50/20 dark:bg-[#0F0E14] shadow-xl ring-1 ring-violet-500/30'
-                      : isConquered
-                      ? 'border-slate-200 dark:border-[#262132] bg-white dark:bg-[#121016] shadow-sm'
-                      : 'border-slate-200 dark:border-[#1E1B26] bg-slate-50/50 dark:bg-[#0E0B12]/80 opacity-90'
-                  }`}
-                >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-                    {/* Visual & Textos */}
-                    <div className="flex items-start sm:items-center gap-4 sm:gap-6 min-w-0">
-                      <div
-                        onClick={() => {
-                          if (milestone.modelGlb) {
-                            setViewer3DMilestone(milestone);
-                          } else if (milestone.type === 'community') {
-                            setWhatsappModalOpen(true);
-                          } else {
-                            setPreviewMilestone(milestone);
-                          }
-                        }}
-                        className="w-20 h-24 sm:w-24 sm:h-28 shrink-0 rounded-xl bg-slate-50 dark:bg-[#08070C] border border-slate-200/90 dark:border-[#1E1B26] overflow-hidden flex items-center justify-center relative p-1.5 shadow-inner group-hover:scale-105 transition-transform cursor-pointer"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={milestone.imageSrc}
-                          alt={milestone.name}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-[#F8FAFC]">
-                            {milestone.name}
-                          </span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-[#94A3B8]">
-                            {milestone.tag}
-                          </span>
-                        </div>
-
-                        <div className="text-sm font-extrabold text-blue-600 dark:text-blue-400 font-mono">
-                          {milestone.heading}
-                        </div>
-
-                        <p className="text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed max-w-lg">
-                          {milestone.description}
-                        </p>
-
-                        {isCurrentTarget && (
-                          <div className="pt-1">
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-violet-600 px-3 py-1 rounded-full shadow-sm">
-                              <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                              Você está aqui
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      ) : null}
                     </div>
+                  </div>
+                </div>
 
-                    {/* Lado Direito: Status e Ação */}
-                    <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center border-t md:border-t-0 pt-3 md:pt-0 border-slate-200 dark:border-[#1E1B26] shrink-0 text-right">
-                      {isConquered ? (
-                        <div className="space-y-2 text-right">
-                          <span className="inline-block text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                            ✓ Conquistado
-                          </span>
-                          <div>
-                            {milestone.type === 'community' ? (
-                              <button
-                                type="button"
-                                onClick={() => setWhatsappModalOpen(true)}
-                                className="block w-full text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-xl transition-all shadow-md shadow-emerald-600/20 cursor-pointer"
-                              >
-                                Grupo WhatsApp
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => setClaimModalMilestone(milestone)}
-                                className="block w-full text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 px-4 py-2 rounded-xl transition-all shadow-md shadow-violet-600/20 cursor-pointer"
-                              >
-                                Resgatar Troféu
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-[#64748B]">
-                            FALTAM
-                          </div>
-                          <div className="text-base sm:text-lg font-black text-slate-900 dark:text-[#F8FAFC] font-mono">
-                            {formatMZN(needed)}
-                          </div>
-                          <div className="text-[11px] text-slate-500 dark:text-[#64748B]">
-                            {percent}% do caminho
-                          </div>
+                {/* Lado Direito: Status / Faltam X MT */}
+                <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center border-t md:border-t-0 pt-3 md:pt-0 border-slate-200 dark:border-[#1E1B26] shrink-0 text-right">
+                  {isConquered ? (
+                    <div className="space-y-2 text-right">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1 rounded-full">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Conquistado
+                      </span>
+
+                      {milestone.type !== 'starter_community' && milestone.type !== 'community' && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setClaimModalMilestone(milestone);
+                            }}
+                            className="block w-full text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 px-4 py-1.5 rounded-xl transition-all shadow-md shadow-violet-600/20 cursor-pointer"
+                          >
+                            Resgatar Troféu
+                          </button>
                         </div>
                       )}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-[#64748B]">
+                        FALTAM
+                      </div>
+                      <div className="text-base sm:text-lg font-black text-slate-900 dark:text-[#F8FAFC] font-mono">
+                        {formatMZN(needed)}
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-[#64748B]">
+                        {percent}% concluído
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          );
+        })}
+      </div>
 
       {/* ========================================================================= */}
-      {/* 5. SEÇÃO FAQ: DÚVIDAS FREQUENTES                                          */}
+      {/* 4. SEÇÃO FAQ: DÚVIDAS FREQUENTES                                          */}
       {/* ========================================================================= */}
       <div className="pt-6 space-y-4">
         <div className="space-y-1">
@@ -805,7 +510,7 @@ export default function AwardsPage() {
             return (
               <div
                 key={faq.question}
-                className="rounded-2xl border border-slate-200 dark:border-[#1E1B26] bg-white dark:bg-[#121016] overflow-hidden transition-colors shadow-xs"
+                className="rounded-2xl border border-slate-200 dark:border-[#1E1B26] bg-white dark:bg-[#0E0C15] overflow-hidden transition-colors shadow-xs"
               >
                 <button
                   type="button"
@@ -835,25 +540,25 @@ export default function AwardsPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 6. MODAL: ACESSO AO GRUPO VIP WHATSAPP (25K)                              */}
+      {/* 5. MODAL: ACESSO AO GRUPO VIP WHATSAPP (COM MOCKUP DE CELULAR)            */}
       {/* ========================================================================= */}
       {whatsappModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#121018] border border-slate-200 dark:border-[#252033] rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative text-slate-900 dark:text-[#F8FAFC]">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#252033]">
-              <div className="flex items-center gap-2.5">
+            <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-[#252033] flex items-center justify-between bg-slate-50/70 dark:bg-[#0E0C15]/80">
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                   <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19.01L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67" />
+                    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.59 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19.01L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.33C9.33 7.33 9 7.4 8.73 7.69C8.46 7.98 7.7 8.7 7.7 10.15C7.7 11.61 8.76 13.01 8.91 13.21C9.06 13.41 11 16.39 13.94 17.66C14.64 17.96 15.18 18.14 15.61 18.28C16.31 18.5 16.95 18.47 17.45 18.39C18.01 18.31 19.18 17.68 19.42 17C19.66 16.32 19.66 15.74 19.59 15.62C19.52 15.5 19.33 15.43 19.04 15.29C18.75 15.14 17.33 14.44 17.07 14.34C16.81 14.24 16.62 14.19 16.43 14.48C16.24 14.77 15.7 15.41 15.54 15.6C15.38 15.79 15.22 15.81 14.93 15.67C14.64 15.52 13.71 15.22 12.61 14.24C11.75 13.48 11.17 12.53 11 12.24C10.83 11.95 10.98 11.79 11.13 11.65C11.26 11.52 11.42 11.31 11.56 11.14C11.7 10.97 11.75 10.85 11.85 10.66C11.95 10.47 11.9 10.3 11.82 10.15C11.74 10.01 11.17 8.6 10.93 8.03C10.7 7.47 10.46 7.55 10.28 7.54C10.12 7.53 9.92 7.53 9.73 7.53Z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
-                    Comunidade VIP WhatsApp
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">
+                    Comunidade VIP WhatsApp (25K Club)
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
-                    Marco 25.000 MT • Apex Sellers Club
+                    Marco 25.000 MT • Networking Exclusivo de Sellers em Moçambique
                   </p>
                 </div>
               </div>
@@ -930,7 +635,7 @@ export default function AwardsPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* 7. MODAL: RESGATE DE TROFÉU / PULSEIRA (ENVIO FÍSICO)                     */}
+      {/* 6. MODAL: RESGATE DE TROFÉU / PULSEIRA (ENVIO FÍSICO)                     */}
       {/* ========================================================================= */}
       {claimModalMilestone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1076,7 +781,7 @@ export default function AwardsPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* 8. MODAL: PREVIEW 3D & DETALHES TÉCNICOS DA PLACA / TROFÉU               */}
+      {/* 7. MODAL: PREVIEW DE DETALHES TÉCNICOS (PULSEIRAS)                        */}
       {/* ========================================================================= */}
       {previewMilestone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
@@ -1167,7 +872,7 @@ export default function AwardsPage() {
                   }}
                   className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 shadow-md cursor-pointer"
                 >
-                  Resgatar Este Troféu
+                  Resgatar Este Colecionável
                 </button>
               )}
             </div>
@@ -1176,7 +881,7 @@ export default function AwardsPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* 9. MODAL INTERATIVO 3D (THREE.JS / WEBGL COM GLTF LOADER 360°)            */}
+      {/* 8. MODAL INTERATIVO 3D (THREE.JS / WEBGL COM GLTF LOADER 360°)            */}
       {/* ========================================================================= */}
       {viewer3DMilestone && viewer3DMilestone.modelGlb && (
         <PlaqueViewer3D
