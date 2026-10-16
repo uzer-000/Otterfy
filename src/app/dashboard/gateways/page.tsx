@@ -545,11 +545,22 @@ export default function GatewaysPage() {
                 }`}
               >
                 <div>
-                  {/* Top: Icon + Title + Status Switch */}
+                  {/* Top: Branded Logo Container + Title + Status Switch */}
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                        {renderIcon(g.iconType)}
+                      {/* Prominent High-Definition Logo Container */}
+                      <div className="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-200 dark:border-white/10 p-2 flex items-center justify-center shrink-0">
+                        {g.logoUrl ? (
+                          <Image
+                            src={g.logoUrl}
+                            alt={g.name}
+                            width={44}
+                            height={44}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          renderIcon(g.iconType)
+                        )}
                       </div>
                       <div>
                         <h3 className="text-base font-bold text-[#F8FAFC] leading-snug">{g.name}</h3>
@@ -655,7 +666,16 @@ export default function GatewaysPage() {
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <h4 className="text-xs font-bold text-[#F8FAFC]">{b.name}</h4>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-white shadow-sm border border-slate-200 dark:border-white/10 p-1 flex items-center justify-center shrink-0">
+                      {b.logoUrl ? (
+                        <Image src={b.logoUrl} alt={b.name} width={24} height={24} className="w-full h-full object-contain" />
+                      ) : (
+                        renderIcon(b.iconType)
+                      )}
+                    </div>
+                    <h4 className="text-xs font-bold text-[#F8FAFC]">{b.name}</h4>
+                  </div>
                   <button
                     type="button"
                     onClick={(e) => handleToggleGatewayQuick(b, e)}
@@ -748,9 +768,19 @@ export default function GatewaysPage() {
             }`}
           >
             <div className="flex items-center justify-between pb-3 border-b border-[#252033] mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-violet-600/15 border border-violet-500/25 flex items-center justify-center">
-                  {renderIcon(selectedGateway.iconType)}
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-slate-200 dark:border-white/10 p-1.5 flex items-center justify-center shrink-0">
+                  {selectedGateway.logoUrl ? (
+                    <Image
+                      src={selectedGateway.logoUrl}
+                      alt={selectedGateway.name}
+                      width={38}
+                      height={38}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    renderIcon(selectedGateway.iconType)
+                  )}
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[#F8FAFC]">Configurar {selectedGateway.name}</h3>

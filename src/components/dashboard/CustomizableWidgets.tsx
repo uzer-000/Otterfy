@@ -84,6 +84,7 @@ interface Transaction {
   status: string;
   productName: string;
   date: string;
+  method?: string;
 }
 
 interface CustomizableWidgetsProps {

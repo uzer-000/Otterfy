@@ -7,6 +7,7 @@ import { zenofyProvider } from '@/services/payment/zenofy';
 import { formatMZN } from '@/lib/utils';
 import { LegalFooter } from '@/components/legal/LegalFooter';
 import { BUSINESS_INFO } from '@/lib/legal';
+import PaymentMethodBadge from '@/components/ui/PaymentMethodBadge';
 
 interface PageProps {
   searchParams: Promise<{
@@ -268,6 +269,11 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
               <span className="text-base font-black text-[#059669]">
                 {formatMZN(order.amount)}
               </span>
+            </div>
+
+            <div className="flex justify-between items-center pb-2 border-b border-gray-200">
+              <span className="text-gray-600">Método de Pagamento</span>
+              <PaymentMethodBadge method={order.transaction?.method || 'MPESA'} size="sm" />
             </div>
 
             <div className="flex justify-between items-center pb-2 border-b border-gray-200">

@@ -1,6 +1,7 @@
 'use client';
 
 import { formatMZN } from '@/lib/utils';
+import PaymentMethodBadge from '@/components/ui/PaymentMethodBadge';
 
 export default function PaymentsTable({ payments, loading }: { payments: any[], loading: boolean }) {
   if (loading) {
@@ -36,7 +37,7 @@ export default function PaymentsTable({ payments, loading }: { payments: any[], 
         </thead>
         <tbody className="divide-y divide-[#1E1B26] bg-[#08070C]">
           {payments.map((p) => {
-            const method = p.transaction?.method || p.method;
+            const method = p.transaction?.method || p.method || 'MPESA';
             return (
               <tr key={p.id} className="hover:bg-[#1A1820] transition-colors text-[#F8FAFC]">
                 <td className="px-6 py-4 font-mono text-xs font-medium text-[#F8FAFC]">{p.id}</td>
@@ -47,19 +48,7 @@ export default function PaymentsTable({ payments, loading }: { payments: any[], 
                   {p.customerPhone || p.customer?.phone || '-'}
                 </td>
                 <td className="px-6 py-4">
-                  {method === 'EMOLA' ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-600/10 text-violet-400 border border-violet-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                      eMola
-                    </span>
-                  ) : method === 'MPESA' ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-fuchsia-600/10 text-fuchsia-400 border border-fuchsia-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400" />
-                      M-Pesa
-                    </span>
-                  ) : (
-                    <span className="text-xs text-[#64748B]">—</span>
-                  )}
+                  <PaymentMethodBadge method={method} size="sm" />
                 </td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${

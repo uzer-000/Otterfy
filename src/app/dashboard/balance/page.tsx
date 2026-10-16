@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatMZN } from '@/lib/utils';
+import PaymentMethodBadge, { PaymentMethodOptionCard } from '@/components/ui/PaymentMethodBadge';
 
 interface BalanceData {
   grossRevenue: number;
@@ -643,13 +644,21 @@ export default function BalancePage() {
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-violet-600/15 border border-violet-500/30 text-violet-400 flex items-center justify-center font-bold text-xs">
-                    {acc.type === 'MPESA' ? 'MP' : acc.type === 'EMOLA' ? 'EM' : 'BC'}
-                  </span>
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm border border-slate-200 dark:border-white/10 p-1 flex items-center justify-center shrink-0">
+                    {acc.type === 'MPESA' ? (
+                      <Image src="/gateways/Mpesa.png" alt="M-Pesa" width={30} height={30} className="w-full h-full object-contain" />
+                    ) : acc.type === 'EMOLA' ? (
+                      <Image src="/gateways/emola.png" alt="e-Mola" width={30} height={30} className="w-full h-full object-contain" />
+                    ) : (
+                      <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 3l9 7H3l9-7z" />
+                      </svg>
+                    )}
+                  </div>
                   <div>
                     <h4 className="text-xs font-bold text-[#F8FAFC]">{acc.holderName}</h4>
                     <span className="text-[11px] text-[#94A3B8]">
-                      {acc.type === 'BANK' ? acc.bankName : acc.type}
+                      {acc.type === 'BANK' ? acc.bankName : acc.type === 'MPESA' ? 'Vodacom M-Pesa' : 'Movitel e-Mola'}
                     </span>
                   </div>
                 </div>
@@ -807,9 +816,7 @@ export default function BalancePage() {
                       {item.description}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#0F0E14] border border-[#1E1B26] text-[#A78BFA]">
-                        {item.method}
-                      </span>
+                      <PaymentMethodBadge method={item.method} size="xs" />
                     </td>
                     <td className="py-3 px-4">
                       {item.status === 'COMPLETED' ? (
@@ -885,54 +892,30 @@ export default function BalancePage() {
             <form onSubmit={handleWithdrawSubmit} className="space-y-4">
               {/* Method Selector */}
               <div>
-                <label className="block text-xs font-bold text-[#94A3B8] mb-1.5 uppercase tracking-wide">
-                  Método de Destino
+                <label className="block text-xs font-bold text-[#94A3B8] mb-2 uppercase tracking-wide">
+                  Selecione o Canal de Saque
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setWithdrawMethod('MPESA')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all cursor-pointer ${
-                      withdrawMethod === 'MPESA'
-                        ? 'border-violet-500 bg-violet-600/20 text-white shadow-md'
-                        : isLight
-                          ? 'border-slate-200 bg-slate-50 text-slate-700'
-                          : 'border-[#1E1B26] bg-[#0F0E14] text-[#94A3B8]'
-                    }`}
-                  >
-                    <span>M-Pesa</span>
-                    <span className="text-[10px] text-emerald-400 font-normal">Instantâneo</span>
-                  </button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <PaymentMethodOptionCard
+                    method="MPESA"
+                    selected={withdrawMethod === 'MPESA'}
+                    onSelect={() => setWithdrawMethod('MPESA')}
+                    prefixHelper="Instantâneo (0% taxa)"
+                  />
 
-                  <button
-                    type="button"
-                    onClick={() => setWithdrawMethod('EMOLA')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all cursor-pointer ${
-                      withdrawMethod === 'EMOLA'
-                        ? 'border-violet-500 bg-violet-600/20 text-white shadow-md'
-                        : isLight
-                          ? 'border-slate-200 bg-slate-50 text-slate-700'
-                          : 'border-[#1E1B26] bg-[#0F0E14] text-[#94A3B8]'
-                    }`}
-                  >
-                    <span>e-Mola</span>
-                    <span className="text-[10px] text-emerald-400 font-normal">Instantâneo</span>
-                  </button>
+                  <PaymentMethodOptionCard
+                    method="EMOLA"
+                    selected={withdrawMethod === 'EMOLA'}
+                    onSelect={() => setWithdrawMethod('EMOLA')}
+                    prefixHelper="Instantâneo (0% taxa)"
+                  />
 
-                  <button
-                    type="button"
-                    onClick={() => setWithdrawMethod('BANK')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all cursor-pointer ${
-                      withdrawMethod === 'BANK'
-                        ? 'border-violet-500 bg-violet-600/20 text-white shadow-md'
-                        : isLight
-                          ? 'border-slate-200 bg-slate-50 text-slate-700'
-                          : 'border-[#1E1B26] bg-[#0F0E14] text-[#94A3B8]'
-                    }`}
-                  >
-                    <span>Banco (NIB)</span>
-                    <span className="text-[10px] text-sky-400 font-normal">Até 2 horas</span>
-                  </button>
+                  <PaymentMethodOptionCard
+                    method="BANK"
+                    selected={withdrawMethod === 'BANK'}
+                    onSelect={() => setWithdrawMethod('BANK')}
+                    prefixHelper="Até 2h (Bancos MZ)"
+                  />
                 </div>
               </div>
 
@@ -1196,7 +1179,18 @@ export default function BalancePage() {
               </button>
             </div>
 
-            <div className="text-center py-4 border-b border-[#252033] space-y-1">
+            <div className="flex flex-col items-center justify-center py-4 border-b border-[#252033] space-y-2">
+              <div className="w-14 h-14 rounded-2xl bg-white shadow-md border p-1.5 flex items-center justify-center">
+                {selectedReceipt.method === 'MPESA' ? (
+                  <Image src="/gateways/Mpesa.png" alt="M-Pesa" width={42} height={42} className="w-full h-full object-contain" />
+                ) : selectedReceipt.method === 'EMOLA' ? (
+                  <Image src="/gateways/emola.png" alt="e-Mola" width={42} height={42} className="w-full h-full object-contain" />
+                ) : (
+                  <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 3l9 7H3l9-7z" />
+                  </svg>
+                )}
+              </div>
               <span className="text-3xl font-bold font-mono text-emerald-400">
                 {formatMZN(selectedReceipt.amount)}
               </span>

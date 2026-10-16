@@ -785,13 +785,14 @@ export const dbStore = {
       today: { revenue: todayRev, salesCount: todayOrders.length, percentChange: 0 },
       thisWeek: { revenue: weekRev, salesCount: weekOrders.length, percentChange: 0 },
       thisMonth: { revenue: monthRev, salesCount: monthOrders.length, percentChange: 0 },
-      recentTransactions: orders.slice(0, 6).map(o => ({
+      recentTransactions: orders.slice(0, 20).map(o => ({
         id: o.id,
         reference: o.id,
         amount: o.amount,
         status: o.status,
         productName: o.product?.name || 'Produto',
         date: o.createdAt,
+        method: o.transaction?.method || 'MPESA',
       })),
     };
   },

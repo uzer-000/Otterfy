@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { formatMZN } from '@/lib/utils';
+import { PaymentMethodOptionCard } from '@/components/ui/PaymentMethodBadge';
 import {
   BUSINESS_INFO,
   COOKIE_CONSENT_UPDATED_EVENT,
@@ -418,60 +420,46 @@ export default function CheckoutForm({
             />
           </div>
 
-          {/* Método de Pagamento Móvel (Acessível via Teclado) */}
+          {/* Método de Pagamento Móvel (Acessível via Teclado com Logos e Containers Visuais) */}
           <fieldset>
-            <legend className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
-              Carteira Móvel <span className="text-red-600" aria-hidden="true">*</span>
+            <legend className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">
+              Selecione o Meio de Pagamento <span className="text-red-600" aria-hidden="true">*</span>
             </legend>
-            <div className="grid grid-cols-2 gap-2.5">
-              <label
-                className={`relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs sm:text-sm font-bold cursor-pointer transition-all ${
-                  paymentMethod === 'MPESA'
-                    ? 'border-[#059669] bg-emerald-50/80 text-slate-900 ring-2 ring-emerald-500/20'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="MPESA"
-                  checked={paymentMethod === 'MPESA'}
-                  onChange={() => setPaymentMethod('MPESA')}
-                  className="sr-only"
-                />
-                <span>M-Pesa (84 / 85)</span>
-              </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <PaymentMethodOptionCard
+                method="MPESA"
+                selected={paymentMethod === 'MPESA'}
+                onSelect={() => setPaymentMethod('MPESA')}
+                prefixHelper="84 • 85 (Vodacom M-Pesa)"
+              />
 
-              <label
-                className={`relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs sm:text-sm font-bold cursor-pointer transition-all ${
-                  paymentMethod === 'EMOLA'
-                    ? 'border-[#059669] bg-emerald-50/80 text-slate-900 ring-2 ring-emerald-500/20'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="EMOLA"
-                  checked={paymentMethod === 'EMOLA'}
-                  onChange={() => setPaymentMethod('EMOLA')}
-                  className="sr-only"
-                />
-                <span>e-Mola (86 / 87)</span>
-              </label>
+              <PaymentMethodOptionCard
+                method="EMOLA"
+                selected={paymentMethod === 'EMOLA'}
+                onSelect={() => setPaymentMethod('EMOLA')}
+                prefixHelper="86 • 87 (Movitel e-Mola)"
+              />
             </div>
           </fieldset>
 
-          {/* Número de Telefone */}
+          {/* Número de Telefone com Identificação Visual do Provedor */}
           <div>
-            <label htmlFor="phone" className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
-              Número de Telefone ({paymentMethod === 'MPESA' ? 'M-Pesa' : 'e-Mola'}) <span className="text-red-600" aria-hidden="true">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label htmlFor="phone" className="text-xs sm:text-sm font-bold text-slate-800">
+                Número de Telemóvel ({paymentMethod === 'MPESA' ? 'M-Pesa' : 'e-Mola'}) <span className="text-red-600" aria-hidden="true">*</span>
+              </label>
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>USSD Push Automático</span>
+              </span>
+            </div>
+
             <div className="relative flex items-center">
-              <span className="absolute left-3.5 text-xs font-bold text-slate-600 select-none flex items-center gap-1 pr-2 border-r border-slate-300">
+              <span className="absolute left-3 text-xs font-bold text-slate-600 select-none flex items-center gap-1 pr-2 border-r border-slate-300">
                 <span aria-hidden="true">🇲🇿</span>
                 <span>+258</span>
               </span>
+
               <input
                 id="phone"
                 name="phone"
@@ -485,13 +473,24 @@ export default function CheckoutForm({
                 aria-describedby={validationErrors.phone ? 'phone-error' : 'phone-help'}
                 className={`w-full bg-slate-50/60 hover:bg-white focus:bg-white border ${
                   validationErrors.phone ? 'border-red-600 focus:border-red-600' : 'border-slate-300 focus:border-[#059669]'
-                } rounded-xl pl-[78px] pr-4 py-3 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-3 focus:ring-emerald-500/20 transition-all font-semibold tracking-wide shadow-[0_1px_2px_rgba(0,0,0,0.02)]`}
+                } rounded-xl pl-[76px] pr-12 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-3 focus:ring-emerald-500/20 transition-all font-semibold tracking-wide shadow-[0_1px_2px_rgba(0,0,0,0.02)]`}
                 placeholder="84 / 85 / 86 / 87 XXX XXXX"
                 required
               />
+
+              {/* Mini visual logo container on the right of the phone input */}
+              <div className="absolute right-3 w-7 h-7 rounded-lg bg-white shadow-sm border border-slate-200 p-0.5 flex items-center justify-center shrink-0">
+                <Image
+                  src={paymentMethod === 'MPESA' ? '/gateways/Mpesa.png' : '/gateways/emola.png'}
+                  alt={paymentMethod}
+                  width={22}
+                  height={22}
+                  className="w-full h-full object-contain"
+                />
+              </div>
             </div>
             <p id="phone-help" className="text-[11px] text-slate-600 mt-1">
-              Usado exclusivamente para enviar a confirmação de pagamento (STK Push) ao seu telemóvel.
+              Usado exclusivamente para enviar a notificação de confirmação (PIN) diretamente ao seu telemóvel.
             </p>
             {validationErrors.phone && (
               <p id="phone-error" role="alert" className="text-red-600 text-xs mt-1 font-semibold">
@@ -716,16 +715,36 @@ export default function CheckoutForm({
       {/* Overlay de Processamento Seguro durante submissão do checkout */}
       {status === 'submitting' && (
         <div
-          className="fixed inset-0 z-[9995] flex flex-col items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn select-none"
+          className="fixed inset-0 z-[9995] flex flex-col items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn select-none"
           role="status"
           aria-live="polite"
           aria-label="Processando pagamento..."
         >
           <div className="bg-white rounded-3xl p-7 sm:p-8 max-w-sm w-full mx-auto flex flex-col items-center text-center shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin mb-4" />
-            <h4 className="text-base font-bold text-gray-900">A Iniciar Pagamento</h4>
-            <p className="text-xs text-gray-600 mt-1.5 max-w-[260px] leading-relaxed">
-              A comunicar com o gateway móvel ({paymentMethod === 'MPESA' ? 'M-Pesa' : 'e-Mola'}). Verifique o seu telemóvel.
+            {/* Branded Logo Container with Pulsing Ring */}
+            <div className="relative mb-4">
+              <div
+                className="w-16 h-16 rounded-2xl bg-white shadow-lg border-2 p-1.5 flex items-center justify-center"
+                style={{ borderColor: paymentMethod === 'MPESA' ? '#E60000' : '#FF6600' }}
+              >
+                <Image
+                  src={paymentMethod === 'MPESA' ? '/gateways/Mpesa.png' : '/gateways/emola.png'}
+                  alt={paymentMethod}
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <span
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white animate-ping"
+                style={{ backgroundColor: paymentMethod === 'MPESA' ? '#E60000' : '#FF6600' }}
+              />
+            </div>
+
+            <div className="w-8 h-8 border-3 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin mb-3" />
+            <h4 className="text-base font-bold text-gray-900">A Iniciar Pagamento {paymentMethod === 'MPESA' ? 'M-Pesa' : 'e-Mola'}</h4>
+            <p className="text-xs text-gray-600 mt-1 max-w-[260px] leading-relaxed">
+              A comunicar com a operadora móvel. Irá receber o pedido de confirmação com PIN no seu telemóvel em segundos.
             </p>
           </div>
         </div>

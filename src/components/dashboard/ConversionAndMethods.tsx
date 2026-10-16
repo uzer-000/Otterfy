@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 interface ConversionAndMethodsProps {
@@ -105,51 +106,73 @@ export default function ConversionAndMethods({
         </div>
 
         <div className="space-y-4 my-auto">
-          {/* Linha 1: eMola */}
-          <div className="space-y-1.5">
+          {/* Linha 1: eMola com Container de Imagem Oficial */}
+          <div className="space-y-2 p-2.5 rounded-xl bg-orange-500/[0.04] border border-orange-500/10">
             <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold text-[#F8FAFC] flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6]" />
-                eMola
-              </span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center p-1 shrink-0 border border-slate-200">
+                  <Image
+                    src="/gateways/emola.png"
+                    alt="e-Mola"
+                    width={24}
+                    height={24}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-sm text-[#F8FAFC] block leading-tight">e-Mola</span>
+                  <span className="text-[10px] text-orange-400 font-medium">Movitel (86 • 87)</span>
+                </div>
+              </div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-[#F8FAFC]">
+                <span className="font-bold text-[#F8FAFC] text-sm">
                   MT {emolaAmount.toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
-                <span className="text-[#94A3B8] font-mono text-[11px] w-8 text-right">
+                <span className="text-orange-400 font-mono font-bold text-xs w-9 text-right bg-orange-500/10 px-1.5 py-0.5 rounded-md border border-orange-500/20">
                   {emolaPercentage}%
                 </span>
               </div>
             </div>
-            {/* Progress bar */}
+            {/* Progress bar in Movitel Orange */}
             <div className="h-2 w-full bg-[#0F0E14] rounded-full overflow-hidden border border-[#1E1B26]">
               <div
-                className="h-full bg-gradient-to-r from-violet-600 to-fuchsia-500 rounded-full transition-all duration-500"
+                className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-500 shadow-sm"
                 style={{ width: `${emolaPercentage}%` }}
               />
             </div>
           </div>
 
-          {/* Linha 2: M-Pesa */}
-          <div className="space-y-1.5">
+          {/* Linha 2: M-Pesa com Container de Imagem Oficial */}
+          <div className="space-y-2 p-2.5 rounded-xl bg-red-500/[0.04] border border-red-500/10">
             <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold text-[#F8FAFC] flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#A78BFA]" />
-                M-Pesa
-              </span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center p-1 shrink-0 border border-slate-200">
+                  <Image
+                    src="/gateways/Mpesa.png"
+                    alt="M-Pesa"
+                    width={24}
+                    height={24}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-sm text-[#F8FAFC] block leading-tight">M-Pesa</span>
+                  <span className="text-[10px] text-red-400 font-medium">Vodacom (84 • 85)</span>
+                </div>
+              </div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-[#F8FAFC]">
+                <span className="font-bold text-[#F8FAFC] text-sm">
                   MT {mpesaAmount.toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
-                <span className="text-[#94A3B8] font-mono text-[11px] w-8 text-right">
+                <span className="text-red-400 font-mono font-bold text-xs w-9 text-right bg-red-500/10 px-1.5 py-0.5 rounded-md border border-red-500/20">
                   {mpesaPercentage}%
                 </span>
               </div>
             </div>
-            {/* Progress bar */}
+            {/* Progress bar in Vodacom Red */}
             <div className="h-2 w-full bg-[#0F0E14] rounded-full overflow-hidden border border-[#1E1B26]">
               <div
-                className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-500"
+                className="h-full bg-gradient-to-r from-red-600 to-rose-400 rounded-full transition-all duration-500 shadow-sm"
                 style={{ width: `${mpesaPercentage}%` }}
               />
             </div>
@@ -158,7 +181,10 @@ export default function ConversionAndMethods({
 
         {/* Footer info */}
         <div className="pt-3 border-t border-[#1E1B26] flex items-center justify-between text-[11px] text-[#64748B]">
-          <span>Gateway: Zenofy</span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Processamento: Zenofy Live</span>
+          </span>
           <span>Liquidação automática</span>
         </div>
       </div>

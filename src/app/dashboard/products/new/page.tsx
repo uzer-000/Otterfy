@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { formatMZN } from '@/lib/utils';
 import { ZENOFY_PRICE_TIERS, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
@@ -1220,15 +1221,15 @@ export default function NewProductWizardPage() {
             {/* M-PESA */}
             <div
               onClick={() => setAcceptMpesa(!acceptMpesa)}
-              className={`p-5 rounded-2xl border transition-all cursor-pointer flex items-start justify-between ${
+              className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start justify-between select-none ${
                 acceptMpesa
-                  ? 'bg-red-500/10 border-red-500/40 text-white'
+                  ? 'bg-red-500/10 border-red-500/50 text-white shadow-[0_0_20px_rgba(239,68,68,0.15)]'
                   : 'bg-[#0F0E14] border-[#1E1B26] text-[#64748B] opacity-60'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
-                  <img src="/gateways/Mpesa.png" alt="M-Pesa" className="w-full h-full object-contain" />
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-slate-200 p-1.5 flex items-center justify-center shrink-0 overflow-hidden">
+                  <Image src="/gateways/Mpesa.png" alt="M-Pesa" width={36} height={36} className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-[#F8FAFC]">M-Pesa (Vodacom)</h4>
@@ -1245,15 +1246,15 @@ export default function NewProductWizardPage() {
             {/* E-MOLA */}
             <div
               onClick={() => setAcceptEmola(!acceptEmola)}
-              className={`p-5 rounded-2xl border transition-all cursor-pointer flex items-start justify-between ${
+              className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start justify-between select-none ${
                 acceptEmola
-                  ? 'bg-orange-500/10 border-orange-500/40 text-white'
+                  ? 'bg-orange-500/10 border-orange-500/50 text-white shadow-[0_0_20px_rgba(249,115,22,0.15)]'
                   : 'bg-[#0F0E14] border-[#1E1B26] text-[#64748B] opacity-60'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
-                  <img src="/gateways/emola.png" alt="e-Mola" className="w-full h-full object-contain" />
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-slate-200 p-1.5 flex items-center justify-center shrink-0 overflow-hidden">
+                  <Image src="/gateways/emola.png" alt="e-Mola" width={36} height={36} className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-[#F8FAFC]">e-Mola (Movitel)</h4>

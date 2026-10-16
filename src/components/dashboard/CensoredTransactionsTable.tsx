@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { formatMZN } from '@/lib/utils';
+import PaymentMethodBadge from '@/components/ui/PaymentMethodBadge';
 
 interface Transaction {
   id: string;
@@ -11,6 +12,7 @@ interface Transaction {
   status: string;
   productName: string;
   date: string;
+  method?: string;
 }
 
 interface CensoredTransactionsTableProps {
@@ -84,6 +86,7 @@ export default function CensoredTransactionsTable({ transactions }: CensoredTran
               <thead className="bg-[#0F0E14]/70 backdrop-blur-sm text-[#94A3B8] border-b border-[#1E1B26]">
                 <tr>
                   <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Referência</th>
+                  <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Método</th>
                   <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Produto</th>
                   <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Data</th>
                   <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Status</th>
@@ -95,6 +98,9 @@ export default function CensoredTransactionsTable({ transactions }: CensoredTran
                   <tr key={tx.id} className="hover:bg-[#1A1820] transition-colors">
                     <td className="px-6 py-4 text-[#F8FAFC] font-mono text-xs font-medium">
                       {isCensored ? 'OTF-•••••' : tx.reference}
+                    </td>
+                    <td className="px-6 py-4">
+                      <PaymentMethodBadge method={tx.method || 'MPESA'} size="xs" />
                     </td>
                     <td className="px-6 py-4 text-[#F8FAFC] font-medium">
                       {isCensored ? (
