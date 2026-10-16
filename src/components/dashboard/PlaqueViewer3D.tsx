@@ -4,8 +4,16 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
+export interface ModelVariant {
+  name: string;
+  modelGlb: string;
+  color?: string;
+  image?: string;
+}
+
 interface PlaqueViewer3DProps {
   modelUrl?: string;
+  variants?: ModelVariant[];
   fallbackImage: string;
   title: string;
   level: string;
@@ -24,6 +32,7 @@ interface PlaqueViewer3DProps {
 
 export default function PlaqueViewer3D({
   modelUrl,
+  variants,
   fallbackImage,
   title,
   level,
@@ -42,12 +51,20 @@ export default function PlaqueViewer3D({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [loading, setLoading] = useState(Boolean(modelUrl));
+  const [activeModelUrl, setActiveModelUrl] = useState<string | undefined>(
+    modelUrl || variants?.[0]?.modelGlb
+  );
+
+  useEffect(() => {
+    setActiveModelUrl(modelUrl || variants?.[0]?.modelGlb);
+  }, [modelUrl, variants]);
+
+  const [loading, setLoading] = useState(Boolean(activeModelUrl));
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadError, setLoadError] = useState(false);
   const [is3DReady, setIs3DReady] = useState(false);
 
-  // 2D Card Tilt State for Fallback or 2D awards (Pulseiras, Celular)
+  // 2D Card Tilt State for Fallback or 2D awards (Celular WhatsApp)
   const [cardTilt, setCardTilt] = useState({ rotateX: 0, rotateY: 0, shineX: 50, shineY: 50 });
   const [isHovered, setIsHovered] = useState(false);
 
@@ -121,7 +138,7 @@ export default function PlaqueViewer3D({
 
     baseRotationY.current += deltaX * 0.009;
     baseRotationX.current += deltaY * 0.009;
-    // Limit vertical angle so plaque doesn't invert
+    // Limit vertical angle so plaque/bracelet doesn't invert
     baseRotationX.current = Math.max(-Math.PI * 0.35, Math.min(Math.PI * 0.35, baseRotationX.current));
 
     dragStart.current = { x: e.clientX, y: e.clientY };
@@ -145,10 +162,11 @@ export default function PlaqueViewer3D({
     targetTiltY.current = 0;
   };
 
-  // Initialize Three.js WebGL Scene if modelUrl exists
+  // Initialize Three.js WebGL Scene if activeModelUrl exists
   useEffect(() => {
-    if (!modelUrl) {
+    if (!activeModelUrl) {
       setLoading(false);
+      setIs3DReady(false);
       return;
     }
 
@@ -158,6 +176,11 @@ export default function PlaqueViewer3D({
 
     let animationFrameId: number;
     let renderer: THREE.WebGLRenderer | null = null;
+
+    setIs3DReady(false);
+    setLoading(true);
+    setLoadProgress(15);
+    setLoadError(false);
 
     // 1. Scene
     const scene = new THREE.Scene();
@@ -209,12 +232,10 @@ export default function PlaqueViewer3D({
     scene.add(specularLight);
 
     // 5. Load GLTF Model
-    setLoading(true);
-    setLoadProgress(15);
     const loader = new GLTFLoader();
 
     loader.load(
-      modelUrl,
+      activeModelUrl,
       (gltf) => {
         const root = gltf.scene;
         modelRef.current = root;
@@ -244,7 +265,7 @@ export default function PlaqueViewer3D({
         root.position.z = -center.z;
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const distance = maxDim * 2.15;
+        const distance = maxDim * (type === 'bracelet' ? 2.3 : 2.15);
 
         camera.position.set(0, 0, distance);
         camera.lookAt(0, 0, 0);
@@ -322,7 +343,7 @@ export default function PlaqueViewer3D({
       renderer?.dispose();
       scene.clear();
     };
-  }, [modelUrl]);
+  }, [activeModelUrl, type]);
 
   const formattedTarget = targetAmount > 0 ? `${targetAmount.toLocaleString('pt-MZ')} MT` : '0 MT';
 
@@ -390,7 +411,7 @@ export default function PlaqueViewer3D({
         </button>
 
         {/* Top Status Pill: STILL LOCKED / DESBLOQUEADO */}
-        <div className="relative z-20 mb-4">
+        <div className="relative z-20 mb-2">
           {isUnlocked ? (
             <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-sm shadow-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -403,7 +424,38 @@ export default function PlaqueViewer3D({
           )}
         </div>
 
-        {/* Center Plaque Viewport (with Mouse Cursor Tracking Parallax + 360° Drag) */}
+        {/* Color/Style Variant Switcher for 3D Wristbands (Roxa / Branca) */}
+        {variants && variants.length > 1 && (
+          <div className="relative z-30 flex items-center gap-1.5 p-1 rounded-full bg-white/10 dark:bg-white/5 border border-white/15 backdrop-blur-md mb-2">
+            {variants.map((v) => {
+              const isSelected = activeModelUrl === v.modelGlb;
+              return (
+                <button
+                  key={v.modelGlb}
+                  type="button"
+                  onClick={() => setActiveModelUrl(v.modelGlb)}
+                  className={`px-3.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    isSelected
+                      ? 'bg-white text-black shadow-md shadow-white/10'
+                      : 'text-slate-300 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full border border-black/20"
+                    style={{
+                      backgroundColor:
+                        v.color ||
+                        (v.name.toLowerCase().includes('roxa') ? '#8b5cf6' : '#ffffff'),
+                    }}
+                  />
+                  <span>{v.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Center Award Viewport (with Mouse Cursor Tracking Parallax + 360° Drag) */}
         <div
           ref={containerRef}
           onPointerMove={handlePointerDragMove}
@@ -413,8 +465,8 @@ export default function PlaqueViewer3D({
           onDoubleClick={handleResetAngle}
           className="relative z-20 w-full h-[330px] sm:h-[350px] flex items-center justify-center cursor-grab active:cursor-grabbing select-none overflow-visible"
         >
-          {/* WebGL 3D Model Canvas (when modelUrl is present and loaded) */}
-          {modelUrl && (
+          {/* WebGL 3D Model Canvas (when activeModelUrl is present and loaded) */}
+          {activeModelUrl && (
             <canvas
               ref={canvasRef}
               style={{ touchAction: 'none' }}
@@ -424,8 +476,8 @@ export default function PlaqueViewer3D({
             />
           )}
 
-          {/* 3D Card Parallax (for 2D awards like pulseiras, phone mockup, or while 3D GLB is loading) */}
-          {(!modelUrl || !is3DReady || loadError) && (
+          {/* 3D Card Parallax (for 2D awards like celular whatsapp, or while 3D GLB is loading) */}
+          {(!activeModelUrl || !is3DReady || loadError) && (
             <div
               className="relative w-64 h-80 flex items-center justify-center transition-transform duration-100 ease-out z-10"
               style={{
@@ -436,7 +488,7 @@ export default function PlaqueViewer3D({
                 }, ${isHovered ? 1.04 : 1}, 1)`,
               }}
             >
-              {/* Plaque Image with Soft Ambient Glow */}
+              {/* Award Image with Soft Ambient Glow */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={fallbackImage}
@@ -460,7 +512,7 @@ export default function PlaqueViewer3D({
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center space-y-3 pointer-events-none">
               <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
                 <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
               </div>
@@ -490,7 +542,7 @@ export default function PlaqueViewer3D({
         {/* Horizontal Divider Line */}
         <div className="relative z-20 w-full border-t border-white/10 my-4" />
 
-        {/* Two-Column Info Bar (MARCO & INSTAGRAM) */}
+        {/* Two-Column Info Bar (MARCO & INSTAGRAM / BENEFÍCIO) */}
         <div className="relative z-20 w-full grid grid-cols-2 gap-4 text-left">
           {/* Left Column: MARCO */}
           <div className="space-y-1">
@@ -508,10 +560,18 @@ export default function PlaqueViewer3D({
               <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
               </svg>
-              <span>INSTAGRAM</span>
+              <span>{type === 'bracelet' ? 'ENVIO FÍSICO' : 'INSTAGRAM'}</span>
             </div>
             <div className="text-xs sm:text-[13px] text-slate-300">
-              <strong className="text-white font-bold">Repost garantido</strong> quando você chegar aqui
+              {type === 'bracelet' ? (
+                <>
+                  <strong className="text-white font-bold">2 Pulseiras Físicas</strong> entregues com frete grátis
+                </>
+              ) : (
+                <>
+                  <strong className="text-white font-bold">Repost garantido</strong> quando você chegar aqui
+                </>
+              )}
             </div>
           </div>
         </div>

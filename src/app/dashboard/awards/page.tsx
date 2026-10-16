@@ -9,6 +9,12 @@ const PlaqueViewer3D = dynamic(() => import('@/components/dashboard/PlaqueViewer
   ssr: false,
 });
 
+export interface ModelVariant {
+  name: string;
+  modelGlb: string;
+  color?: string;
+}
+
 export interface MilestoneData {
   id: number;
   level: string;
@@ -22,6 +28,7 @@ export interface MilestoneData {
   imageSrc: string;
   badgeSrc?: string;
   modelGlb?: string;
+  variants?: ModelVariant[];
   type: 'starter_community' | 'community' | 'bracelet' | 'plaque';
   format?: string;
   specifications: string;
@@ -70,6 +77,11 @@ export const MILESTONES: MilestoneData[] = [
     category: 'Colecionável Físico',
     description: 'Kit com as 2 Pulseiras oficiais de silicone de alta densidade Otterfy (Roxa e Branca com o logo em relevo 3D). Entregues no seu endereço com frete grátis.',
     imageSrc: '/awards/wristbands_50k.png',
+    modelGlb: '/awards/models/pulseira-50k-roxa.glb',
+    variants: [
+      { name: 'Roxa Imperial', modelGlb: '/awards/models/pulseira-50k-roxa.glb', color: '#8b5cf6' },
+      { name: 'Branca Lunar', modelGlb: '/awards/models/pulseira-50k-branca.glb', color: '#f8fafc' },
+    ],
     type: 'bracelet',
     specifications: 'Silicone hipoalergênico premium, gravação em alto-relevo 3D, acabamento aveludado, tamanho universal ajustável.',
     highlights: ['2 Pulseiras Exclusivas (Roxa + Branca)', 'Gravação em Alto-Relevo 3D', 'Frete 100% Gratuito em MZ'],
@@ -858,6 +870,7 @@ export default function AwardsPage() {
       {viewer3DMilestone && (
         <PlaqueViewer3D
           modelUrl={viewer3DMilestone.modelGlb}
+          variants={viewer3DMilestone.variants}
           fallbackImage={viewer3DMilestone.imageSrc}
           title={viewer3DMilestone.name}
           level={viewer3DMilestone.level}
