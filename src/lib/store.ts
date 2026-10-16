@@ -475,6 +475,14 @@ export const dbStore = {
       const dbOrders = await prisma.order.findMany({
         where: {
           ...(filters?.status && filters.status !== 'ALL' ? { status: filters.status as any } : {}),
+          ...(filters?.startDate || filters?.endDate
+            ? {
+                createdAt: {
+                  ...(filters?.startDate ? { gte: new Date(filters.startDate) } : {}),
+                  ...(filters?.endDate ? { lte: new Date(filters.endDate) } : {}),
+                },
+              }
+            : {}),
         },
         orderBy: { createdAt: 'desc' },
         include: {
@@ -530,6 +538,14 @@ export const dbStore = {
 
       if (filters?.status && filters.status !== 'ALL') {
         orders = orders.filter(o => o.status === filters.status);
+      }
+      if (filters?.startDate) {
+        const start = new Date(filters.startDate);
+        orders = orders.filter(o => new Date(o.createdAt) >= start);
+      }
+      if (filters?.endDate) {
+        const end = new Date(filters.endDate);
+        orders = orders.filter(o => new Date(o.createdAt) <= end);
       }
       return orders;
     }
