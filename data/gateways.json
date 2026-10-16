@@ -1,5 +1,57 @@
 [
   {
+    "id": "mpesa",
+    "name": "M-Pesa (Vodacom)",
+    "status": "Ativo",
+    "environment": "Produção",
+    "credentials": {
+      "shortcode": "171717",
+      "passkey": "",
+      "consumerKey": "",
+      "consumerSecret": ""
+    }
+  },
+  {
+    "id": "emola",
+    "name": "e-Mola (Movitel)",
+    "status": "Ativo",
+    "environment": "Produção",
+    "credentials": {
+      "merchantCode": "EMOLA_OTF_01",
+      "apiKey": ""
+    }
+  },
+  {
+    "id": "stripe",
+    "name": "Cards (Stripe)",
+    "status": "Ativo",
+    "environment": "Produção",
+    "credentials": {
+      "publishableKey": "",
+      "secretKey": ""
+    }
+  },
+  {
+    "id": "emis",
+    "name": "Multicaixa (EMIS GPO)",
+    "status": "Inativo",
+    "environment": "Produção",
+    "credentials": {
+      "merchantId": "",
+      "terminalId": ""
+    }
+  },
+  {
+    "id": "payfast",
+    "name": "PayFast (South Africa)",
+    "status": "Inativo",
+    "environment": "Produção",
+    "credentials": {
+      "merchantId": "",
+      "merchantKey": ""
+    }
+  },
+  {
     "id": "zenofy",
     "name": "Zenofy APIs",
     "status": "Ativo",

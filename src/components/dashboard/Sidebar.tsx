@@ -353,6 +353,7 @@ function buildSections(): NavSection[] {
       entries: [
         { kind: 'link', name: 'Dashboard', href: '/dashboard', icon: 'dashboard', exact: true },
         { kind: 'link', name: 'Pagamentos', href: '/dashboard/payments', icon: 'payments' },
+        { kind: 'link', name: 'Saldo & Carteira', href: '/dashboard/balance', icon: 'withdrawals' },
         { kind: 'link', name: 'SAC', href: '/dashboard/sac', icon: 'sac' },
         {
           kind: 'group',
@@ -376,7 +377,7 @@ function buildSections(): NavSection[] {
             { kind: 'link', name: 'Métricas', href: '/dashboard/metrics', icon: 'metrics' },
             { kind: 'link', name: 'Domínios', href: '/dashboard/domains', icon: 'domains' },
             { kind: 'link', name: 'Gateways', href: '/dashboard/gateways', icon: 'gateways' },
-            { kind: 'link', name: 'Saques', href: '/dashboard/finances', icon: 'withdrawals' },
+            { kind: 'link', name: 'Saques & Saldo', href: '/dashboard/balance', icon: 'withdrawals' },
             { kind: 'link', name: 'Logística', href: '/dashboard/logistics', icon: 'logistics' },
             { kind: 'link', name: 'Sistema ERP', href: '/dashboard/erp', icon: 'erp' },
             { kind: 'link', name: 'Comunicações', href: '/dashboard/communications', icon: 'communications' },
