@@ -538,7 +538,9 @@ export default function GatewaysPage() {
                 key={g.id}
                 className={`h-full rounded-2xl p-5 sm:p-6 border flex flex-col justify-between transition-all duration-300 shadow-md ${
                   isActive
-                    ? 'border-violet-500/40 bg-gradient-to-b from-[#151221] to-[#0E0C16]'
+                    ? isLight
+                      ? 'border-violet-300/80 bg-gradient-to-b from-violet-50 to-purple-50/60 text-slate-900 shadow-md'
+                      : 'border-violet-500/40 bg-gradient-to-b from-[#151221] to-[#0E0C16]'
                     : isLight
                       ? 'bg-white border-slate-200 opacity-90'
                       : 'bg-[#0F0E14] border-[#1E1B26] opacity-80'
@@ -547,7 +549,11 @@ export default function GatewaysPage() {
                 <div>
                   {/* Top: Region Badge + Status Switch */}
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/10 text-[#CBD5E1]">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                      isLight
+                        ? 'bg-slate-100 border-slate-200 text-slate-700'
+                        : 'bg-white/5 border-white/10 text-[#CBD5E1]'
+                    }`}>
                       {g.badge}
                     </span>
 
@@ -558,8 +564,10 @@ export default function GatewaysPage() {
                       title={`Clique para alternar status (${g.status})`}
                       className={`px-3 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-xs'
-                          : 'bg-[#1E1B26] border-[#2D2838] text-[#94A3B8]'
+                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                          : isLight
+                            ? 'bg-slate-100 border-slate-200 text-slate-500'
+                            : 'bg-[#1E1B26] border-[#2D2838] text-[#94A3B8]'
                       }`}
                     >
                       {g.status}
@@ -581,9 +589,9 @@ export default function GatewaysPage() {
                     )}
                   </div>
 
-                  <h3 className="text-base font-bold text-[#F8FAFC] leading-snug mb-1">{g.name}</h3>
+                  <h3 className={`text-base font-bold leading-snug mb-1 ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>{g.name}</h3>
 
-                  <p className="text-xs text-[#94A3B8] leading-relaxed mb-4">{g.description}</p>
+                  <p className={`text-xs leading-relaxed mb-4 ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>{g.description}</p>
 
                   {/* Specification List (Payzeno Definition List) */}
                   <dl
@@ -594,24 +602,24 @@ export default function GatewaysPage() {
                     }`}
                   >
                     <div className="flex justify-between py-1.5 gap-2">
-                      <dt className="text-[#94A3B8] font-medium">Moedas:</dt>
-                      <dd className="font-semibold text-[#F8FAFC] font-mono text-right">{g.currencies}</dd>
+                      <dt className={`font-medium ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>Moedas:</dt>
+                      <dd className={`font-semibold font-mono text-right ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>{g.currencies}</dd>
                     </div>
                     <div className="flex justify-between py-1.5 gap-2">
-                      <dt className="text-[#94A3B8] font-medium">Regiões:</dt>
-                      <dd className="font-semibold text-[#F8FAFC] text-right">{g.regions}</dd>
+                      <dt className={`font-medium ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>Regiões:</dt>
+                      <dd className={`font-semibold text-right ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>{g.regions}</dd>
                     </div>
                     <div className="flex justify-between py-1.5 gap-2">
-                      <dt className="text-[#94A3B8] font-medium">Métodos:</dt>
-                      <dd className="font-semibold text-[#F8FAFC] text-right">{g.methods}</dd>
+                      <dt className={`font-medium ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>Métodos:</dt>
+                      <dd className={`font-semibold text-right ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>{g.methods}</dd>
                     </div>
                     <div className="flex justify-between py-1.5 gap-2">
-                      <dt className="text-[#94A3B8] font-medium">Hosted checkout:</dt>
-                      <dd className="font-semibold text-emerald-400 text-right">{g.hostedCheckout}</dd>
+                      <dt className={`font-medium ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>Hosted checkout:</dt>
+                      <dd className="font-semibold text-emerald-600 dark:text-emerald-400 text-right">{g.hostedCheckout}</dd>
                     </div>
                     <div className="flex justify-between py-1.5 gap-2">
-                      <dt className="text-[#94A3B8] font-medium">Direct API:</dt>
-                      <dd className="font-semibold text-violet-400 text-right">{g.directApi}</dd>
+                      <dt className={`font-medium ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>Direct API:</dt>
+                      <dd className="font-semibold text-violet-600 dark:text-violet-400 text-right">{g.directApi}</dd>
                     </div>
                   </dl>
                 </div>
@@ -708,14 +716,14 @@ export default function GatewaysPage() {
 
       {/* Fee & Settlement Comparison Table (Payzeno Official Table) */}
       <div className="otter-widget-card p-5 sm:p-6 rounded-2xl border shadow-xl">
-        <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC] mb-1">
+        <h3 className={`text-base sm:text-lg font-bold mb-1 ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
           Comparativo Oficial de Modelos de Liquidação
         </h3>
-        <p className="text-xs text-[#94A3B8] mb-4">
+        <p className={`text-xs mb-4 ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
           Escolha o modelo que melhor atende à escala e estrutura jurídica da sua empresa.
         </p>
 
-        <div className="overflow-x-auto border border-[#1E1B26] rounded-xl">
+        <div className={`overflow-x-auto border rounded-xl ${isLight ? 'border-slate-200 bg-white' : 'border-[#1E1B26]'}`}>
           <table className="w-full text-left text-xs">
             <thead
               className={`text-[11px] uppercase tracking-wider font-bold border-b ${
@@ -724,35 +732,35 @@ export default function GatewaysPage() {
             >
               <tr>
                 <th className="py-3 px-4">Recurso / Característica</th>
-                <th className="py-3 px-4 text-violet-400 font-bold">Modo Carteira (Wallet)</th>
-                <th className="py-3 px-4 text-sky-400 font-bold">Liquidação Direta</th>
+                <th className="py-3 px-4 text-violet-600 dark:text-violet-400 font-bold">Modo Carteira (Wallet)</th>
+                <th className="py-3 px-4 text-sky-600 dark:text-sky-400 font-bold">Liquidação Direta</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1E1B26]">
+            <tbody className={`divide-y ${isLight ? 'divide-slate-200 bg-white' : 'divide-[#1E1B26]'}`}>
               <tr>
-                <td className="py-3 px-4 font-semibold text-[#F8FAFC]">Mensalidade Fixa</td>
-                <td className="py-3 px-4 font-bold text-emerald-400">Não — 0 MT</td>
-                <td className="py-3 px-4 text-[#94A3B8]">Sim — valor negociado</td>
+                <td className={`py-3 px-4 font-semibold ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>Mensalidade Fixa</td>
+                <td className="py-3 px-4 font-bold text-emerald-600 dark:text-emerald-400">Não — 0 MT</td>
+                <td className={`py-3 px-4 ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>Sim — valor negociado</td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-semibold text-[#F8FAFC]">Comissão por Venda Confirmada</td>
-                <td className="py-3 px-4 font-bold text-violet-300">7% por pagamento aprovado</td>
-                <td className="py-3 px-4 text-[#94A3B8]">% reduzida ou faixas fixas</td>
+                <td className={`py-3 px-4 font-semibold ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>Comissão por Venda Confirmada</td>
+                <td className="py-3 px-4 font-bold text-violet-600 dark:text-violet-300">7% por pagamento aprovado</td>
+                <td className={`py-3 px-4 ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>% reduzida ou faixas fixas</td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-semibold text-[#F8FAFC]">Comissão de Saque (Retirada)</td>
-                <td className="py-3 px-4 font-bold text-emerald-400">0% de taxa</td>
-                <td className="py-3 px-4 text-[#94A3B8]">Não aplicável (cai direto na sua conta)</td>
+                <td className={`py-3 px-4 font-semibold ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>Comissão de Saque (Retirada)</td>
+                <td className="py-3 px-4 font-bold text-emerald-600 dark:text-emerald-400">0% de taxa</td>
+                <td className={`py-3 px-4 ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>Não aplicável (cai direto na sua conta)</td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-semibold text-[#F8FAFC]">Destino dos Fundos</td>
-                <td className="py-3 px-4 text-[#F8FAFC]">Carteira Otterfy / Payzeno (Saques sob demanda)</td>
-                <td className="py-3 px-4 text-[#F8FAFC]">Contas da sua empresa nos gateways (M-Pesa/EMIS)</td>
+                <td className={`py-3 px-4 font-semibold ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>Destino dos Fundos</td>
+                <td className={`py-3 px-4 ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>Carteira Otterfy / Payzeno (Saques sob demanda)</td>
+                <td className={`py-3 px-4 ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>Contas da sua empresa nos gateways (M-Pesa/EMIS)</td>
               </tr>
               <tr>
-                <td className="py-3 px-4 font-semibold text-[#F8FAFC]">Credenciais de Gateways</td>
-                <td className="py-3 px-4 text-[#F8FAFC]">Gerenciadas pela infraestrutura (Ativação imediata)</td>
-                <td className="py-3 px-4 text-[#F8FAFC]">Configuradas com credenciais próprias da sua entidade</td>
+                <td className={`py-3 px-4 font-semibold ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>Credenciais de Gateways</td>
+                <td className={`py-3 px-4 ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>Gerenciadas pela infraestrutura (Ativação imediata)</td>
+                <td className={`py-3 px-4 ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>Configuradas com credenciais próprias da sua entidade</td>
               </tr>
             </tbody>
           </table>

@@ -76,19 +76,19 @@ export default function HourlyCartsLineChart({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4 mb-5 sm:mb-6 min-w-0">
         <div className="min-w-0">
           <div className="flex items-center flex-wrap gap-2">
-            <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC] truncate">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#F8FAFC] truncate">
               {title}
             </h3>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-600/10 text-violet-400 border border-violet-500/20 whitespace-nowrap shrink-0 transition-all duration-300">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-600/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 whitespace-nowrap shrink-0 transition-all duration-300">
               {badgeLabel}
             </span>
           </div>
-          <p className="text-xs text-[#94A3B8] mt-1">
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-1">
             {subtitle || (
               <>
                 Movimento em tempo real ao longo das 24 horas do dia (00:00 – 23:59):{' '}
-                <span className="text-[#A78BFA] font-medium">Carrinhos Iniciados</span> vs.{' '}
-                <span className="text-emerald-400 font-medium">Vendas Aprovadas</span>
+                <span className="text-violet-600 dark:text-[#A78BFA] font-medium">Carrinhos Iniciados</span> vs.{' '}
+                <span className="text-emerald-600 dark:text-emerald-400 font-medium">Vendas Aprovadas</span>
               </>
             )}
           </p>
@@ -97,19 +97,19 @@ export default function HourlyCartsLineChart({
         {/* Badges & Legend Controls */}
         <div className="flex items-center flex-wrap gap-2">
           {/* Quick Metrics Badges */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-xs">
-            <span className="text-[#94A3B8]">Iniciados (24h):</span>
-            <span className="text-[#A78BFA] font-bold font-mono">{totalIniciados}</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] text-xs">
+            <span className="text-slate-500 dark:text-[#94A3B8]">Iniciados (24h):</span>
+            <span className="text-violet-600 dark:text-[#A78BFA] font-bold font-mono">{totalIniciados}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-xs">
-            <span className="text-[#94A3B8]">Aprovados (24h):</span>
-            <span className="text-emerald-400 font-bold font-mono">{totalAprovados}</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] text-xs">
+            <span className="text-slate-500 dark:text-[#94A3B8]">Aprovados (24h):</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">{totalAprovados}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-xs">
-            <span className="text-[#94A3B8]">Conversão (Dia):</span>
-            <span className="text-violet-300 font-bold font-mono">{taxaMedia}%</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] text-xs">
+            <span className="text-slate-500 dark:text-[#94A3B8]">Conversão (Dia):</span>
+            <span className="text-purple-600 dark:text-violet-300 font-bold font-mono">{taxaMedia}%</span>
           </div>
 
           {/* Interactive Line Toggles */}
@@ -119,12 +119,12 @@ export default function HourlyCartsLineChart({
               onClick={() => setShowIniciados(!showIniciados)}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all border cursor-pointer ${
                 showIniciados
-                  ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-                  : 'bg-[#0F0E14] border-[#1E1B26] text-[#64748B] opacity-50'
+                  ? 'bg-purple-500/15 border-purple-500/30 text-purple-700 dark:text-purple-300'
+                  : 'bg-slate-50 dark:bg-[#0F0E14] border-slate-200 dark:border-[#1E1B26] text-slate-400 dark:text-[#64748B] opacity-60'
               }`}
               title="Alternar visibilidade dos carrinhos iniciados"
             >
-              <span className="w-2 h-2 rounded-full bg-[#A78BFA]" />
+              <span className="w-2 h-2 rounded-full bg-violet-500 dark:bg-[#A78BFA]" />
               <span>Iniciados</span>
             </button>
 
@@ -133,12 +133,12 @@ export default function HourlyCartsLineChart({
               onClick={() => setShowAprovados(!showAprovados)}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all border cursor-pointer ${
                 showAprovados
-                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                  : 'bg-[#0F0E14] border-[#1E1B26] text-[#64748B] opacity-50'
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-slate-50 dark:bg-[#0F0E14] border-slate-200 dark:border-[#1E1B26] text-slate-400 dark:text-[#64748B] opacity-60'
               }`}
               title="Alternar visibilidade das vendas aprovadas"
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
               <span>Aprovados</span>
             </button>
           </div>
@@ -174,24 +174,24 @@ export default function HourlyCartsLineChart({
                     : '0';
 
                   return (
-                    <div className="bg-[#0F0E14] border border-[#1E1B26] p-3.5 rounded-2xl shadow-2xl text-xs space-y-2 min-w-[180px]">
-                      <div className="flex items-center justify-between pb-1.5 border-b border-[#1E1B26] gap-2">
-                        <span className="font-bold text-[#F8FAFC]">Horário: {label}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-600/10 text-violet-400 font-mono font-bold">
+                    <div className="bg-white dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] p-3.5 rounded-2xl shadow-xl text-xs space-y-2 min-w-[180px]">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-200 dark:border-[#1E1B26] gap-2">
+                        <span className="font-bold text-slate-900 dark:text-[#F8FAFC]">Horário: {label}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-600/10 text-violet-600 dark:text-violet-400 font-mono font-bold">
                           {conv}% conv.
                         </span>
                       </div>
 
                       {payload.map((entry, idx) => (
                         <div key={idx} className="flex items-center justify-between gap-3">
-                          <span className="flex items-center gap-1.5 text-[#94A3B8]">
+                          <span className="flex items-center gap-1.5 text-slate-600 dark:text-[#94A3B8]">
                             <span
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: entry.color }}
                             />
                             {entry.name}:
                           </span>
-                          <span className="font-bold text-[#F8FAFC] font-mono">
+                          <span className="font-bold text-slate-900 dark:text-[#F8FAFC] font-mono">
                             {entry.value} {entry.name === 'Carrinhos Iniciados' ? 'carrinhos' : 'vendas'}
                           </span>
                         </div>
@@ -209,13 +209,13 @@ export default function HourlyCartsLineChart({
                 type="monotone"
                 name="Carrinhos Iniciados"
                 dataKey="iniciados"
-                stroke="#A78BFA"
+                stroke="#8B5CF6"
                 strokeWidth={2.5}
                 dot={false}
                 isAnimationActive={true}
                 animationDuration={620}
                 animationEasing="ease-out"
-                activeDot={{ r: 5, fill: '#A78BFA', stroke: '#08070C', strokeWidth: 2 }}
+                activeDot={{ r: 5, fill: '#8B5CF6', stroke: 'var(--bg-surface, #FFFFFF)', strokeWidth: 2 }}
               />
             )}
 
@@ -231,7 +231,7 @@ export default function HourlyCartsLineChart({
                 isAnimationActive={true}
                 animationDuration={680}
                 animationEasing="ease-out"
-                activeDot={{ r: 5, fill: '#10B981', stroke: '#08070C', strokeWidth: 2 }}
+                activeDot={{ r: 5, fill: '#10B981', stroke: 'var(--bg-surface, #FFFFFF)', strokeWidth: 2 }}
               />
             )}
           </LineChart>
@@ -239,18 +239,18 @@ export default function HourlyCartsLineChart({
       </div>
 
       {/* Footer Info: Peak hour indicator */}
-      <div className="pt-3.5 mt-2 border-t border-[#1E1B26] flex flex-wrap items-center justify-between gap-2 text-xs text-[#94A3B8]">
+      <div className="pt-3.5 mt-2 border-t border-slate-200 dark:border-[#1E1B26] flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-[#94A3B8]">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse shrink-0" />
+          <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse shrink-0" />
           <span className="truncate">
             {peakEntry.score > 0 ? (
-              <>Pico do dia registado entre as <strong>{peakRangeText}</strong></>
+              <>Pico do dia registado entre as <strong className="text-slate-900 dark:text-white">{peakRangeText}</strong></>
             ) : (
               <span>Sem picos registados nas 24 horas do dia ({badgeLabel})</span>
             )}
           </span>
         </div>
-        <span className="text-[11px] text-[#64748B]">Sincronizado em tempo real • Fluxo diário 24h (00:00 – 23:59)</span>
+        <span className="text-[11px] text-slate-400 dark:text-[#64748B]">Sincronizado em tempo real • Fluxo diário 24h (00:00 – 23:59)</span>
       </div>
     </div>
   );

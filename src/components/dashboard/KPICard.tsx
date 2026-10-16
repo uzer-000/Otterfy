@@ -17,9 +17,9 @@ export default function KPICard({ title, revenue, salesCount, percentChange, ico
     <div className="otter-widget-card rounded-2xl p-6 relative overflow-hidden group">
       {/* Top Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[#94A3B8] text-sm font-semibold">{title}</h3>
+        <h3 className="text-slate-500 dark:text-[#94A3B8] text-sm font-semibold">{title}</h3>
         {icon && (
-          <div className="w-9 h-9 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-500 dark:text-violet-400 flex items-center justify-center">
             {icon}
           </div>
         )}
@@ -27,22 +27,22 @@ export default function KPICard({ title, revenue, salesCount, percentChange, ico
       
       {/* Revenue */}
       <div className="mb-3">
-        <span className="text-3xl font-black text-[#F8FAFC] tracking-tight">
+        <span className="text-3xl font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">
           {formatMZN(revenue)}
         </span>
       </div>
       
       {/* Footer details */}
-      <div className="flex items-center justify-between text-xs pt-3 border-t border-[#1E1B26]/80">
-        <span className="text-[#94A3B8] font-medium">{salesCount} {salesCount === 1 ? 'venda' : 'vendas'}</span>
+      <div className="flex items-center justify-between text-xs pt-3 border-t border-slate-200 dark:border-[#1E1B26]/80">
+        <span className="text-slate-500 dark:text-[#94A3B8] font-medium">{salesCount} {salesCount === 1 ? 'venda' : 'vendas'}</span>
         
         <span className={`
           inline-flex items-center space-x-1 font-semibold px-2 py-0.5 rounded-full text-[11px]
           ${isPositive 
-            ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' 
+            ? 'text-emerald-500 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' 
             : isNegative 
-            ? 'text-red-400 bg-red-500/10 border border-red-500/20' 
-            : 'text-[#64748B] bg-[#0F0E14] border border-[#1E1B26]'
+            ? 'text-red-500 dark:text-red-400 bg-red-500/10 border border-red-500/20' 
+            : 'text-slate-500 dark:text-[#64748B] bg-slate-100 dark:bg-[#0F0E14] border-slate-200 dark:border-[#1E1B26]'
           }
         `}>
           {isPositive && <span>↑</span>}

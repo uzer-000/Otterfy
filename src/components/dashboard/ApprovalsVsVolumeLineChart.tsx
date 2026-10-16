@@ -69,14 +69,14 @@ export default function ApprovalsVsVolumeLineChart({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 min-w-0">
         <div className="min-w-0">
           <div className="flex items-center flex-wrap gap-2">
-            <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC] truncate">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#F8FAFC] truncate">
               {title}
             </h3>
-            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-violet-600/10 text-violet-400 border border-violet-500/20 whitespace-nowrap shrink-0 transition-all duration-300">
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-violet-600/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 whitespace-nowrap shrink-0 transition-all duration-300">
               {badgeLabel}
             </span>
           </div>
-          <p className="text-xs text-[#94A3B8] mt-0.5 truncate">
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-0.5 truncate">
             {subtitle}
           </p>
         </div>
@@ -88,8 +88,8 @@ export default function ApprovalsVsVolumeLineChart({
             onClick={() => setShowAprovados(!showAprovados)}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border cursor-pointer ${
               showAprovados
-                ? 'bg-violet-600/10 border-violet-500/30 text-violet-300'
-                : 'bg-[#0F0E14] border-[#1E1B26] text-[#64748B] opacity-60'
+                ? 'bg-violet-600/10 border-violet-500/30 text-violet-700 dark:text-violet-300'
+                : 'bg-slate-50 dark:bg-[#0F0E14] border-slate-200 dark:border-[#1E1B26] text-slate-400 dark:text-[#64748B] opacity-60'
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-[#8B5CF6] shrink-0" />
@@ -101,8 +101,8 @@ export default function ApprovalsVsVolumeLineChart({
             onClick={() => setShowVolume(!showVolume)}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border cursor-pointer ${
               showVolume
-                ? 'bg-purple-400/10 border-purple-400/30 text-purple-300'
-                : 'bg-[#0F0E14] border-[#1E1B26] text-[#64748B] opacity-60'
+                ? 'bg-purple-400/10 border-purple-400/30 text-purple-700 dark:text-purple-300'
+                : 'bg-slate-50 dark:bg-[#0F0E14] border-slate-200 dark:border-[#1E1B26] text-slate-400 dark:text-[#64748B] opacity-60'
             }`}
           >
             <span className="w-2 h-0.5 bg-[#A78BFA] shrink-0" />
@@ -142,20 +142,20 @@ export default function ApprovalsVsVolumeLineChart({
                     : `${label}`;
 
                   return (
-                    <div className="bg-[#0F0E14] border border-[#1E1B26] p-3 rounded-xl shadow-2xl text-xs space-y-1.5">
-                      <p className="font-semibold text-[#F8FAFC] pb-1 border-b border-[#1E1B26]">
+                    <div className="bg-white dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] p-3 rounded-xl shadow-xl text-xs space-y-1.5">
+                      <p className="font-semibold text-slate-900 dark:text-[#F8FAFC] pb-1 border-b border-slate-200 dark:border-[#1E1B26]">
                         {titleLabel}
                       </p>
                       {payload.map((entry: any, idx: number) => (
                         <div key={idx} className="flex items-center justify-between gap-4">
-                          <span className="flex items-center gap-1.5 text-[#94A3B8]">
+                          <span className="flex items-center gap-1.5 text-slate-600 dark:text-[#94A3B8]">
                             <span
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: entry.color }}
                             />
                             {entry.name}:
                           </span>
-                          <span className="font-bold text-[#F8FAFC]">
+                          <span className="font-bold text-slate-900 dark:text-[#F8FAFC]">
                             {formatMZN(Number(entry.value))}
                           </span>
                         </div>

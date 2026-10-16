@@ -77,8 +77,8 @@ export default function PaymentsPage() {
     <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-6 pb-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#F8FAFC] tracking-tight">Pagamentos</h1>
-          <p className="text-[#94A3B8] text-sm mt-1">
+          <h1 className="text-3xl font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">Pagamentos</h1>
+          <p className="text-slate-500 dark:text-[#94A3B8] text-sm mt-1">
             Histórico completo de transações, recebimentos e exportação de relatórios CSV
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function PaymentsPage() {
           <button
             type="button"
             onClick={exportCsv}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-sm"
           >
             <Download className="w-4 h-4" />
             Exportar CSV ({filteredPayments.length})
@@ -96,37 +96,37 @@ export default function PaymentsPage() {
           <button
             type="button"
             onClick={loadPayments}
-            className="p-2.5 rounded-xl bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] text-[#94A3B8] hover:text-white transition-colors cursor-pointer"
+            className="p-2.5 rounded-xl bg-white dark:bg-[#121016] hover:bg-slate-50 dark:hover:bg-[#1A1820] border border-slate-200 dark:border-[#1E1B26] text-slate-700 dark:text-[#94A3B8] hover:text-slate-950 dark:hover:text-white transition-colors cursor-pointer shadow-sm"
             title="Atualizar pagamentos"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-500' : ''}`} />
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#121016] border border-[#1E1B26] p-4 rounded-2xl">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-[#121016] border border-slate-200 dark:border-[#1E1B26] p-4 rounded-2xl shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-[#94A3B8] absolute left-3.5 top-2.5" />
             <input
               type="search"
               aria-label="Pesquisar por referência, cliente ou telefone"
               placeholder="Pesquisar cliente, telefone ou ref..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#7C3AED]"
+              className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] text-xs text-slate-900 dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-[#64748B] focus:outline-none focus:border-[#7C3AED]"
             />
           </div>
 
           <div className="flex items-center space-x-2">
-            <label htmlFor="status-filter" className="text-xs font-semibold text-[#94A3B8]">
+            <label htmlFor="status-filter" className="text-xs font-semibold text-slate-600 dark:text-[#94A3B8]">
               Status:
             </label>
             <select
               id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-[#0F0E14] border border-[#1E1B26] text-[#F8FAFC] text-xs font-medium rounded-xl px-3.5 py-2 focus:outline-none focus:border-[#7C3AED]"
+              className="bg-slate-50 dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] text-slate-900 dark:text-[#F8FAFC] text-xs font-medium rounded-xl px-3.5 py-2 focus:outline-none focus:border-[#7C3AED]"
             >
               <option value="ALL">Todos os Status</option>
               <option value="APPROVED">Aprovado</option>
@@ -137,14 +137,14 @@ export default function PaymentsPage() {
           </div>
 
           <div className="flex items-center space-x-2">
-            <label htmlFor="gateway-filter" className="text-xs font-semibold text-[#94A3B8]">
+            <label htmlFor="gateway-filter" className="text-xs font-semibold text-slate-600 dark:text-[#94A3B8]">
               Método:
             </label>
             <select
               id="gateway-filter"
               value={gatewayFilter}
               onChange={(e) => setGatewayFilter(e.target.value)}
-              className="bg-[#0F0E14] border border-[#1E1B26] text-[#F8FAFC] text-xs font-medium rounded-xl px-3.5 py-2 focus:outline-none focus:border-[#7C3AED]"
+              className="bg-slate-50 dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] text-slate-900 dark:text-[#F8FAFC] text-xs font-medium rounded-xl px-3.5 py-2 focus:outline-none focus:border-[#7C3AED]"
             >
               <option value="ALL">Todos (M-Pesa & e-Mola)</option>
               <option value="MPESA">M-Pesa</option>
@@ -153,12 +153,12 @@ export default function PaymentsPage() {
           </div>
         </div>
 
-        <div className="text-xs text-[#94A3B8]">
+        <div className="text-xs text-slate-500 dark:text-[#94A3B8]">
           Mostrando {filteredPayments.length} transações
         </div>
       </div>
 
-      <div className="bg-[#121016] border border-[#1E1B26] rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-white dark:bg-[#121016] border border-slate-200 dark:border-[#1E1B26] rounded-2xl overflow-hidden shadow-xl">
         <PaymentsTable payments={filteredPayments} loading={loading} />
       </div>
     </div>

@@ -40,10 +40,10 @@ export default function WeeklySalesBarChart({
     <div className="otter-widget-card rounded-2xl p-4 sm:p-6 flex flex-col justify-between w-full max-w-full min-w-0 overflow-hidden">
       <div className="flex items-start sm:items-center justify-between gap-3 mb-4 min-w-0">
         <div className="min-w-0">
-          <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC] truncate">{title}</h3>
-          <p className="text-xs text-[#94A3B8] mt-0.5 truncate">{subtitle}</p>
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#F8FAFC] truncate">{title}</h3>
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-0.5 truncate">{subtitle}</p>
         </div>
-        <div className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-600/10 text-violet-400 border border-violet-500/20 whitespace-nowrap shrink-0 transition-all duration-300">
+        <div className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-600/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 whitespace-nowrap shrink-0 transition-all duration-300">
           {badgeLabel}
         </div>
       </div>
@@ -81,11 +81,11 @@ export default function WeeklySalesBarChart({
                 if (active && payload && payload.length) {
                   const item = payload[0].payload;
                   return (
-                    <div className="bg-[#0F0E14] border border-[#1E1B26] p-3 rounded-xl shadow-2xl text-xs">
-                      <p className="font-semibold text-[#F8FAFC]">
+                    <div className="bg-white dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] p-3 rounded-xl shadow-xl text-xs">
+                      <p className="font-semibold text-slate-900 dark:text-[#F8FAFC]">
                         {item.fullLabel || item.day} {item.date ? `(${item.date})` : ''}
                       </p>
-                      <p className="text-violet-400 font-bold mt-1 text-sm">
+                      <p className="text-violet-600 dark:text-violet-400 font-bold mt-1 text-sm">
                         {item.vendas} {item.vendas === 1 ? 'venda aprovada' : 'vendas aprovadas'}
                       </p>
                     </div>

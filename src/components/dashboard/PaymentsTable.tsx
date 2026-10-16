@@ -25,7 +25,7 @@ export default function PaymentsTable({ payments, loading }: { payments: any[], 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="bg-[#0F0E14] text-[#94A3B8] border-b border-[#1E1B26]">
+        <thead className="bg-slate-50 dark:bg-[#0F0E14] text-slate-600 dark:text-[#94A3B8] border-b border-slate-200 dark:border-[#1E1B26]">
           <tr>
             <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Referência</th>
             <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider">Cliente</th>
@@ -35,16 +35,16 @@ export default function PaymentsTable({ payments, loading }: { payments: any[], 
             <th className="px-6 py-4 font-semibold text-xs uppercase tracking-wider text-right">Valor</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#1E1B26] bg-[#08070C]">
+        <tbody className="divide-y divide-slate-200 dark:divide-[#1E1B26] bg-white dark:bg-[#08070C]">
           {payments.map((p) => {
             const method = p.transaction?.method || p.method || 'MPESA';
             return (
-              <tr key={p.id} className="hover:bg-[#1A1820] transition-colors text-[#F8FAFC]">
-                <td className="px-6 py-4 font-mono text-xs font-medium text-[#F8FAFC]">{p.id}</td>
+              <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-[#1A1820] transition-colors text-slate-900 dark:text-[#F8FAFC]">
+                <td className="px-6 py-4 font-mono text-xs font-medium text-slate-900 dark:text-[#F8FAFC]">{p.id}</td>
                 <td className="px-6 py-4 font-medium text-sm">
                   {p.customerName || p.customer?.name || '-'}
                 </td>
-                <td className="px-6 py-4 font-mono text-xs text-[#94A3B8]">
+                <td className="px-6 py-4 font-mono text-xs text-slate-500 dark:text-[#94A3B8]">
                   {p.customerPhone || p.customer?.phone || '-'}
                 </td>
                 <td className="px-6 py-4">
@@ -52,14 +52,14 @@ export default function PaymentsTable({ payments, loading }: { payments: any[], 
                 </td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                    p.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                    p.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                    'bg-red-500/10 text-red-400 border border-red-500/20'
+                    p.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+                    p.status === 'PENDING' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
+                    'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
                   }`}>
                     {p.status === 'APPROVED' ? 'Aprovado' : p.status === 'PENDING' ? 'Pendente' : p.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-right font-bold text-violet-400">
+                <td className="px-6 py-4 text-right font-bold text-violet-600 dark:text-violet-400">
                   {formatMZN(p.amount)}
                 </td>
               </tr>

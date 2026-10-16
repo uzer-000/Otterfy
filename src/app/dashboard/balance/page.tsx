@@ -466,12 +466,14 @@ export default function BalancePage() {
         </div>
 
         {/* Card 3: Total Sacado */}
-        <div className="otter-widget-card p-5 sm:p-6 rounded-2xl min-h-[160px] flex flex-col justify-between shadow-lg border border-[#1E1B26]">
+        <div className={`otter-widget-card p-5 sm:p-6 rounded-2xl min-h-[160px] flex flex-col justify-between shadow-lg border ${
+          isLight ? 'border-slate-200 bg-white' : 'border-[#1E1B26]'
+        }`}>
           <div className="flex items-start justify-between gap-3">
-            <span className="text-[13px] font-medium text-[#94A3B8] tracking-tight">
+            <span className={`text-[13px] font-medium tracking-tight ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
               Total Sacado
             </span>
-            <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
@@ -479,24 +481,26 @@ export default function BalancePage() {
           </div>
 
           <div className="my-2">
-            <span className="text-3xl sm:text-[32px] font-bold text-[#F8FAFC] tracking-tight leading-none font-mono">
+            <span className={`text-3xl sm:text-[32px] font-bold tracking-tight leading-none font-mono ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
               {formatMZN(balance.totalWithdrawn)}
             </span>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-[#94A3B8] pt-1">
+          <div className={`flex items-center justify-between text-[11px] pt-1 ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
             <span>Retiradas liquidadas com sucesso</span>
-            <span className="font-semibold text-emerald-400">100% pagas</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">100% pagas</span>
           </div>
         </div>
 
         {/* Card 4: Faturamento Líquido */}
-        <div className="otter-widget-card p-5 sm:p-6 rounded-2xl min-h-[160px] flex flex-col justify-between shadow-lg border border-[#1E1B26]">
+        <div className={`otter-widget-card p-5 sm:p-6 rounded-2xl min-h-[160px] flex flex-col justify-between shadow-lg border ${
+          isLight ? 'border-slate-200 bg-white' : 'border-[#1E1B26]'
+        }`}>
           <div className="flex items-start justify-between gap-3">
-            <span className="text-[13px] font-medium text-[#94A3B8] tracking-tight">
+            <span className={`text-[13px] font-medium tracking-tight ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
               Faturamento Líquido
             </span>
-            <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -504,14 +508,14 @@ export default function BalancePage() {
           </div>
 
           <div className="my-2">
-            <span className="text-3xl sm:text-[32px] font-bold text-[#F8FAFC] tracking-tight leading-none font-mono">
+            <span className={`text-3xl sm:text-[32px] font-bold tracking-tight leading-none font-mono ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
               {formatMZN(balance.netRevenue)}
             </span>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-[#94A3B8] pt-1">
+          <div className={`flex items-center justify-between text-[11px] pt-1 ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>
             <span>Após taxa da plataforma (7%)</span>
-            <span className="font-semibold text-violet-400 font-mono">Bruto: {formatMZN(balance.grossRevenue)}</span>
+            <span className="font-semibold text-violet-600 dark:text-violet-400 font-mono">Bruto: {formatMZN(balance.grossRevenue)}</span>
           </div>
         </div>
       </div>
@@ -520,22 +524,22 @@ export default function BalancePage() {
       <div className="otter-widget-card p-5 sm:p-6 rounded-2xl border shadow-xl">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
           <div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-violet-600/10 text-violet-400 border border-violet-500/20 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-violet-600/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 mb-1">
               Transparência de Taxas • Modelo Carteira
             </span>
-            <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC]">
+            <h3 className={`text-base sm:text-lg font-bold ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
               Como funciona o fluxo do dinheiro na sua carteira
             </h3>
           </div>
           <Link
             href="/dashboard/gateways"
-            className="text-xs text-violet-400 hover:text-violet-300 font-semibold flex items-center gap-1"
+            className="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-semibold flex items-center gap-1"
           >
             Ver gateways suportados →
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Step 1 */}
           <div
             className={`p-4 rounded-xl border flex flex-col justify-between ${
@@ -546,12 +550,12 @@ export default function BalancePage() {
               <span className="w-6 h-6 rounded-full bg-violet-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
                 1
               </span>
-              <span className="text-xs font-semibold text-[#94A3B8]">Pagamento Confirmado</span>
+              <span className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>Pagamento Confirmado</span>
             </div>
             <div className="my-1">
-              <span className="text-xl font-bold font-mono text-[#F8FAFC]">1 000 MZN</span>
+              <span className={`text-xl font-bold font-mono ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>1 000 MZN</span>
             </div>
-            <p className="text-[11px] text-[#94A3B8] mt-1">Cliente paga no checkout via M-Pesa, e-Mola ou Cartão.</p>
+            <p className={`text-[11px] mt-1 ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>Cliente paga no checkout via M-Pesa, e-Mola ou Cartão.</p>
           </div>
 
           {/* Step 2 */}
@@ -564,12 +568,12 @@ export default function BalancePage() {
               <span className="w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs flex items-center justify-center shrink-0">
                 2
               </span>
-              <span className="text-xs font-semibold text-[#94A3B8]">Taxa da Plataforma (7%)</span>
+              <span className={`text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>Taxa da Plataforma (7%)</span>
             </div>
             <div className="my-1">
-              <span className="text-xl font-bold font-mono text-red-400">- 70 MZN</span>
+              <span className="text-xl font-bold font-mono text-red-600 dark:text-red-400">- 70 MZN</span>
             </div>
-            <p className="text-[11px] text-[#94A3B8] mt-1">Cobrada unicamente sobre pagamentos aprovados. Sem mensalidade.</p>
+            <p className={`text-[11px] mt-1 ${isLight ? 'text-slate-500' : 'text-[#94A3B8]'}`}>Cobrada unicamente sobre pagamentos aprovados. Sem mensalidade.</p>
           </div>
 
           {/* Step 3 */}
@@ -614,17 +618,17 @@ export default function BalancePage() {
       <div className="otter-widget-card p-5 sm:p-6 rounded-2xl border shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC]">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">
               Contas & Carteiras de Saque Cadastradas
             </h3>
-            <p className="text-xs text-[#94A3B8]">
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
               Gerencie suas carteiras M-Pesa, e-Mola e contas bancárias moçambicanas de destino.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setAccountModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-violet-500/30 bg-violet-600/10 text-violet-300 hover:bg-violet-600/20 transition-all cursor-pointer self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-violet-500/30 bg-violet-600/10 text-violet-700 dark:text-violet-300 hover:bg-violet-600/20 transition-all cursor-pointer self-start sm:self-auto"
           >
             <span>+ Adicionar Conta de Saque</span>
           </button>
@@ -656,22 +660,22 @@ export default function BalancePage() {
                     )}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#F8FAFC]">{acc.holderName}</h4>
-                    <span className="text-[11px] text-[#94A3B8]">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC]">{acc.holderName}</h4>
+                    <span className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
                       {acc.type === 'BANK' ? acc.bankName : acc.type === 'MPESA' ? 'Vodacom M-Pesa' : 'Movitel e-Mola'}
                     </span>
                   </div>
                 </div>
                 {acc.isDefault && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                     Padrão
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center justify-between text-xs font-mono text-[#F8FAFC]">
+              <div className="flex items-center justify-between text-xs font-mono text-slate-700 dark:text-[#F8FAFC]">
                 <span>{acc.identifier}</span>
-                <span className="text-[10px] text-emerald-400 font-sans font-semibold">0% Taxa</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-semibold">0% Taxa</span>
               </div>
             </div>
           ))}
@@ -682,10 +686,10 @@ export default function BalancePage() {
       <div className="otter-widget-card p-5 sm:p-6 rounded-2xl border shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
           <div>
-            <h3 className="text-base sm:text-lg font-bold text-[#F8FAFC]">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">
               Extrato Financeiro e Movimentações
             </h3>
-            <p className="text-xs text-[#94A3B8]">
+            <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
               Histórico detalhado de vendas aprovadas, taxas e saques liquidados.
             </p>
           </div>
@@ -702,7 +706,7 @@ export default function BalancePage() {
                   isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#0F0E14] border-[#1E1B26] text-white'
                 }`}
               />
-              <svg className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#64748B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400 dark:text-[#64748B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -717,7 +721,7 @@ export default function BalancePage() {
                 type="button"
                 onClick={() => setFilterType('ALL')}
                 className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  filterType === 'ALL' ? 'bg-violet-600 text-white font-bold' : 'text-[#94A3B8] hover:text-white'
+                  filterType === 'ALL' ? 'bg-violet-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white'
                 }`}
               >
                 Todas
@@ -726,7 +730,7 @@ export default function BalancePage() {
                 type="button"
                 onClick={() => setFilterType('WITHDRAWAL')}
                 className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  filterType === 'WITHDRAWAL' ? 'bg-violet-600 text-white font-bold' : 'text-[#94A3B8] hover:text-white'
+                  filterType === 'WITHDRAWAL' ? 'bg-violet-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white'
                 }`}
               >
                 Saques
@@ -735,7 +739,7 @@ export default function BalancePage() {
                 type="button"
                 onClick={() => setFilterType('SALE')}
                 className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  filterType === 'SALE' ? 'bg-violet-600 text-white font-bold' : 'text-[#94A3B8] hover:text-white'
+                  filterType === 'SALE' ? 'bg-violet-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white'
                 }`}
               >
                 Vendas (+)
@@ -744,7 +748,7 @@ export default function BalancePage() {
                 type="button"
                 onClick={() => setFilterType('FEE')}
                 className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  filterType === 'FEE' ? 'bg-violet-600 text-white font-bold' : 'text-[#94A3B8] hover:text-white'
+                  filterType === 'FEE' ? 'bg-violet-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white'
                 }`}
               >
                 Taxas (7%)
@@ -785,10 +789,10 @@ export default function BalancePage() {
                 <th className="py-3 px-4 text-center">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1E1B26]">
+            <tbody className="divide-y divide-slate-200 dark:divide-[#1E1B26]">
               {filteredLedger.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-[#94A3B8]">
+                  <td colSpan={7} className="py-8 text-center text-slate-500 dark:text-[#94A3B8]">
                     Nenhuma movimentação encontrada para este filtro.
                   </td>
                 </tr>
@@ -800,7 +804,7 @@ export default function BalancePage() {
                       isLight ? 'hover:bg-slate-50' : 'hover:bg-[#16131E]/60'
                     }`}
                   >
-                    <td className="py-3 px-4 font-mono text-[#94A3B8]">
+                    <td className="py-3 px-4 font-mono text-slate-600 dark:text-[#94A3B8]">
                       {new Date(item.date).toLocaleString('pt-MZ', {
                         day: '2-digit',
                         month: '2-digit',
@@ -809,10 +813,10 @@ export default function BalancePage() {
                         minute: '2-digit',
                       })}
                     </td>
-                    <td className="py-3 px-4 font-mono font-bold text-[#F8FAFC]">
+                    <td className="py-3 px-4 font-mono font-bold text-slate-900 dark:text-[#F8FAFC]">
                       {item.reference}
                     </td>
-                    <td className="py-3 px-4 text-[#F8FAFC]">
+                    <td className="py-3 px-4 text-slate-800 dark:text-[#F8FAFC]">
                       {item.description}
                     </td>
                     <td className="py-3 px-4">
@@ -820,22 +824,22 @@ export default function BalancePage() {
                     </td>
                     <td className="py-3 px-4">
                       {item.status === 'COMPLETED' ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
                           Concluído
                         </span>
                       ) : item.status === 'PENDING' ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
                           Pendente
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/25">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/25">
                           Recusado
                         </span>
                       )}
                     </td>
                     <td
                       className={`py-3 px-4 text-right font-mono font-bold text-sm ${
-                        item.isCredit ? 'text-emerald-400' : 'text-red-400'
+                        item.isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
                       }`}
                     >
                       {item.isCredit ? '+' : '-'} {formatMZN(item.amount)}
@@ -848,7 +852,7 @@ export default function BalancePage() {
                             const rec = withdrawals.find((w) => w.id === item.id);
                             if (rec) setSelectedReceipt(rec);
                           }}
-                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-violet-600/10 text-violet-300 border border-violet-500/20 hover:bg-violet-600/20 transition-all cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-violet-600/10 text-violet-700 dark:text-violet-300 border border-violet-500/20 hover:bg-violet-600/20 transition-all cursor-pointer"
                         >
                           Recibo
                         </button>
@@ -870,20 +874,20 @@ export default function BalancePage() {
               isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#121018] border-[#252033] text-white'
             }`}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#252033] mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#252033] mb-4">
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-violet-600/20 border border-violet-500/30 text-violet-400 flex items-center justify-center font-bold">
+                <span className="w-8 h-8 rounded-xl bg-violet-600/20 border border-violet-500/30 text-violet-500 dark:text-violet-400 flex items-center justify-center font-bold">
                   $
                 </span>
                 <div>
-                  <h3 className="text-base font-bold text-[#F8FAFC]">Solicitar Saque</h3>
-                  <p className="text-xs text-[#94A3B8]">0% de comissão de retirada • Transferência segura</p>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Solicitar Saque</h3>
+                  <p className="text-xs text-slate-500 dark:text-[#94A3B8]">0% de comissão de retirada • Transferência segura</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setWithdrawModalOpen(false)}
-                className="text-[#94A3B8] hover:text-white text-lg font-bold p-1 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:text-[#94A3B8] dark:hover:text-white text-lg font-bold p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -892,7 +896,7 @@ export default function BalancePage() {
             <form onSubmit={handleWithdrawSubmit} className="space-y-4">
               {/* Method Selector */}
               <div>
-                <label className="block text-xs font-bold text-[#94A3B8] mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-2 uppercase tracking-wide">
                   Selecione o Canal de Saque
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -922,7 +926,7 @@ export default function BalancePage() {
               {/* Bank Selector if method is BANK */}
               {withdrawMethod === 'BANK' && (
                 <div>
-                  <label className="block text-xs font-bold text-[#94A3B8] mb-1">Banco de Moçambique</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1">Banco de Moçambique</label>
                   <select
                     value={withdrawBankName}
                     onChange={(e) => setWithdrawBankName(e.target.value)}
@@ -942,7 +946,7 @@ export default function BalancePage() {
               {/* Titular e Destino */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#94A3B8] mb-1">Nome do Titular</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1">Nome do Titular</label>
                   <input
                     type="text"
                     required
@@ -956,7 +960,7 @@ export default function BalancePage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#94A3B8] mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1">
                     {withdrawMethod === 'BANK' ? 'NIB / Conta Bancária' : 'Número de Telefone (+258)'}
                   </label>
                   <input
@@ -975,11 +979,11 @@ export default function BalancePage() {
               {/* Montante com botão Max */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-[#94A3B8]">Montante a Sacar (MZN)</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-[#94A3B8]">Montante a Sacar (MZN)</label>
                   <button
                     type="button"
                     onClick={() => setWithdrawAmount(`${balance.availableBalance}`)}
-                    className="text-[11px] font-bold text-violet-400 hover:text-violet-300 cursor-pointer"
+                    className="text-[11px] font-bold text-violet-600 dark:text-violet-400 hover:text-violet-500 dark:hover:text-violet-300 cursor-pointer"
                   >
                     Sacar Tudo ({formatMZN(balance.availableBalance)})
                   </button>
@@ -997,7 +1001,7 @@ export default function BalancePage() {
                       isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0F0E14] border-[#1E1B26] text-white'
                     }`}
                   />
-                  <span className="absolute right-3 top-3.5 text-xs text-[#94A3B8] font-bold">MZN</span>
+                  <span className="absolute right-3 top-3.5 text-xs text-slate-400 dark:text-[#94A3B8] font-bold">MZN</span>
                 </div>
               </div>
 
@@ -1007,19 +1011,19 @@ export default function BalancePage() {
                   isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#0B0911] border-[#1E1B26]'
                 }`}
               >
-                <div className="flex justify-between text-[#94A3B8]">
+                <div className="flex justify-between text-slate-500 dark:text-[#94A3B8]">
                   <span>Taxa de Retirada Otterfy:</span>
-                  <span className="font-bold text-emerald-400">0% (0,00 MT)</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">0% (0,00 MT)</span>
                 </div>
-                <div className="flex justify-between text-[#94A3B8]">
+                <div className="flex justify-between text-slate-500 dark:text-[#94A3B8]">
                   <span>Valor Líquido a Receber:</span>
-                  <span className="font-bold text-white font-mono">
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">
                     {formatMZN(Number(withdrawAmount) || 0)}
                   </span>
                 </div>
-                <div className="flex justify-between text-[#94A3B8]">
+                <div className="flex justify-between text-slate-500 dark:text-[#94A3B8]">
                   <span>Prazo Estimado:</span>
-                  <span className="font-bold text-violet-300">
+                  <span className="font-bold text-violet-600 dark:text-violet-300">
                     {withdrawMethod === 'BANK' ? 'Até 2 horas' : 'Instantâneo'}
                   </span>
                 </div>
@@ -1030,7 +1034,7 @@ export default function BalancePage() {
                 <button
                   type="button"
                   onClick={() => setWithdrawModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#94A3B8] hover:text-white cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -1055,12 +1059,12 @@ export default function BalancePage() {
               isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#121018] border-[#252033] text-white'
             }`}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#252033] mb-4">
-              <h3 className="text-base font-bold text-[#F8FAFC]">Cadastrar Conta de Saque</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#252033] mb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Cadastrar Conta de Saque</h3>
               <button
                 type="button"
                 onClick={() => setAccountModalOpen(false)}
-                className="text-[#94A3B8] hover:text-white text-lg font-bold p-1 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:text-[#94A3B8] dark:hover:text-white text-lg font-bold p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -1068,7 +1072,7 @@ export default function BalancePage() {
 
             <form onSubmit={handleSaveAccount} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#94A3B8] mb-1">Tipo de Conta</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1">Tipo de Conta</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(['MPESA', 'EMOLA', 'BANK'] as const).map((t) => (
                     <button
@@ -1077,7 +1081,7 @@ export default function BalancePage() {
                       onClick={() => setNewAccType(t)}
                       className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                         newAccType === t
-                          ? 'border-violet-500 bg-violet-600/20 text-white'
+                          ? 'border-violet-500 bg-violet-600/20 text-violet-700 dark:text-white'
                           : isLight
                             ? 'border-slate-200 bg-slate-50 text-slate-700'
                             : 'border-[#1E1B26] bg-[#0F0E14] text-[#94A3B8]'
@@ -1091,7 +1095,7 @@ export default function BalancePage() {
 
               {newAccType === 'BANK' && (
                 <div>
-                  <label className="block text-xs font-bold text-[#94A3B8] mb-1">Banco</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1">Banco</label>
                   <select
                     value={newAccBank}
                     onChange={(e) => setNewAccBank(e.target.value)}
@@ -1109,7 +1113,7 @@ export default function BalancePage() {
               )}
 
               <div>
-                <label className="block text-xs font-bold text-[#94A3B8] mb-1">Nome do Titular</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1">Nome do Titular</label>
                 <input
                   type="text"
                   required
@@ -1123,7 +1127,7 @@ export default function BalancePage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#94A3B8] mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1">
                   {newAccType === 'BANK' ? 'NIB / IBAN' : 'Número de Telefone'}
                 </label>
                 <input
@@ -1142,7 +1146,7 @@ export default function BalancePage() {
                 <button
                   type="button"
                   onClick={() => setAccountModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#94A3B8] hover:text-white cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-[#94A3B8] dark:hover:text-white cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -1166,20 +1170,20 @@ export default function BalancePage() {
               isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#121018] border-[#252033] text-white'
             }`}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#252033] mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-violet-400">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#252033] mb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">
                 Comprovante de Saque Oficial
               </span>
               <button
                 type="button"
                 onClick={() => setSelectedReceipt(null)}
-                className="text-[#94A3B8] hover:text-white text-lg font-bold p-1 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:text-[#94A3B8] dark:hover:text-white text-lg font-bold p-1 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="flex flex-col items-center justify-center py-4 border-b border-[#252033] space-y-2">
+            <div className="flex flex-col items-center justify-center py-4 border-b border-slate-200 dark:border-[#252033] space-y-2">
               <div className="w-16 h-16 rounded-2xl bg-white shadow-xs border-2 border-slate-200 p-2 flex items-center justify-center">
                 {selectedReceipt.method === 'MPESA' ? (
                   <Image src="/gateways/mpesa.svg" alt="M-Pesa" width={48} height={48} className="w-full h-full object-contain" />
@@ -1191,40 +1195,40 @@ export default function BalancePage() {
                   </svg>
                 )}
               </div>
-              <span className="text-3xl font-bold font-mono text-emerald-400">
+              <span className="text-3xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
                 {formatMZN(selectedReceipt.amount)}
               </span>
-              <p className="text-xs text-[#94A3B8]">Transferência concluída com 0% de comissão</p>
+              <p className="text-xs text-slate-500 dark:text-[#94A3B8]">Transferência concluída com 0% de comissão</p>
             </div>
 
             <div className="py-4 space-y-2 text-xs">
-              <div className="flex justify-between text-[#94A3B8]">
+              <div className="flex justify-between text-slate-500 dark:text-[#94A3B8]">
                 <span>Código de Referência:</span>
-                <span className="font-mono font-bold text-white">{selectedReceipt.reference}</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{selectedReceipt.reference}</span>
               </div>
-              <div className="flex justify-between text-[#94A3B8]">
+              <div className="flex justify-between text-slate-500 dark:text-[#94A3B8]">
                 <span>Destinatário:</span>
-                <span className="font-semibold text-white">{selectedReceipt.recipientName}</span>
+                <span className="font-semibold text-slate-900 dark:text-white">{selectedReceipt.recipientName}</span>
               </div>
-              <div className="flex justify-between text-[#94A3B8]">
+              <div className="flex justify-between text-slate-500 dark:text-[#94A3B8]">
                 <span>Canal / Método:</span>
-                <span className="font-semibold text-violet-300">
+                <span className="font-semibold text-violet-600 dark:text-violet-300">
                   {selectedReceipt.method === 'BANK' ? selectedReceipt.bankName : selectedReceipt.method}
                 </span>
               </div>
-              <div className="flex justify-between text-[#94A3B8]">
+              <div className="flex justify-between text-slate-500 dark:text-[#94A3B8]">
                 <span>Conta de Destino:</span>
-                <span className="font-mono text-white">{selectedReceipt.destination}</span>
+                <span className="font-mono text-slate-900 dark:text-white">{selectedReceipt.destination}</span>
               </div>
-              <div className="flex justify-between text-[#94A3B8]">
+              <div className="flex justify-between text-slate-500 dark:text-[#94A3B8]">
                 <span>Data de Processamento:</span>
-                <span className="font-mono text-white">
+                <span className="font-mono text-slate-900 dark:text-white">
                   {new Date(selectedReceipt.submittedAt).toLocaleString('pt-MZ')}
                 </span>
               </div>
-              <div className="flex justify-between text-[#94A3B8]">
+              <div className="flex justify-between text-slate-500 dark:text-[#94A3B8]">
                 <span>Status da Liquidação:</span>
-                <span className="font-bold text-emerald-400">LIQUIDADO</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">LIQUIDADO</span>
               </div>
             </div>
 
