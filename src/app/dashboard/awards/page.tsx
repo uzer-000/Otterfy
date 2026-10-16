@@ -194,12 +194,85 @@ const FAQS = [
   },
 ];
 
+function PlaqueCardThumbnail({
+  imageSrc,
+  name,
+  hasModel3D,
+}: {
+  imageSrc: string;
+  name: string;
+  hasModel3D?: boolean;
+}) {
+  const [tilt, setTilt] = useState({ x: 0, y: 0, shineX: 50, shineY: 50 });
+  const [hovered, setHovered] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    const normX = (x - 0.5) * 2;
+    const normY = (y - 0.5) * 2;
+    setTilt({
+      y: normX * 22,
+      x: -normY * 18,
+      shineX: Math.round(((normX + 1) / 2) * 100),
+      shineY: Math.round(((normY + 1) / 2) * 100),
+    });
+    setHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setHovered(false);
+    setTilt({ x: 0, y: 0, shineX: 50, shineY: 50 });
+  };
+
+  return (
+    <div
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="w-20 h-24 sm:w-24 sm:h-28 shrink-0 rounded-2xl bg-slate-50 dark:bg-[#06050A] border border-slate-200/90 dark:border-white/10 overflow-hidden flex items-center justify-center relative p-2 shadow-inner select-none cursor-pointer"
+      style={{ perspective: '800px' }}
+    >
+      <div
+        className="relative w-full h-full flex items-center justify-center transition-transform duration-100 ease-out"
+        style={{
+          transformStyle: 'preserve-3d',
+          transform: `rotateY(${tilt.y}deg) rotateX(${tilt.x}deg) scale3d(${
+            hovered ? 1.08 : 1
+          }, ${hovered ? 1.08 : 1}, 1)`,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageSrc}
+          alt={name}
+          className="w-full h-full object-contain filter drop-shadow-md pointer-events-none"
+        />
+
+        {/* Specular shine on cursor move */}
+        <div
+          className="absolute inset-0 rounded-xl pointer-events-none transition-opacity duration-150 mix-blend-overlay"
+          style={{
+            opacity: hovered ? 0.65 : 0,
+            background: `radial-gradient(circle at ${tilt.shineX}% ${tilt.shineY}%, rgba(255,255,255,0.7) 0%, transparent 60%)`,
+          }}
+        />
+      </div>
+
+      {hasModel3D && (
+        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-xs text-[9px] font-mono font-bold text-white border border-white/15 z-10 pointer-events-none">
+          3D
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function AwardsPage() {
   const [totalRevenue, setTotalRevenue] = useState(0);
 
   // Modals state
   const [claimModalMilestone, setClaimModalMilestone] = useState<MilestoneData | null>(null);
-  const [previewMilestone, setPreviewMilestone] = useState<MilestoneData | null>(null);
   const [viewer3DMilestone, setViewer3DMilestone] = useState<MilestoneData | null>(null);
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
@@ -250,13 +323,7 @@ export default function AwardsPage() {
   };
 
   const handleMilestoneClick = (m: MilestoneData) => {
-    if (m.modelGlb) {
-      setViewer3DMilestone(m);
-    } else if (m.type === 'community' || m.type === 'starter_community') {
-      setWhatsappModalOpen(true);
-    } else {
-      setPreviewMilestone(m);
-    }
+    setViewer3DMilestone(m);
   };
 
   return (
@@ -367,22 +434,12 @@ export default function AwardsPage() {
               >
                 {/* Lado Esquerdo: Imagem + Detalhes */}
                 <div className="flex items-center gap-4 sm:gap-6 min-w-0">
-                  {/* Container da Imagem com Contorno Suave */}
-                  <div className="w-20 h-24 sm:w-24 sm:h-28 shrink-0 rounded-2xl bg-slate-50 dark:bg-[#06050A] border border-slate-200/90 dark:border-white/10 overflow-hidden flex items-center justify-center relative p-2 shadow-inner group-hover:scale-105 transition-transform duration-200">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={milestone.imageSrc}
-                      alt={milestone.name}
-                      className="w-full h-full object-contain filter drop-shadow-md"
-                    />
-
-                    {/* Badge 3D quando for placa */}
-                    {milestone.modelGlb && (
-                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-[9px] font-mono font-bold text-white border border-white/15">
-                        3D
-                      </span>
-                    )}
-                  </div>
+                  {/* Plaque Thumbnail with 3D Cursor-Tracking Parallax Tilt */}
+                  <PlaqueCardThumbnail
+                    imageSrc={milestone.imageSrc}
+                    name={milestone.name}
+                    hasModel3D={Boolean(milestone.modelGlb)}
+                  />
 
                   {/* Textos & Botões de Ação */}
                   <div className="space-y-1.5 min-w-0">
@@ -422,11 +479,26 @@ export default function AwardsPage() {
                           </button>
                         </>
                       ) : isCurrentTarget ? (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-blue-600 dark:bg-violet-600 px-3 py-1 rounded-lg shadow-sm">
-                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                          Você está aqui
-                        </span>
-                      ) : milestone.modelGlb ? (
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-blue-600 dark:bg-violet-600 px-3 py-1 rounded-lg shadow-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                            Você está aqui
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewer3DMilestone(milestone);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-violet-600 hover:text-white dark:bg-white/5 dark:hover:bg-violet-600 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 transition-all cursor-pointer"
+                          >
+                            <svg className="w-3 h-3 text-violet-500 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                            </svg>
+                            <span>{milestone.modelGlb ? 'Ver em 3D (360°)' : 'Ver Prévia'}</span>
+                          </button>
+                        </div>
+                      ) : (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -438,9 +510,9 @@ export default function AwardsPage() {
                           <svg className="w-3 h-3 text-violet-500 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
                           </svg>
-                          <span>Ver em 3D (360°)</span>
+                          <span>{milestone.modelGlb ? 'Ver em 3D (360°)' : 'Ver Prévia'}</span>
                         </button>
-                      ) : null}
+                      )}
                     </div>
                   </div>
                 </div>
@@ -781,109 +853,9 @@ export default function AwardsPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* 7. MODAL: PREVIEW DE DETALHES TÉCNICOS (PULSEIRAS)                        */}
+      {/* 7. MODAL INTERATIVO 3D & PREVIEW (THREE.JS WEBGL + CURSOR TRACKING TILT)  */}
       {/* ========================================================================= */}
-      {previewMilestone && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#121018] border border-slate-200 dark:border-[#252033] rounded-3xl w-full max-w-2xl p-6 sm:p-8 space-y-6 shadow-2xl relative text-slate-900 dark:text-[#F8FAFC] max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#252033]">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-violet-600/15 text-violet-700 dark:text-violet-300 border border-violet-500/25">
-                  {previewMilestone.level}
-                </span>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">
-                  {previewMilestone.name}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPreviewMilestone(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-[#1E1B26] flex items-center justify-center text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white text-xs cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Imagem em Destaque */}
-            <div className="w-full h-80 sm:h-96 rounded-2xl bg-slate-50 dark:bg-[#08070C] border border-slate-200/90 dark:border-white/10 p-6 flex items-center justify-center shadow-inner relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={previewMilestone.imageSrc}
-                alt={previewMilestone.name}
-                className="max-h-full max-w-full object-contain filter drop-shadow-2xl"
-              />
-            </div>
-
-            {/* Informações & Especificações */}
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
-                  Especificações do Acabamento
-                </h4>
-                <p className="text-xs text-slate-600 dark:text-[#94A3B8] mt-1 leading-relaxed">
-                  {previewMilestone.specifications}
-                </p>
-              </div>
-
-              {previewMilestone.format && (
-                <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-[#CBD5E1]">
-                  <span className="text-slate-400">Dimensões Oficiais:</span>
-                  <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 font-mono">
-                    {previewMilestone.format}
-                  </span>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Destaques Inclusos:
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {previewMilestone.highlights.map((h) => (
-                    <div
-                      key={h}
-                      className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0911] border border-slate-200 dark:border-[#1E1B26] text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2"
-                    >
-                      <span className="text-violet-500 font-bold">✓</span>
-                      <span>{h}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Botão de Fechar ou Resgatar se já atingido */}
-            <div className="pt-2 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setPreviewMilestone(null)}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white cursor-pointer"
-              >
-                Fechar Visualização
-              </button>
-              {totalRevenue >= previewMilestone.target && previewMilestone.type !== 'community' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = previewMilestone;
-                    setPreviewMilestone(null);
-                    setClaimModalMilestone(target);
-                  }}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 shadow-md cursor-pointer"
-                >
-                  Resgatar Este Colecionável
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 8. MODAL INTERATIVO 3D (THREE.JS / WEBGL COM GLTF LOADER 360°)            */}
-      {/* ========================================================================= */}
-      {viewer3DMilestone && viewer3DMilestone.modelGlb && (
+      {viewer3DMilestone && (
         <PlaqueViewer3D
           modelUrl={viewer3DMilestone.modelGlb}
           fallbackImage={viewer3DMilestone.imageSrc}
@@ -894,8 +866,10 @@ export default function AwardsPage() {
           specifications={viewer3DMilestone.specifications}
           targetAmount={viewer3DMilestone.target}
           currentRevenue={totalRevenue}
-          isUnlocked={totalRevenue >= viewer3DMilestone.target}
+          isUnlocked={viewer3DMilestone.target === 0 || totalRevenue >= viewer3DMilestone.target}
+          type={viewer3DMilestone.type}
           onClose={() => setViewer3DMilestone(null)}
+          onOpenWhatsapp={() => setWhatsappModalOpen(true)}
           onClaim={() => {
             const target = viewer3DMilestone;
             setViewer3DMilestone(null);

@@ -1,23 +1,25 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 interface PlaqueViewer3DProps {
-  modelUrl: string;
-  fallbackImage?: string;
+  modelUrl?: string;
+  fallbackImage: string;
   title: string;
   level: string;
-  format?: string;
-  category?: string;
-  specifications?: string;
   targetAmount: number;
   currentRevenue: number;
   isUnlocked: boolean;
   onClose: () => void;
   onClaim?: () => void;
+  format?: string;
+  category?: string;
+  specifications?: string;
+  perks?: string;
+  type?: 'starter_community' | 'community' | 'bracelet' | 'plaque';
+  onOpenWhatsapp?: () => void;
 }
 
 export default function PlaqueViewer3D({
@@ -25,31 +27,131 @@ export default function PlaqueViewer3D({
   fallbackImage,
   title,
   level,
-  format,
-  category,
-  specifications,
   targetAmount,
   currentRevenue,
   isUnlocked,
   onClose,
   onClaim,
+  format,
+  category,
+  specifications,
+  perks,
+  type = 'plaque',
+  onOpenWhatsapp,
 }: PlaqueViewer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(modelUrl));
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadError, setLoadError] = useState(false);
-  const [isAutoRotating, setIsAutoRotating] = useState(true);
-  const [cameraView, setCameraView] = useState<'perspective' | 'front' | 'side'>('perspective');
+  const [is3DReady, setIs3DReady] = useState(false);
 
-  const controlsRef = useRef<OrbitControls | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  // 2D Card Tilt State for Fallback or 2D awards (Pulseiras, Celular)
+  const [cardTilt, setCardTilt] = useState({ rotateX: 0, rotateY: 0, shineX: 50, shineY: 50 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Three.js internal references for 60fps lerp
   const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
-  const initialDistanceRef = useRef<number>(1.2);
+  const specularLightRef = useRef<THREE.PointLight | null>(null);
 
+  // Cursor Tracking Physics
+  const targetTiltX = useRef(0);
+  const targetTiltY = useRef(0);
+  const currentTiltX = useRef(0);
+  const currentTiltY = useRef(0);
+
+  // Drag 360° Physics
+  const baseRotationY = useRef(0);
+  const baseRotationX = useRef(0);
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+
+  // Handle pointer tracking for 3D model & 2D fallback
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+
+    // Normalized from -1 to +1
+    const normX = (x / rect.width - 0.5) * 2;
+    const normY = (y / rect.height - 0.5) * 2;
+
+    // Target tilt angles for 3D GLB
+    targetTiltY.current = normX * 0.45; // ~25 deg Y rotation towards mouse
+    targetTiltX.current = -normY * 0.35; // ~20 deg X rotation towards mouse
+
+    // 2D Card Parallax Tilt State
+    setCardTilt({
+      rotateY: normX * 22,
+      rotateX: -normY * 18,
+      shineX: Math.round(((normX + 1) / 2) * 100),
+      shineY: Math.round(((normY + 1) / 2) * 100),
+    });
+    setIsHovered(true);
+  }, []);
+
+  const handlePointerLeave = useCallback(() => {
+    targetTiltY.current = 0;
+    targetTiltX.current = 0;
+    setIsHovered(false);
+    setCardTilt({ rotateX: 0, rotateY: 0, shineX: 50, shineY: 50 });
+  }, []);
+
+  // Pointer Drag handlers (360° Free Orbit)
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    isDragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+
+  const handlePointerDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current) {
+      handlePointerMove(e);
+      return;
+    }
+    const deltaX = e.clientX - dragStart.current.x;
+    const deltaY = e.clientY - dragStart.current.y;
+
+    baseRotationY.current += deltaX * 0.009;
+    baseRotationX.current += deltaY * 0.009;
+    // Limit vertical angle so plaque doesn't invert
+    baseRotationX.current = Math.max(-Math.PI * 0.35, Math.min(Math.PI * 0.35, baseRotationX.current));
+
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    handlePointerMove(e);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    isDragging.current = false;
+    try {
+      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  // Double click resets angle to front
+  const handleResetAngle = () => {
+    baseRotationY.current = 0;
+    baseRotationX.current = 0;
+    targetTiltX.current = 0;
+    targetTiltY.current = 0;
+  };
+
+  // Initialize Three.js WebGL Scene if modelUrl exists
   useEffect(() => {
+    if (!modelUrl) {
+      setLoading(false);
+      return;
+    }
+
     const container = containerRef.current;
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
@@ -61,64 +163,55 @@ export default function PlaqueViewer3D({
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    // 2. Camera
-    const width = container.clientWidth || 600;
-    const height = container.clientHeight || 500;
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.05, 50);
+    // 2. Camera (narrow FOV 38 for realistic luxury portrait view)
+    const width = container.clientWidth || 400;
+    const height = container.clientHeight || 360;
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.05, 50);
     cameraRef.current = camera;
 
-    // 3. Renderer with antialias and tone mapping
+    // 3. Renderer with SRGB and Tone Mapping
     renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
       alpha: true,
       powerPreference: 'high-performance',
     });
+    rendererRef.current = renderer;
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.35;
+    renderer.toneMappingExposure = 1.3;
 
-    // 4. OrbitControls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controlsRef.current = controls;
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 1.8;
-    controls.maxPolarAngle = Math.PI * 0.85;
-    controls.minPolarAngle = Math.PI * 0.15;
-    controls.enablePan = false;
-
-    // 5. Studio Lighting Setup (Highlights metallic relief and reflective surfaces)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    // 4. Studio Lighting Rig
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
     scene.add(ambientLight);
 
-    // Key Light (warm white from top-front-right)
-    const keyLight = new THREE.DirectionalLight(0xfff8ed, 2.8);
+    // Key Light
+    const keyLight = new THREE.DirectionalLight(0xfff5e6, 2.6);
     keyLight.position.set(2.5, 3.5, 3.0);
     scene.add(keyLight);
 
-    // Fill Light (soft cool violet-blue from bottom-left)
-    const fillLight = new THREE.DirectionalLight(0x818cf8, 1.8);
-    fillLight.position.set(-3.0, -1.0, 2.5);
-    scene.add(fillLight);
-
-    // Top Rim Light (creates crisp specular edges on the frame)
-    const rimLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    rimLight.position.set(0, 4.0, -2.5);
+    // Cool Rim Light
+    const rimLight = new THREE.DirectionalLight(0x60a5fa, 2.0);
+    rimLight.position.set(-2.5, -1.0, 2.0);
     scene.add(rimLight);
 
-    // Dynamic front specular point light
-    const frontGlow = new THREE.PointLight(0xffffff, 1.2, 10);
-    frontGlow.position.set(0, 0.5, 2.0);
-    scene.add(frontGlow);
+    // Top Specular Highlight
+    const topLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    topLight.position.set(0, 4.0, -2.0);
+    scene.add(topLight);
 
-    // 6. Load GLTF / GLB Model
-    const loader = new GLTFLoader();
+    // Dynamic Cursor-Tracking Specular Light
+    const specularLight = new THREE.PointLight(0xffffff, 1.4, 8);
+    specularLight.position.set(0, 0, 2.2);
+    specularLightRef.current = specularLight;
+    scene.add(specularLight);
+
+    // 5. Load GLTF Model
     setLoading(true);
-    setLoadProgress(10);
+    setLoadProgress(15);
+    const loader = new GLTFLoader();
 
     loader.load(
       modelUrl,
@@ -126,72 +219,45 @@ export default function PlaqueViewer3D({
         const root = gltf.scene;
         modelRef.current = root;
 
-        // Traverse and enhance materials
         root.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             mesh.castShadow = true;
             mesh.receiveShadow = true;
-
             if (mesh.material) {
               const mat = mesh.material as THREE.MeshStandardMaterial;
-              // Make metallic parts pop
-              if (mat.metalness !== undefined && mat.metalness > 0.1) {
-                mat.roughness = Math.max(0.12, mat.roughness * 0.7);
+              if (mat.metalness !== undefined && mat.metalness > 0.05) {
+                mat.roughness = Math.max(0.1, mat.roughness * 0.7);
                 mat.needsUpdate = true;
               }
             }
           }
         });
 
-        // Compute Bounding Box to Center and Scale Model
+        // Center model
         const box = new THREE.Box3().setFromObject(root);
-        const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
 
-        // Center object
         root.position.x = -center.x;
         root.position.y = -center.y;
         root.position.z = -center.z;
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const radius = Math.max(maxDim * 0.7, 0.25);
-        initialDistanceRef.current = radius * 2.3;
+        const distance = maxDim * 2.15;
 
-        // Position camera in 3/4 angle initially
-        camera.position.set(radius * 0.6, radius * 0.35, radius * 2.1);
+        camera.position.set(0, 0, distance);
         camera.lookAt(0, 0, 0);
 
-        controls.minDistance = radius * 0.8;
-        controls.maxDistance = radius * 4.5;
-        controls.target.set(0, 0, 0);
-        controls.update();
-
-        // Entrance scale animation
-        root.scale.set(0.1, 0.1, 0.1);
         scene.add(root);
-
-        let progress = 0;
-        const entranceAnim = () => {
-          progress += 0.05;
-          const s = THREE.MathUtils.lerp(0.1, 1.0, Math.sin((progress * Math.PI) / 2));
-          root.scale.set(s, s, s);
-          if (progress < 1) {
-            requestAnimationFrame(entranceAnim);
-          } else {
-            root.scale.set(1, 1, 1);
-          }
-        };
-        entranceAnim();
-
+        setIs3DReady(true);
         setLoading(false);
       },
       (xhr) => {
         if (xhr.total > 0) {
-          const percent = Math.min(99, Math.round((xhr.loaded / xhr.total) * 100));
-          setLoadProgress(percent);
+          setLoadProgress(Math.min(99, Math.round((xhr.loaded / xhr.total) * 100)));
         } else {
-          setLoadProgress((prev) => Math.min(90, prev + 15));
+          setLoadProgress((prev) => Math.min(95, prev + 20));
         }
       },
       (err) => {
@@ -201,15 +267,32 @@ export default function PlaqueViewer3D({
       }
     );
 
-    // 7. Render Loop
+    // 6. Smooth 60fps Render Loop with Lerp Cursor Tracking
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
-      controls.update();
+
+      // Lerp tilt towards cursor position
+      currentTiltX.current += (targetTiltX.current - currentTiltX.current) * 0.09;
+      currentTiltY.current += (targetTiltY.current - currentTiltY.current) * 0.09;
+
+      if (modelRef.current) {
+        modelRef.current.rotation.y = baseRotationY.current + currentTiltY.current;
+        modelRef.current.rotation.x = baseRotationX.current + currentTiltX.current;
+      }
+
+      if (specularLightRef.current) {
+        specularLightRef.current.position.set(
+          currentTiltY.current * 3.5,
+          -currentTiltX.current * 3.5,
+          2.2
+        );
+      }
+
       renderer?.render(scene, camera);
     };
     animate();
 
-    // 8. Resize Handler
+    // 7. Resize handler
     const handleResize = () => {
       if (!container || !renderer || !camera) return;
       const w = container.clientWidth;
@@ -223,7 +306,6 @@ export default function PlaqueViewer3D({
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
-      controls.dispose();
       if (modelRef.current) {
         modelRef.current.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
@@ -242,267 +324,240 @@ export default function PlaqueViewer3D({
     };
   }, [modelUrl]);
 
-  // Handle auto-rotate toggle
-  useEffect(() => {
-    if (controlsRef.current) {
-      controlsRef.current.autoRotate = isAutoRotating;
-    }
-  }, [isAutoRotating]);
-
-  // Camera presets
-  const handleSetView = (view: 'perspective' | 'front' | 'side') => {
-    if (!cameraRef.current || !controlsRef.current) return;
-    const dist = initialDistanceRef.current;
-    setCameraView(view);
-    setIsAutoRotating(false);
-
-    if (view === 'front') {
-      cameraRef.current.position.set(0, 0, dist * 1.9);
-    } else if (view === 'side') {
-      cameraRef.current.position.set(dist * 1.8, 0, dist * 0.7);
-    } else {
-      cameraRef.current.position.set(dist * 0.7, dist * 0.4, dist * 1.8);
-    }
-    controlsRef.current.target.set(0, 0, 0);
-    controlsRef.current.update();
-  };
-
-  const handleZoom = (delta: number) => {
-    if (!cameraRef.current || !controlsRef.current) return;
-    const camera = cameraRef.current;
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-    camera.position.addScaledVector(dir, delta);
-    controlsRef.current.update();
-  };
+  const formattedTarget = targetAmount > 0 ? `${targetAmount.toLocaleString('pt-MZ')} MT` : '0 MT';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#100E17] border border-slate-200 dark:border-[#221D2F] rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl relative text-slate-900 dark:text-[#F8FAFC]">
-        {/* Top Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-[#221D2F] flex items-center justify-between gap-3 bg-slate-50/70 dark:bg-[#0C0A12]/80 backdrop-blur-sm shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="px-3 py-1 rounded-xl text-xs font-black tracking-wider font-mono bg-violet-600/15 text-violet-700 dark:text-violet-300 border border-violet-500/25">
-              {level}
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">
-                  {title}
-                </h3>
-                {format && (
-                  <span className="hidden sm:inline-block text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-slate-300">
-                    {format}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
-                {category || 'Troféu Oficial Emoldurado Otterfy'} • Renderização 3D WebGL Interativa
-              </p>
-            </div>
-          </div>
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 select-none"
+      onClick={onClose}
+    >
+      {/* Modal Shell matching the reference screenshot */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-[460px] sm:max-w-[490px] rounded-[28px] border border-white/10 bg-[#08070D] p-6 sm:p-7 flex flex-col items-center overflow-hidden shadow-2xl text-white"
+        style={{
+          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 50px -10px rgba(56, 189, 248, 0.12)',
+        }}
+      >
+        {/* Subtle Sunburst Radial Rays Emanating from Behind the Award */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
+          {/* Radial Glow Center */}
+          <div className="absolute w-[440px] h-[440px] rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.18)_0%,rgba(14,165,233,0.06)_40%,transparent_70%)] blur-2xl" />
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-9 h-9 rounded-full bg-slate-100 dark:bg-[#1E1B26] hover:bg-slate-200 dark:hover:bg-[#2A2438] flex items-center justify-center text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white transition-all text-sm font-bold cursor-pointer"
-              title="Fechar Visualizador"
-            >
-              ✕
-            </button>
-          </div>
+          {/* SVG Sunburst Rays */}
+          <svg
+            className="absolute w-[600px] h-[600px] opacity-25 mix-blend-screen"
+            viewBox="0 0 500 500"
+            fill="none"
+          >
+            <defs>
+              <radialGradient id="sunburstFade" cx="50%" cy="45%" r="50%">
+                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
+                <stop offset="35%" stopColor="#0284c7" stopOpacity="0.4" />
+                <stop offset="65%" stopColor="#0369a1" stopOpacity="0.1" />
+                <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+              </radialGradient>
+              <mask id="sunburstMask">
+                <circle cx="250" cy="225" r="230" fill="url(#sunburstFade)" />
+              </mask>
+            </defs>
+            <g mask="url(#sunburstMask)" transform="translate(250, 225)">
+              {Array.from({ length: 36 }).map((_, i) => (
+                <path
+                  key={i}
+                  d={`M 0 0 L ${250 * Math.cos(((i * 10 - 2.5) * Math.PI) / 180)} ${
+                    250 * Math.sin(((i * 10 - 2.5) * Math.PI) / 180)
+                  } L ${250 * Math.cos(((i * 10 + 2.5) * Math.PI) / 180)} ${
+                    250 * Math.sin(((i * 10 + 2.5) * Math.PI) / 180)
+                  } Z`}
+                  fill="#38bdf8"
+                />
+              ))}
+            </g>
+          </svg>
         </div>
 
-        {/* 3D WebGL Canvas Viewport */}
+        {/* Top Close Button (X) */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-5 right-5 z-40 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-sm"
+          title="Fechar"
+        >
+          ✕
+        </button>
+
+        {/* Top Status Pill: STILL LOCKED / DESBLOQUEADO */}
+        <div className="relative z-20 mb-4">
+          {isUnlocked ? (
+            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-sm shadow-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>DESBLOQUEADO</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-sky-500/10 border border-sky-500/30 text-sky-400 shadow-sm shadow-sky-500/15">
+              <span>STILL LOCKED</span>
+            </div>
+          )}
+        </div>
+
+        {/* Center Plaque Viewport (with Mouse Cursor Tracking Parallax + 360° Drag) */}
         <div
           ref={containerRef}
-          className="relative w-full h-[380px] sm:h-[460px] bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-[#08070C] dark:via-[#0F0D16] dark:to-[#08070C] flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing select-none"
+          onPointerMove={handlePointerDragMove}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
+          onDoubleClick={handleResetAngle}
+          className="relative z-20 w-full h-[330px] sm:h-[350px] flex items-center justify-center cursor-grab active:cursor-grabbing select-none overflow-visible"
         >
-          {/* Subtle Studio Floor Grid / Glow */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.12)_0%,transparent_70%)] pointer-events-none" />
+          {/* WebGL 3D Model Canvas (when modelUrl is present and loaded) */}
+          {modelUrl && (
+            <canvas
+              ref={canvasRef}
+              style={{ touchAction: 'none' }}
+              className={`w-full h-full block relative z-10 transition-opacity duration-300 ${
+                is3DReady && !loading ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+          )}
 
-          {/* Canvas */}
-          <canvas ref={canvasRef} style={{ touchAction: 'none' }} className="w-full h-full block relative z-10" />
+          {/* 3D Card Parallax (for 2D awards like pulseiras, phone mockup, or while 3D GLB is loading) */}
+          {(!modelUrl || !is3DReady || loadError) && (
+            <div
+              className="relative w-64 h-80 flex items-center justify-center transition-transform duration-100 ease-out z-10"
+              style={{
+                perspective: '1000px',
+                transformStyle: 'preserve-3d',
+                transform: `rotateY(${cardTilt.rotateY}deg) rotateX(${cardTilt.rotateX}deg) scale3d(${
+                  isHovered ? 1.04 : 1
+                }, ${isHovered ? 1.04 : 1}, 1)`,
+              }}
+            >
+              {/* Plaque Image with Soft Ambient Glow */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={fallbackImage}
+                alt={title}
+                className="max-h-full max-w-full object-contain filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.85)] pointer-events-none"
+              />
 
-          {/* Loading Overlay */}
+              {/* Dynamic Glossy Specular Shine that follows the cursor */}
+              <div
+                className="absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-200 mix-blend-overlay"
+                style={{
+                  opacity: isHovered ? 0.65 : 0.2,
+                  background: `radial-gradient(circle at ${cardTilt.shineX}% ${cardTilt.shineY}%, rgba(255,255,255,0.7) 0%, transparent 60%)`,
+                }}
+              />
+            </div>
+          )}
+
+          {/* Loading Indicator for 3D GLB */}
           {loading && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 dark:bg-[#08070C]/85 backdrop-blur-sm space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-violet-600/10 border border-violet-500/30 flex items-center justify-center text-violet-600 dark:text-violet-400">
-                <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center space-y-3 pointer-events-none">
+              <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
               </div>
-              <div className="text-center space-y-1">
-                <span className="text-xs font-bold text-slate-900 dark:text-white">
-                  Carregando Modelo 3D da Placa...
-                </span>
-                <div className="w-48 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden mx-auto">
-                  <div
-                    className="h-full bg-violet-600 rounded-full transition-all duration-300"
-                    style={{ width: `${loadProgress}%` }}
-                  />
-                </div>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                  {loadProgress}% concluído
-                </span>
-              </div>
+              <span className="text-[11px] font-mono text-sky-300">
+                Carregando 3D ({loadProgress}%)
+              </span>
             </div>
           )}
+        </div>
 
-          {/* Fallback Error Overlay */}
-          {loadError && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center space-y-3 bg-white/95 dark:bg-[#0B0911]/95">
-              {fallbackImage && (
-                <div className="w-48 h-48 rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 p-2 bg-slate-50 dark:bg-[#08070C]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={fallbackImage} alt={title} className="w-full h-full object-contain" />
-                </div>
-              )}
-              <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm">
-                Exibindo visualização fotográfica em alta definição com moldura oficial.
-              </p>
+        {/* Title and Subtitle */}
+        <div className="relative z-20 text-center mt-3 space-y-1">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            {title}
+          </h2>
+          <p className="text-xs sm:text-[13px] text-slate-400">
+            {targetAmount > 0 ? (
+              <>
+                Desbloqueia aos <strong className="text-white font-bold">{formattedTarget}</strong> em vendas
+              </>
+            ) : (
+              <>Acesso liberado no primeiro dia na Otterfy</>
+            )}
+          </p>
+        </div>
+
+        {/* Horizontal Divider Line */}
+        <div className="relative z-20 w-full border-t border-white/10 my-4" />
+
+        {/* Two-Column Info Bar (MARCO & INSTAGRAM) */}
+        <div className="relative z-20 w-full grid grid-cols-2 gap-4 text-left">
+          {/* Left Column: MARCO */}
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase block">
+              MARCO
+            </span>
+            <div className="text-xs sm:text-[13px] text-slate-300">
+              <strong className="text-white font-bold">{formattedTarget}</strong> em vendas
             </div>
-          )}
+          </div>
 
-          {/* Bottom Floating 3D Interaction Control Pill */}
-          {!loading && !loadError && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 sm:gap-2 px-3 py-2 rounded-2xl bg-white/90 dark:bg-[#121018]/90 backdrop-blur-md border border-slate-200/90 dark:border-white/15 shadow-xl text-xs">
-              {/* Auto rotate toggle */}
-              <button
-                type="button"
-                onClick={() => setIsAutoRotating(!isAutoRotating)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition-all cursor-pointer ${
-                  isAutoRotating
-                    ? 'bg-violet-600 text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
-                }`}
-                title={isAutoRotating ? 'Pausar Rotação Automática' : 'Ativar Rotação Automática'}
-              >
-                <svg
-                  className={`w-3.5 h-3.5 ${isAutoRotating ? 'animate-spin' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span className="hidden sm:inline">360° Giro</span>
-              </button>
-
-              <div className="w-[1px] h-4 bg-slate-200 dark:bg-white/10 mx-0.5" />
-
-              {/* Angle presets */}
-              <button
-                type="button"
-                onClick={() => handleSetView('front')}
-                className={`px-2.5 py-1.5 rounded-xl font-semibold transition-all cursor-pointer ${
-                  cameraView === 'front' && !isAutoRotating
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
-                }`}
-              >
-                Frente
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSetView('perspective')}
-                className={`px-2.5 py-1.5 rounded-xl font-semibold transition-all cursor-pointer ${
-                  cameraView === 'perspective' && !isAutoRotating
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
-                }`}
-              >
-                3D Angulado
-              </button>
-
-              <div className="w-[1px] h-4 bg-slate-200 dark:bg-white/10 mx-0.5" />
-
-              {/* Zoom Buttons */}
-              <button
-                type="button"
-                onClick={() => handleZoom(0.25)}
-                className="w-7 h-7 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center font-bold text-sm cursor-pointer"
-                title="Aproximar (+)"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                onClick={() => handleZoom(-0.25)}
-                className="w-7 h-7 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center font-bold text-sm cursor-pointer"
-                title="Afastar (-)"
-              >
-                −
-              </button>
+          {/* Right Column: INSTAGRAM & RECONHECIMENTO */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+              <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+              </svg>
+              <span>INSTAGRAM</span>
             </div>
-          )}
-
-          {/* Hint Overlay (top right) */}
-          <div className="absolute top-3 right-3 z-30 pointer-events-none hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-sm text-[11px] font-medium text-white/80 border border-white/10">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-            </svg>
-            <span>Arraste para girar 360°</span>
+            <div className="text-xs sm:text-[13px] text-slate-300">
+              <strong className="text-white font-bold">Repost garantido</strong> quando você chegar aqui
+            </div>
           </div>
         </div>
 
-        {/* Footer Specifications & Action */}
-        <div className="p-4 sm:p-6 border-t border-slate-200 dark:border-[#221D2F] bg-slate-50/50 dark:bg-[#0E0C15]/70 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
-          <div className="space-y-1 text-center sm:text-left">
-            <div className="flex items-center justify-center sm:justify-start gap-2">
-              <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC]">
-                Especificações Técnicas:
-              </span>
-              {format && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-violet-600/10 text-violet-700 dark:text-violet-300 font-bold border border-violet-500/20">
-                  {format}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-600 dark:text-[#94A3B8] max-w-lg leading-relaxed">
-              {specifications ||
-                'Moldura nobre de alumínio anodizado preto fosco, vidro de cristal antirreflexo e emblema tridimensional com corte e gravação a laser.'}
-            </p>
-          </div>
+        {/* Lower Horizontal Divider Line */}
+        <div className="relative z-20 w-full border-b border-white/10 my-4" />
 
-          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
+        {/* Bottom Centered Pill Button */}
+        <div className="relative z-20 w-full flex items-center justify-center pt-1">
+          {type === 'starter_community' || type === 'community' ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenWhatsapp?.();
+              }}
+              className="px-6 py-2.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2" />
+              </svg>
+              <span>Entrar no WhatsApp</span>
+            </button>
+          ) : isUnlocked ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onClaim?.();
+              }}
+              className="px-7 py-2.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 shadow-lg shadow-violet-600/30 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+              <span>Resgatar Troféu (Frete Grátis)</span>
+            </button>
+          ) : (
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+              className="px-6 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white text-xs font-semibold cursor-pointer transition-all active:scale-95 shadow-sm"
             >
-              Fechar
+              Fechar prévia
             </button>
-
-            {isUnlocked ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onClaim?.();
-                }}
-                className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 shadow-md shadow-violet-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-                <span>Resgatar Troféu (Frete Grátis)</span>
-              </button>
-            ) : (
-              <div className="flex-1 sm:flex-initial text-center sm:text-right">
-                <span className="block text-[11px] font-mono font-bold text-violet-600 dark:text-violet-400">
-                  Faltam {Math.max(0, targetAmount - currentRevenue).toLocaleString()} MT
-                </span>
-                <span className="text-[10px] text-slate-500 dark:text-[#64748B]">
-                  Meta: {targetAmount.toLocaleString()} MT
-                </span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>
