@@ -359,15 +359,15 @@ export default function PlaqueViewer3D({
       {/* Modal Shell matching the reference screenshot */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-[460px] sm:max-w-[490px] rounded-[28px] border border-white/10 bg-[#08070D] p-6 sm:p-7 flex flex-col items-center overflow-hidden shadow-2xl text-white"
+        className="otter-keep-colors relative w-full max-w-[460px] sm:max-w-[490px] rounded-[28px] border border-white/10 bg-[#08070D] p-6 sm:p-7 flex flex-col items-center overflow-hidden shadow-2xl text-white"
         style={{
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 50px -10px rgba(56, 189, 248, 0.12)',
+          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 50px -10px rgba(139, 92, 246, 0.25)',
         }}
       >
         {/* Subtle Sunburst Radial Rays Emanating from Behind the Award */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
           {/* Radial Glow Center */}
-          <div className="absolute w-[440px] h-[440px] rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.18)_0%,rgba(14,165,233,0.06)_40%,transparent_70%)] blur-2xl" />
+          <div className="absolute w-[440px] h-[440px] rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.22)_0%,rgba(124,58,237,0.08)_40%,transparent_70%)] blur-2xl" />
 
           {/* SVG Sunburst Rays */}
           <svg
@@ -377,10 +377,10 @@ export default function PlaqueViewer3D({
           >
             <defs>
               <radialGradient id="sunburstFade" cx="50%" cy="45%" r="50%">
-                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
-                <stop offset="35%" stopColor="#0284c7" stopOpacity="0.4" />
-                <stop offset="65%" stopColor="#0369a1" stopOpacity="0.1" />
-                <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                <stop offset="0%" stopColor="#a855f7" stopOpacity="0.85" />
+                <stop offset="35%" stopColor="#7c3aed" stopOpacity="0.45" />
+                <stop offset="65%" stopColor="#6d28d9" stopOpacity="0.12" />
+                <stop offset="100%" stopColor="#08070D" stopOpacity="0" />
               </radialGradient>
               <mask id="sunburstMask">
                 <circle cx="250" cy="225" r="230" fill="url(#sunburstFade)" />
@@ -395,7 +395,7 @@ export default function PlaqueViewer3D({
                   } L ${250 * Math.cos(((i * 10 + 2.5) * Math.PI) / 180)} ${
                     250 * Math.sin(((i * 10 + 2.5) * Math.PI) / 180)
                   } Z`}
-                  fill="#38bdf8"
+                  fill="#a855f7"
                 />
               ))}
             </g>
@@ -406,7 +406,8 @@ export default function PlaqueViewer3D({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-5 right-5 z-40 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-sm"
+          className="otter-keep-colors absolute top-5 right-5 z-40 w-8 h-8 rounded-full flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-sm"
+          style={{ color: '#CBD5E1' }}
           title="Fechar"
         >
           ✕
@@ -420,7 +421,7 @@ export default function PlaqueViewer3D({
               <span>DESBLOQUEADO</span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-violet-500/10 border border-violet-500/30 text-violet-400 shadow-sm shadow-violet-500/15">
+            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-violet-600/15 border border-violet-500/40 text-violet-300 shadow-sm shadow-violet-500/20">
               <span>STILL LOCKED</span>
             </div>
           )}
@@ -527,13 +528,13 @@ export default function PlaqueViewer3D({
 
         {/* Title and Subtitle */}
         <div className="relative z-20 text-center mt-3 space-y-1">
-          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight otter-keep-colors" style={{ color: '#FFFFFF' }}>
             {title}
           </h2>
-          <p className="text-xs sm:text-[13px] text-slate-400">
+          <p className="text-xs sm:text-[13px] text-slate-300 otter-keep-colors" style={{ color: '#CBD5E1' }}>
             {targetAmount > 0 ? (
               <>
-                Desbloqueia aos <strong className="text-white font-bold">{formattedTarget}</strong> em vendas
+                Desbloqueia aos <strong className="text-white font-bold otter-keep-colors" style={{ color: '#FFFFFF' }}>{formattedTarget}</strong> em vendas
               </>
             ) : (
               <>Acesso liberado no primeiro dia na Otterfy</>
@@ -548,30 +549,30 @@ export default function PlaqueViewer3D({
         <div className="relative z-20 w-full grid grid-cols-2 gap-4 text-left">
           {/* Left Column: MARCO */}
           <div className="space-y-1">
-            <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase block">
+            <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase block otter-keep-colors" style={{ color: '#94A3B8' }}>
               MARCO
             </span>
-            <div className="text-xs sm:text-[13px] text-slate-300">
-              <strong className="text-white font-bold">{formattedTarget}</strong> em vendas
+            <div className="text-xs sm:text-[13px] text-slate-200 otter-keep-colors" style={{ color: '#E2E8F0' }}>
+              <strong className="text-white font-bold otter-keep-colors" style={{ color: '#FFFFFF' }}>{formattedTarget}</strong> em vendas
             </div>
           </div>
 
           {/* Right Column: INSTAGRAM & RECONHECIMENTO */}
           <div className="space-y-1">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase otter-keep-colors" style={{ color: '#94A3B8' }}>
               <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
               </svg>
               <span>{type === 'bracelet' ? 'ENVIO FÍSICO' : 'INSTAGRAM'}</span>
             </div>
-            <div className="text-xs sm:text-[13px] text-slate-300">
+            <div className="text-xs sm:text-[13px] text-slate-200 otter-keep-colors" style={{ color: '#E2E8F0' }}>
               {type === 'bracelet' ? (
                 <>
-                  <strong className="text-white font-bold">2 Pulseiras Físicas</strong> entregues com frete grátis
+                  <strong className="text-white font-bold otter-keep-colors" style={{ color: '#FFFFFF' }}>2 Pulseiras Físicas</strong> entregues com frete grátis
                 </>
               ) : (
                 <>
-                  <strong className="text-white font-bold">Repost garantido</strong> quando você chegar aqui
+                  <strong className="text-white font-bold otter-keep-colors" style={{ color: '#FFFFFF' }}>Repost garantido</strong> quando você chegar aqui
                 </>
               )}
             </div>
@@ -590,7 +591,8 @@ export default function PlaqueViewer3D({
                 onClose();
                 onOpenWhatsapp?.();
               }}
-              className="px-6 py-2.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-2"
+              className="otter-keep-colors px-6 py-2.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-2"
+              style={{ color: '#FFFFFF' }}
             >
               <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                 <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2" />
@@ -604,7 +606,8 @@ export default function PlaqueViewer3D({
                 onClose();
                 onClaim?.();
               }}
-              className="px-7 py-2.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-600/30 transition-all cursor-pointer flex items-center gap-2"
+              className="otter-keep-colors px-7 py-2.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-600/30 transition-all cursor-pointer flex items-center gap-2"
+              style={{ color: '#FFFFFF' }}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -615,7 +618,8 @@ export default function PlaqueViewer3D({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white text-xs font-semibold cursor-pointer transition-all active:scale-95 shadow-sm"
+              className="otter-keep-colors px-6 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold cursor-pointer transition-all active:scale-95 shadow-sm"
+              style={{ color: '#FFFFFF' }}
             >
               Fechar prévia
             </button>

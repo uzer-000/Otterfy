@@ -92,10 +92,14 @@ export default function DashboardTopNav() {
       fetch('/api/user/profile', { cache: 'no-store' })
         .then((r) => r.json())
         .then((d) => {
-          const avatar = d.avatarImage || d.profile?.avatarImage || d.user?.avatarImage;
-          if (avatar) {
-            setProfileAvatar(avatar);
-            localStorage.setItem('otterfy_profile_avatar', avatar);
+          const avatar = d.avatarImage !== undefined ? d.avatarImage : (d.profile?.avatarImage !== undefined ? d.profile.avatarImage : d.user?.avatarImage);
+          if (avatar !== undefined) {
+            setProfileAvatar(avatar || null);
+            if (avatar) {
+              localStorage.setItem('otterfy_profile_avatar', avatar);
+            } else {
+              localStorage.removeItem('otterfy_profile_avatar');
+            }
           }
         })
         .catch(() => {});
@@ -103,17 +107,25 @@ export default function DashboardTopNav() {
 
     syncProfileFromCloud();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncProfileFromCloud();
+      }
+    };
+
     window.addEventListener('profile_updated', updateAvatarFromStorage);
     window.addEventListener('storage', updateAvatarFromStorage);
     window.addEventListener('focus', syncProfileFromCloud);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Periodic light polling (every 45s) for instant background sync across tabs/devices
-    const syncInterval = setInterval(syncProfileFromCloud, 45000);
+    // Periodic sync (every 15s) for instant background sync across tabs/devices
+    const syncInterval = setInterval(syncProfileFromCloud, 15000);
 
     return () => {
       window.removeEventListener('profile_updated', updateAvatarFromStorage);
       window.removeEventListener('storage', updateAvatarFromStorage);
       window.removeEventListener('focus', syncProfileFromCloud);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(syncInterval);
     };
   }, []);

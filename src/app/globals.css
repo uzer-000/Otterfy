@@ -354,6 +354,12 @@ textarea:focus-visible,
   --lt-slate: #CBD5E1;
 }
 
+[data-theme="light"] .otter-keep-colors,
+[data-theme="light"] .otter-keep-colors * {
+  --lt-white: #FFFFFF !important;
+  --lt-slate: #CBD5E1 !important;
+}
+
 [data-theme="light"] .otter-keep-colors.text-white,
 [data-theme="light"] .otter-keep-colors .text-white,
 [data-theme="light"] [role="timer"].text-white,
@@ -363,6 +369,15 @@ textarea:focus-visible,
 [data-theme="light"] .laser-button,
 [data-theme="light"] .laser-button * {
   color: #FFFFFF !important;
+}
+
+[data-theme="light"] .otter-keep-colors.text-slate-200,
+[data-theme="light"] .otter-keep-colors .text-slate-200,
+[data-theme="light"] .otter-keep-colors.text-slate-300,
+[data-theme="light"] .otter-keep-colors .text-slate-300,
+[data-theme="light"] .otter-keep-colors.text-slate-400,
+[data-theme="light"] .otter-keep-colors .text-slate-400 {
+  color: #CBD5E1 !important;
 }
 
 [data-theme="light"] .text-white:not(.otter-keep-colors):not(.otter-keep-colors *):not([role="timer"]):not([role="timer"] *):not(.checkout-cta-attention):not(.checkout-cta-attention *):not(.laser-button):not(.laser-button *),

@@ -16,10 +16,14 @@ export default function DashboardGreetingBanner() {
       fetch('/api/user/profile', { cache: 'no-store' })
         .then((r) => r.json())
         .then((d) => {
-          const cloudAvatar = d.avatarImage || d.profile?.avatarImage || d.user?.avatarImage;
-          if (cloudAvatar) {
-            setAvatar(cloudAvatar);
-            localStorage.setItem('otterfy_profile_avatar', cloudAvatar);
+          const cloudAvatar = d.avatarImage !== undefined ? d.avatarImage : (d.profile?.avatarImage !== undefined ? d.profile.avatarImage : d.user?.avatarImage);
+          if (cloudAvatar !== undefined) {
+            setAvatar(cloudAvatar || '');
+            if (cloudAvatar) {
+              localStorage.setItem('otterfy_profile_avatar', cloudAvatar);
+            } else {
+              localStorage.removeItem('otterfy_profile_avatar');
+            }
           }
         })
         .catch(() => {});
@@ -27,13 +31,25 @@ export default function DashboardGreetingBanner() {
 
     syncProfileFromCloud();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncProfileFromCloud();
+      }
+    };
+
     window.addEventListener('profile_updated', updateAvatarFromStorage);
     window.addEventListener('storage', updateAvatarFromStorage);
     window.addEventListener('focus', syncProfileFromCloud);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const interval = setInterval(syncProfileFromCloud, 15000);
+
     return () => {
       window.removeEventListener('profile_updated', updateAvatarFromStorage);
       window.removeEventListener('storage', updateAvatarFromStorage);
       window.removeEventListener('focus', syncProfileFromCloud);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
     };
   }, []);
 
