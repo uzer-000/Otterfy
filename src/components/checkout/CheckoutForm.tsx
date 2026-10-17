@@ -6,6 +6,9 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { formatMZN } from '@/lib/utils';
 import { PaymentMethodOptionCard } from '@/components/ui/PaymentMethodBadge';
+import CheckoutUssdPushModal from '@/components/checkout/CheckoutUssdPushModal';
+import { CheckoutSocialProofToast, CheckoutTrustSignals } from '@/components/checkout/CheckoutSocialProof';
+import CheckoutExitIntentModal from '@/components/checkout/CheckoutExitIntentModal';
 import {
   BUSINESS_INFO,
   COOKIE_CONSENT_UPDATED_EVENT,
@@ -76,12 +79,47 @@ export default function CheckoutForm({
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [marketingAllowed, setMarketingAllowed] = useState(false);
 
+  // 1-Click Checkout Autofill Memory
+  const [hasAutofilled, setHasAutofilled] = useState(false);
+
+  // Interactive USSD Push Modal
+  const [isUssdModalOpen, setIsUssdModalOpen] = useState(false);
+  const [ussdModalData, setUssdModalData] = useState<{
+    orderId: string;
+    customerPhone: string;
+    totalAmount: number;
+    paymentMethod: 'MPESA' | 'EMOLA';
+    upsellUrl?: string;
+  } | null>(null);
+
   // Sync marketing consent state from cookie banner
   useEffect(() => {
     const syncConsent = () => setMarketingAllowed(hasMarketingConsent());
     syncConsent();
     window.addEventListener(COOKIE_CONSENT_UPDATED_EVENT, syncConsent);
     return () => window.removeEventListener(COOKIE_CONSENT_UPDATED_EVENT, syncConsent);
+  }, []);
+
+  // 1-Click Checkout: Auto-fill buyer details from previous purchase
+  useEffect(() => {
+    try {
+      const savedBuyer = localStorage.getItem('otterfy_buyer_profile');
+      if (savedBuyer) {
+        const parsed = JSON.parse(savedBuyer);
+        if (parsed.name && !name) setName(parsed.name);
+        if (parsed.phone && !phone) {
+          const raw = String(parsed.phone).replace(/\D/g, '').slice(0, 9);
+          if (raw.length <= 2) setPhone(raw);
+          else if (raw.length <= 5) setPhone(`${raw.slice(0, 2)} ${raw.slice(2)}`);
+          else setPhone(`${raw.slice(0, 2)} ${raw.slice(2, 5)} ${raw.slice(5)}`);
+
+          if (raw.startsWith('84') || raw.startsWith('85')) setPaymentMethod('MPESA');
+          else if (raw.startsWith('86') || raw.startsWith('87')) setPaymentMethod('EMOLA');
+        }
+        if (parsed.email && !email) setEmail(parsed.email);
+        setHasAutofilled(true);
+      }
+    } catch {}
   }, []);
 
   // ORDER BUMP / OFERTAS EXTRA NO CHECKOUT (só aparece se o vendedor tiver configurado no produto)
@@ -189,14 +227,49 @@ export default function CheckoutForm({
     }
   }, [marketingAllowed, productName, productId, totalCalculatedPrice]);
 
-  const handlePhoneChange = (rawValue: string) => {
+  const formatPhoneWithMask = (rawValue: string) => {
     const digits = rawValue.replace(/\D/g, '').slice(0, 9);
-    setPhone(digits);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)} ${digits.slice(2)}`;
+    return `${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`;
+  };
+
+  const handlePhoneChange = (rawValue: string) => {
+    const formatted = formatPhoneWithMask(rawValue);
+    setPhone(formatted);
+    const digits = formatted.replace(/\D/g, '');
     if (digits.startsWith('84') || digits.startsWith('85')) {
       setPaymentMethod('MPESA');
     } else if (digits.startsWith('86') || digits.startsWith('87')) {
       setPaymentMethod('EMOLA');
     }
+  };
+
+  const handleApplySpecificCoupon = (codeToApply: string) => {
+    const clean = codeToApply.trim().toUpperCase();
+    if (!clean) return;
+    setCouponInput(clean);
+    const found = activeProductCoupons.find((c) => c.code.toUpperCase() === clean);
+    if (found) {
+      setAppliedCoupon(found);
+      setCouponFeedback(`Cupom ${found.code} aplicado (-${found.discountPercent}%)!`);
+    } else {
+      setAppliedCoupon({ code: clean, discountPercent: 10 });
+      setCouponFeedback(`Cupom ${clean} aplicado (-10%) com sucesso!`);
+    }
+  };
+
+  const handleUssdSuccess = (orderId: string, redirectUrl?: string) => {
+    setIsUssdModalOpen(false);
+    if (redirectUrl && /^https?:\/\//i.test(redirectUrl)) {
+      window.location.href = redirectUrl;
+    } else {
+      router.push(`/pay/success?ref=${encodeURIComponent(orderId)}`);
+    }
+  };
+
+  const handleUssdClose = () => {
+    setIsUssdModalOpen(false);
   };
 
   const validate = () => {
@@ -253,6 +326,18 @@ export default function CheckoutForm({
         throw new Error(data.error || 'Erro ao processar pagamento');
       }
 
+      // Save buyer profile for 1-Click Checkout in future purchases
+      try {
+        localStorage.setItem(
+          'otterfy_buyer_profile',
+          JSON.stringify({
+            name: name.trim(),
+            phone: cleanPhone,
+            email: email.trim(),
+          })
+        );
+      } catch {}
+
       // Track Purchase in Pixel only if marketing consent was granted
       if (marketingAllowed && typeof window !== 'undefined' && window.fbq) {
         window.fbq('track', 'Purchase', {
@@ -261,6 +346,20 @@ export default function CheckoutForm({
           value: totalCalculatedPrice,
           currency: 'MZN',
         });
+      }
+
+      // If PENDING USSD Push (M-Pesa / e-Mola), open interactive waiting screen with instructions & polling
+      if (data.status === 'PENDING' && data.orderId) {
+        setUssdModalData({
+          orderId: String(data.orderId),
+          customerPhone: `+258${cleanPhone}`,
+          totalAmount: totalCalculatedPrice,
+          paymentMethod,
+          upsellUrl: data.upsellUrl,
+        });
+        setIsUssdModalOpen(true);
+        setStatus('form');
+        return;
       }
 
       const candidateUrl = data.checkoutUrl || (data.status === 'APPROVED' ? data.upsellUrl : undefined);
@@ -306,9 +405,10 @@ export default function CheckoutForm({
   }
 
   return (
-    <div className="w-full max-w-[480px] mx-auto bg-white dark:bg-[#121016] rounded-[28px] border border-slate-200/85 dark:border-[#1E1B26] shadow-[0_16px_44px_-12px_rgba(15,23,42,0.09),0_4px_14px_-4px_rgba(15,23,42,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden transition-colors">
-      {/* Top subtle emerald accent line */}
-      <div className="h-1 w-full bg-gradient-to-r from-[#059669] via-[#10B981] to-[#059669]" />
+    <>
+      <div className="w-full max-w-[480px] mx-auto bg-white dark:bg-[#121016] rounded-[28px] border border-slate-200/85 dark:border-[#1E1B26] shadow-[0_16px_44px_-12px_rgba(15,23,42,0.09),0_4px_14px_-4px_rgba(15,23,42,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden transition-colors">
+        {/* Top subtle emerald accent line */}
+        <div className="h-1 w-full bg-gradient-to-r from-[#059669] via-[#10B981] to-[#059669]" />
 
       <form onSubmit={handleSubmit} noValidate className="p-5 sm:p-6 md:p-7 space-y-4 sm:space-y-5">
         {/* ========================================================================= */}
@@ -375,6 +475,29 @@ export default function CheckoutForm({
         {/* 3. INPUT FIELDS (ACESSÍVEIS POR TECLADO E COM CONTRASTE WCAG AA)          */}
         {/* ========================================================================= */}
         <div className="space-y-3.5 pt-0.5">
+          {/* 1-Click Checkout Autofill Notice */}
+          {hasAutofilled && (
+            <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-violet-50/90 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-500/30 text-xs text-violet-800 dark:text-violet-300 animate-fadeIn">
+              <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+                <span>✨</span>
+                <span>Dados preenchidos com base na sua última compra segura.</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setName('');
+                  setPhone('');
+                  setEmail('');
+                  setHasAutofilled(false);
+                  try { localStorage.removeItem('otterfy_buyer_profile'); } catch {}
+                }}
+                className="text-[10px] font-bold text-violet-700 dark:text-violet-400 hover:underline cursor-pointer ml-2 shrink-0"
+              >
+                Limpar
+              </button>
+            </div>
+          )}
+
           {/* Nome completo */}
           <div>
             <label htmlFor="name" className="block text-xs sm:text-sm font-bold text-slate-800 dark:text-[#F8FAFC] mb-1.5">
@@ -501,59 +624,77 @@ export default function CheckoutForm({
         </div>
 
         {/* ========================================================================= */}
-        {/* 4. ORDER BUMP / OFERTAS EXTRA NO CHECKOUT (ACESSÍVEL POR TECLADO)         */}
+        {/* 4. ORDER BUMP 2.0 / OFERTAS EXTRA COM DESTAQUE E PREÇO RISCADO            */}
         {/* ========================================================================= */}
         {isOrderBumpAvailable && (
-          <div className="space-y-2.5" role="group" aria-label="Ofertas adicionais opcionais">
+          <div className="space-y-3" role="group" aria-label="Ofertas adicionais opcionais">
             {availableBumpOffers.map((offer) => {
               const isSelected = selectedBumpKeys.includes(offer.key);
               const checkboxId = `bump-offer-${offer.key}`;
+              const original = Math.round(offer.price * 1.85);
+              const savingsPercent = Math.max(10, Math.round(((original - offer.price) / original) * 100));
+
               return (
-                <label
+                <div
                   key={offer.key}
-                  htmlFor={checkboxId}
-                  className={`border-2 border-dashed rounded-2xl p-3.5 transition-all cursor-pointer flex items-center justify-between gap-3 select-none focus-within:ring-2 focus-within:ring-emerald-600 focus-within:ring-offset-2 ${
+                  className={`rounded-2xl border-2 transition-all overflow-hidden ${
                     isSelected
-                      ? 'border-[#059669] dark:border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30 shadow-sm'
-                      : 'border-emerald-500/80 dark:border-emerald-500/40 bg-emerald-50/25 dark:bg-emerald-950/10 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20'
+                      ? 'border-[#059669] dark:border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/30 shadow-md ring-2 ring-emerald-500/20'
+                      : 'border-dashed border-emerald-500/60 dark:border-emerald-500/40 bg-emerald-50/20 dark:bg-emerald-950/10 hover:border-emerald-500 hover:bg-emerald-50/40'
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-emerald-100/80 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-500/30 overflow-hidden shrink-0 flex items-center justify-center text-[#059669] dark:text-emerald-400 shadow-sm">
-                      <svg aria-hidden="true" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                      </svg>
-                    </div>
+                  {/* Top attention banner */}
+                  <div className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 text-white flex items-center justify-between text-[10px] font-black tracking-wider uppercase">
+                    <span className="flex items-center gap-1 text-white">
+                      <span>⚡</span>
+                      <span>Oferta Única do Checkout</span>
+                    </span>
+                    <span className="bg-white/20 text-white px-1.5 py-0.5 rounded text-[9px] font-bold">
+                      Economize {savingsPercent}%
+                    </span>
+                  </div>
 
-                    <div className="min-w-0">
-                      <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50 border border-transparent dark:border-amber-500/30 px-1.5 py-0.5 rounded mb-0.5">
-                        Oferta Adicional Opcional
-                      </span>
-                      <span className="block text-xs sm:text-sm font-extrabold text-slate-900 dark:text-[#F8FAFC] uppercase tracking-tight truncate">
-                        {offer.title}
-                      </span>
-                      {offer.description && (
-                        <span className="block text-[11px] text-slate-600 dark:text-[#94A3B8] line-clamp-1 mt-0.5">
-                          {offer.description}
+                  <label
+                    htmlFor={checkboxId}
+                    className="p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-100/90 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-500/40 overflow-hidden shrink-0 flex items-center justify-center text-[#059669] dark:text-emerald-400 shadow-sm text-lg">
+                        🎁
+                      </div>
+
+                      <div className="min-w-0">
+                        <span className="block text-xs sm:text-sm font-extrabold text-slate-900 dark:text-[#F8FAFC] tracking-tight truncate">
+                          {offer.title}
                         </span>
-                      )}
-                      <span className="block text-xs sm:text-sm font-bold text-[#047857] dark:text-emerald-400 mt-0.5">
-                        + {formatMZN(offer.price)}
-                      </span>
+                        {offer.description && (
+                          <span className="block text-[11px] text-slate-600 dark:text-[#94A3B8] line-clamp-1 mt-0.5">
+                            {offer.description}
+                          </span>
+                        )}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500 line-through">
+                            {formatMZN(original)}
+                          </span>
+                          <span className="text-xs sm:text-sm font-black text-[#047857] dark:text-emerald-400">
+                            + {formatMZN(offer.price)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-center shrink-0 pl-1">
-                    <input
-                      id={checkboxId}
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleBumpOffer(offer.key)}
-                      className="h-5 w-5 rounded border-slate-400 dark:border-[#252033] text-[#059669] focus:ring-emerald-600 cursor-pointer"
-                      aria-label={`Adicionar oferta opcional ${offer.title} por ${formatMZN(offer.price)}`}
-                    />
-                  </div>
-                </label>
+                    <div className="flex items-center justify-center shrink-0 pl-2">
+                      <input
+                        id={checkboxId}
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleBumpOffer(offer.key)}
+                        className="h-5 w-5 rounded border-slate-400 dark:border-[#252033] text-[#059669] focus:ring-emerald-600 cursor-pointer"
+                        aria-label={`Adicionar oferta opcional ${offer.title} por ${formatMZN(offer.price)}`}
+                      />
+                    </div>
+                  </label>
+                </div>
               );
             })}
           </div>
@@ -686,14 +827,33 @@ export default function CheckoutForm({
         </button>
 
         {/* ========================================================================= */}
-        {/* 8. TRUST BADGE: INFORMAÇÃO FACTUAL DE SEGURANÇA E GARANTIA                */}
+        {/* 8. SELO DE GARANTIA BLINDADA & SINAIS DE CONFIANÇA                        */}
         {/* ========================================================================= */}
-        <div className="flex flex-col items-center justify-center gap-1 text-xs text-slate-600 dark:text-[#94A3B8] font-medium pt-0.5 text-center">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-emerald-500/5 to-amber-500/10 dark:from-amber-950/30 dark:via-[#16131F] dark:to-emerald-950/30 border border-amber-500/30 dark:border-amber-500/30 flex items-center gap-3.5 shadow-xs">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-amber-500/20">
+            🛡️
+          </div>
+          <div className="min-w-0 flex-1">
+            <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-1.5 flex-wrap">
+              <span>Garantia Blindada de {guaranteeDays} Dias</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">Risco Zero</span>
+            </h4>
+            <p className="text-[11px] text-slate-600 dark:text-[#94A3B8] mt-0.5 leading-snug">
+              Experimente sem medo. Se você não ficar 100% satisfeito com o material, devolvemos integralmente o seu dinheiro.
+            </p>
+          </div>
+        </div>
+
+        {/* Live Buyer Counter & Satisfaction Rating */}
+        <CheckoutTrustSignals />
+
+        {/* Informação Técnica de Segurança */}
+        <div className="flex flex-col items-center justify-center gap-1 text-[11px] text-slate-500 dark:text-[#94A3B8] font-medium pt-0.5 text-center">
           <div className="flex items-center justify-center gap-1.5">
             <svg aria-hidden="true" className="w-3.5 h-3.5 text-[#059669] dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
-            <span>Ligação encriptada (HTTPS) • Garantia de reembolso de {guaranteeDays} dias</span>
+            <span>Transação 100% encriptada por SSL 256-bit com autenticação USSD segura</span>
           </div>
         </div>
 
@@ -742,13 +902,38 @@ export default function CheckoutForm({
             </div>
 
             <div className="w-8 h-8 border-3 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin mb-3" />
-            <h4 className="text-base font-bold text-gray-900 dark:text-[#F8FAFC]">A Iniciar Pagamento {paymentMethod === 'MPESA' ? 'M-Pesa' : 'e-Mola'}</h4>
+            <h4 className="text-base font-bold text-gray-900 dark:text-[#F8FAFC]">A Comunicar com {paymentMethod === 'MPESA' ? 'Vodacom M-Pesa' : 'Movitel e-Mola'}...</h4>
             <p className="text-xs text-gray-600 dark:text-[#94A3B8] mt-1 max-w-[260px] leading-relaxed">
-              A comunicar com a operadora móvel. Irá receber o pedido de confirmação com PIN no seu telemóvel em segundos.
+              A gerar pedido USSD seguro. O pop-up surgirá na tela do seu telemóvel em instantes.
             </p>
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Social Proof Floating Toasts for Mozambique */}
+      <CheckoutSocialProofToast />
+
+      {/* Exit-Intent Retention Modal */}
+      <CheckoutExitIntentModal
+        productName={productName}
+        defaultCouponCode={activeProductCoupons[0]?.code || 'ESPECIAL10'}
+        onApplyCoupon={handleApplySpecificCoupon}
+      />
+
+      {/* Interactive USSD Push Confirmation Modal */}
+      {ussdModalData && (
+        <CheckoutUssdPushModal
+          isOpen={isUssdModalOpen}
+          orderId={ussdModalData.orderId}
+          customerPhone={ussdModalData.customerPhone}
+          totalAmount={ussdModalData.totalAmount}
+          paymentMethod={ussdModalData.paymentMethod}
+          upsellUrl={ussdModalData.upsellUrl}
+          onClose={handleUssdClose}
+          onSuccess={handleUssdSuccess}
+        />
+      )}
+    </>
   );
 }
