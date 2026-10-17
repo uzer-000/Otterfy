@@ -35,24 +35,54 @@ function saveLocalProfile(data: Record<string, unknown>) {
   }
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const profile = getLocalProfile();
     try {
       const dbUser = await prisma.user.findFirst();
       if (dbUser) {
-        return NextResponse.json({
-          name: profile.name || dbUser.name || 'Admin Otterfy',
-          email: profile.email || dbUser.email || 'nhacossfilipe@gmail.com',
-          phone: profile.phone || '+258 84 000 0000',
-          avatarImage: profile.avatarImage || '',
-        });
+        const resolved = {
+          name: dbUser.name || profile.name || 'Admin Otterfy',
+          email: dbUser.email || profile.email || 'nhacossfilipe@gmail.com',
+          phone: dbUser.phone || profile.phone || '+258 84 000 0000',
+          avatarImage: dbUser.avatarImage || profile.avatarImage || '',
+        };
+        return NextResponse.json(
+          {
+            success: true,
+            profile: resolved,
+            ...resolved,
+          },
+          {
+            headers: {
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+              Pragma: 'no-cache',
+              Expires: '0',
+            },
+          }
+        );
       }
     } catch {
       // ignore DB error and use local
     }
 
-    return NextResponse.json(profile);
+    return NextResponse.json(
+      {
+        success: true,
+        profile,
+        ...profile,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error in GET /api/user:', error);
     return NextResponse.json({ error: 'Erro ao carregar perfil.' }, { status: 500 });
@@ -81,14 +111,28 @@ export async function POST(req: Request) {
           data: {
             name: updated.name,
             email: updated.email,
+            phone: updated.phone,
+            avatarImage: updated.avatarImage,
           },
         });
       }
-    } catch {
-      // ignore DB update error if offline
+    } catch (dbErr) {
+      console.warn('Could not update DB user profile (offline fallback active):', dbErr);
     }
 
-    return NextResponse.json({ success: true, user: updated });
+    return NextResponse.json(
+      {
+        success: true,
+        profile: updated,
+        user: updated,
+        ...updated,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error in POST /api/user:', error);
     return NextResponse.json({ error: 'Erro ao atualizar perfil.' }, { status: 500 });

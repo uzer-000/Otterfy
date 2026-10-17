@@ -35,17 +35,17 @@ export default async function CheckoutPage({ params }: PageProps) {
 
   if (!product || product.status !== 'ACTIVE') {
     return (
-      <div className="min-h-screen flex flex-col justify-between bg-[#F8F9FA]">
+      <div className="min-h-screen flex flex-col justify-between bg-[#F5F3FA] dark:bg-[#08070C] text-[#0F172A] dark:text-[#F8FAFC]">
         <main id="main-content" className="flex-1 py-16 px-4 flex flex-col items-center justify-center text-center">
-          <div className="max-w-md w-full p-8 rounded-3xl border border-gray-200 bg-white shadow-xl space-y-5 animate-fadeIn">
-            <div aria-hidden="true" className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto text-3xl">
+          <div className="max-w-md w-full p-8 rounded-3xl border border-gray-200 dark:border-[#1E1B26] bg-white dark:bg-[#121016] shadow-xl space-y-5 animate-fadeIn">
+            <div aria-hidden="true" className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto text-3xl">
               🛍️
             </div>
             <div className="space-y-2">
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-[#F8FAFC]">
                 {!product ? 'Produto Não Encontrado' : 'Produto Temporariamente Indisponível'}
               </h1>
-              <p className="text-sm text-gray-600 leading-relaxed">
+              <p className="text-sm text-gray-600 dark:text-[#94A3B8] leading-relaxed">
                 {!product
                   ? 'O link de checkout que você tentou acessar não existe ou pode ter sido removido.'
                   : 'Este produto está temporariamente desativado pelo vendedor.'}
@@ -54,14 +54,14 @@ export default async function CheckoutPage({ params }: PageProps) {
             <div className="pt-2">
               <a
                 href="/"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-semibold text-xs transition-colors shadow-md"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-semibold text-xs transition-colors shadow-md otter-keep-colors"
               >
                 Voltar à Página Inicial
               </a>
             </div>
           </div>
         </main>
-        <LegalFooter variant="light" />
+        <LegalFooter variant="auto" />
       </div>
     );
   }
@@ -76,7 +76,7 @@ export default async function CheckoutPage({ params }: PageProps) {
   const timerText = product.checkoutSettings?.customCheckout?.timerText || 'Oferta promocional expira em';
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#F8F9FA]">
+    <div className="min-h-screen flex flex-col justify-between bg-[#F5F3FA] dark:bg-[#08070C] text-[#0F172A] dark:text-[#F8FAFC]">
       {/* Gated third-party tracking scripts (loaded ONLY after explicit marketing cookie consent) */}
       <CheckoutTrackingScripts metaPixelId={metaPixelId} utmifyPixelId={utmifyPixelId} />
 
@@ -93,7 +93,7 @@ export default async function CheckoutPage({ params }: PageProps) {
         <div className="w-full max-w-[500px] py-6 sm:py-9 px-4 space-y-5">
           {/* Custom Banner if configured */}
           {bannerUrl && (
-            <div className="w-full rounded-2xl overflow-hidden border border-gray-200/80 shadow-sm bg-white animate-fadeIn">
+            <div className="w-full rounded-2xl overflow-hidden border border-gray-200/80 dark:border-[#1E1B26] shadow-sm bg-white dark:bg-[#121016] animate-fadeIn">
               <img
                 src={bannerUrl}
                 alt={`Banner de apresentação: ${product.name}`}
@@ -105,18 +105,18 @@ export default async function CheckoutPage({ params }: PageProps) {
           {/* Unified Checkout Form */}
           <Suspense
             fallback={
-              <div className="bg-white rounded-[24px] border border-gray-100 shadow-xl p-6 sm:p-7 space-y-4 animate-pulse">
-                <div className="flex items-center gap-3.5 pb-3 border-b border-gray-100">
-                  <div className="w-12 h-12 bg-gray-100 rounded-xl" />
+              <div className="bg-white dark:bg-[#121016] rounded-[24px] border border-gray-100 dark:border-[#1E1B26] shadow-xl p-6 sm:p-7 space-y-4 animate-pulse">
+                <div className="flex items-center gap-3.5 pb-3 border-b border-gray-100 dark:border-[#1E1B26]">
+                  <div className="w-12 h-12 bg-gray-100 dark:bg-white/10 rounded-xl" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-100 rounded w-2/3" />
-                    <div className="h-5 bg-emerald-100 rounded w-1/3" />
+                    <div className="h-4 bg-gray-100 dark:bg-white/10 rounded w-2/3" />
+                    <div className="h-5 bg-emerald-100 dark:bg-emerald-950/40 rounded w-1/3" />
                   </div>
                 </div>
                 <div className="space-y-3 pt-2">
-                  <div className="h-11 bg-gray-50 rounded-xl" />
-                  <div className="h-11 bg-gray-50 rounded-xl" />
-                  <div className="h-11 bg-gray-50 rounded-xl" />
+                  <div className="h-11 bg-gray-50 dark:bg-white/5 rounded-xl" />
+                  <div className="h-11 bg-gray-50 dark:bg-white/5 rounded-xl" />
+                  <div className="h-11 bg-gray-50 dark:bg-white/5 rounded-xl" />
                 </div>
                 <div className="h-14 bg-emerald-600/20 rounded-xl" />
               </div>
@@ -139,7 +139,7 @@ export default async function CheckoutPage({ params }: PageProps) {
         </div>
       </main>
 
-      <LegalFooter variant="light" />
+      <LegalFooter variant="auto" />
     </div>
   );
 }

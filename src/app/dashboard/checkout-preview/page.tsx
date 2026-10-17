@@ -78,18 +78,18 @@ export default function CheckoutPreviewPage() {
   return (
     <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-6 pb-20 animate-fadeIn">
       {/* Top Banner Notice for API & Ready Status */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-violet-950/60 via-[#16131F] to-violet-950/60 border border-violet-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-violet-600/10 via-violet-500/5 to-violet-600/10 dark:from-violet-950/60 dark:via-[#16131F] dark:to-violet-950/60 border border-violet-500/20 dark:border-violet-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm dark:shadow-xl">
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/40 text-violet-400 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-violet-600/15 dark:bg-violet-600/20 border border-violet-500/30 dark:border-violet-500/40 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
             <svg aria-hidden="true" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
           <div>
-            <h2 className="text-sm font-bold text-[#F8FAFC]">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
               Aba de Exemplo do Checkout Oficial da Otterfy
             </h2>
-            <p className="text-xs text-[#94A3B8] mt-0.5">
+            <p className="text-xs text-slate-600 dark:text-[#94A3B8] mt-0.5">
               Este é o modelo final que os seus clientes visualizam. Está pronto para receber sua API e documentação de pagamentos.
             </p>
           </div>
@@ -100,7 +100,7 @@ export default function CheckoutPreviewPage() {
             href={`/pay/${activeProduct.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="laser-button px-4 py-2 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shrink-0"
+            className="laser-button otter-keep-colors px-4 py-2 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shrink-0"
           >
             <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -111,36 +111,36 @@ export default function CheckoutPreviewPage() {
       </div>
 
       {/* Controls Bar: Device View & Product Selector */}
-      <div className="p-4 rounded-2xl bg-[#121016] border border-[#1E1B26] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-4 rounded-2xl bg-white dark:bg-[#121016] border border-slate-200 dark:border-[#1E1B26] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Product Picker */}
         <div className="flex items-center gap-3">
-          <label htmlFor="preview-product-select" className="text-xs font-semibold text-[#94A3B8] whitespace-nowrap">
+          <label htmlFor="preview-product-select" className="text-xs font-semibold text-slate-700 dark:text-[#94A3B8] whitespace-nowrap">
             Produto em exibição:
           </label>
           <select
             id="preview-product-select"
             value={selectedProductId}
             onChange={(e) => setSelectedProductId(e.target.value)}
-            className="bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-xs text-[#F8FAFC] font-semibold focus:outline-none"
+            className="bg-slate-50 dark:bg-[#0F0E14] border border-slate-300 dark:border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-[#F8FAFC] font-semibold focus:outline-none"
           >
             {products.map((p) => (
-              <option key={p.id} value={p.id}>
+              <option key={p.id} value={p.id} className="bg-white dark:bg-[#0F0E14] text-slate-900 dark:text-white">
                 {p.name} ({formatMZN(p.price)})
               </option>
             ))}
-            <option value="demo">Produto Demonstração</option>
+            <option value="demo" className="bg-white dark:bg-[#0F0E14] text-slate-900 dark:text-white">Produto Demonstração</option>
           </select>
         </div>
 
         {/* Device Switcher */}
-        <div className="flex items-center gap-2 self-start sm:self-auto bg-[#0F0E14] p-1 rounded-xl border border-[#1E1B26]">
+        <div className="flex items-center gap-2 self-start sm:self-auto bg-slate-100 dark:bg-[#0F0E14] p-1 rounded-xl border border-slate-200 dark:border-[#1E1B26]">
           <button
             type="button"
             onClick={() => setDeviceMode('desktop')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`otter-keep-colors px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               deviceMode === 'desktop'
                 ? 'bg-violet-600 text-white shadow-md'
-                : 'text-[#94A3B8] hover:text-white'
+                : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -152,10 +152,10 @@ export default function CheckoutPreviewPage() {
           <button
             type="button"
             onClick={() => setDeviceMode('mobile')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`otter-keep-colors px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               deviceMode === 'mobile'
                 ? 'bg-violet-600 text-white shadow-md'
-                : 'text-[#94A3B8] hover:text-white'
+                : 'text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -171,8 +171,8 @@ export default function CheckoutPreviewPage() {
         <div
           className={`transition-all duration-300 overflow-hidden ${
             deviceMode === 'mobile'
-              ? 'w-full max-w-[420px] rounded-[40px] border-8 border-[#1A1820] shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-[#F8F9FA]'
-              : 'w-full max-w-[560px] rounded-3xl border border-[#1E1B26] shadow-2xl bg-[#F8F9FA]'
+              ? 'w-full max-w-[420px] rounded-[40px] border-8 border-slate-900 dark:border-[#1A1820] shadow-[0_0_50px_rgba(0,0,0,0.15)] dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-[#F5F3FA] dark:bg-[#08070C]'
+              : 'w-full max-w-[560px] rounded-3xl border border-slate-200 dark:border-[#1E1B26] shadow-xl bg-[#F5F3FA] dark:bg-[#08070C]'
           }`}
         >
           {/* Urgency Scarcity Timer */}
@@ -187,7 +187,7 @@ export default function CheckoutPreviewPage() {
           <div className="p-4 sm:p-6 space-y-5">
             {/* Banner */}
             {bannerUrl && (
-              <div className="w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white">
+              <div className="w-full rounded-2xl overflow-hidden border border-gray-200 dark:border-[#1E1B26] shadow-sm bg-white dark:bg-[#121016]">
                 <img
                   src={bannerUrl}
                   alt="Banner do Checkout"
@@ -208,10 +208,10 @@ export default function CheckoutPreviewPage() {
             </Suspense>
 
             {/* Small Footer Branding Only */}
-            <div className="text-center pb-2 flex items-center justify-center gap-1.5 text-gray-400 text-xs font-medium">
+            <div className="text-center pb-2 flex items-center justify-center gap-1.5 text-slate-500 dark:text-gray-400 text-xs font-medium">
               <span>Powered by</span>
               <img src="/logo.png" alt="Otterfy" className="w-3.5 h-3.5 object-contain inline-block align-middle opacity-90" />
-              <span className="font-bold text-gray-600">Otterfy</span>
+              <span className="font-bold text-slate-700 dark:text-gray-300">Otterfy</span>
             </div>
           </div>
         </div>

@@ -6,16 +6,34 @@ export default function DashboardGreetingBanner() {
   const [avatar, setAvatar] = useState<string>('');
 
   useEffect(() => {
-    const updateAvatar = () => {
+    const updateAvatarFromStorage = () => {
       const saved = localStorage.getItem('otterfy_profile_avatar');
       setAvatar(saved || '');
     };
-    updateAvatar();
-    window.addEventListener('profile_updated', updateAvatar);
-    window.addEventListener('storage', updateAvatar);
+    updateAvatarFromStorage();
+
+    const syncProfileFromCloud = () => {
+      fetch('/api/user/profile', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((d) => {
+          const cloudAvatar = d.avatarImage || d.profile?.avatarImage || d.user?.avatarImage;
+          if (cloudAvatar) {
+            setAvatar(cloudAvatar);
+            localStorage.setItem('otterfy_profile_avatar', cloudAvatar);
+          }
+        })
+        .catch(() => {});
+    };
+
+    syncProfileFromCloud();
+
+    window.addEventListener('profile_updated', updateAvatarFromStorage);
+    window.addEventListener('storage', updateAvatarFromStorage);
+    window.addEventListener('focus', syncProfileFromCloud);
     return () => {
-      window.removeEventListener('profile_updated', updateAvatar);
-      window.removeEventListener('storage', updateAvatar);
+      window.removeEventListener('profile_updated', updateAvatarFromStorage);
+      window.removeEventListener('storage', updateAvatarFromStorage);
+      window.removeEventListener('focus', syncProfileFromCloud);
     };
   }, []);
 

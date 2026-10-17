@@ -64,10 +64,13 @@ export default function CheckoutUrgencyTimer({
       role="timer"
       aria-live="off"
       aria-label={`${timerText || 'Oferta expira em'} ${timeString}`}
-      className="w-full bg-[#B91C1C] text-white py-2.5 px-4 text-center text-xs sm:text-sm font-bold tracking-wide shadow-sm flex items-center justify-center gap-1.5 animate-fadeIn"
+      className="otter-keep-colors w-full bg-[#B91C1C] text-white py-2.5 px-4 text-center text-xs sm:text-sm font-bold tracking-wide shadow-sm flex items-center justify-center gap-2 animate-fadeIn"
     >
+      <svg aria-hidden="true" className="w-4 h-4 text-white shrink-0 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
       <span>{timerText || 'Oferta expira em'}</span>
-      <span className="font-mono font-black text-xs sm:text-sm tracking-wider">
+      <span className="font-mono font-black text-xs sm:text-sm tracking-wider bg-black/20 px-2 py-0.5 rounded-md">
         {timeString}
       </span>
     </div>

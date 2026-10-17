@@ -5,20 +5,23 @@ import Link from 'next/link';
 import { BUSINESS_INFO, openCookieSettingsModal } from '@/lib/legal';
 
 interface LegalFooterProps {
-  variant?: 'light' | 'dark';
+  variant?: 'light' | 'dark' | 'auto';
   compact?: boolean;
 }
 
-export default function LegalFooter({ variant = 'light', compact = false }: LegalFooterProps) {
+export default function LegalFooter({ variant = 'auto', compact = false }: LegalFooterProps) {
   const isDark = variant === 'dark';
+  const isAuto = variant === 'auto';
 
   return (
     <footer
       aria-label="Informações legais e dados empresariais"
       className={`w-full border-t text-xs transition-colors ${
-        isDark
-          ? 'border-[#1E1B26] bg-[#0B0910] text-[#CBD5E1]'
-          : 'border-slate-200 bg-white/90 text-slate-700'
+        isAuto
+          ? 'border-slate-200 dark:border-[#1E1B26] bg-white/90 dark:bg-[#0B0910] text-slate-700 dark:text-[#CBD5E1]'
+          : isDark
+            ? 'border-[#1E1B26] bg-[#0B0910] text-[#CBD5E1]'
+            : 'border-slate-200 bg-white/90 text-slate-700'
       } ${compact ? 'py-5 px-4 rounded-2xl border' : 'py-8 px-4 mt-8'}`}
     >
       <div className="max-w-3xl mx-auto space-y-4 text-center">
@@ -32,11 +35,15 @@ export default function LegalFooter({ variant = 'light', compact = false }: Lega
               aria-hidden="true"
               className="w-4 h-4 object-contain"
             />
-            <span className={`font-extrabold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <span className={`font-extrabold text-sm ${
+              isAuto ? 'text-slate-900 dark:text-white' : isDark ? 'text-white' : 'text-slate-900'
+            }`}>
               {BUSINESS_INFO.tradeName}
             </span>
           </div>
-          <p className={`text-[11.5px] leading-relaxed max-w-xl ${isDark ? 'text-[#CBD5E1]' : 'text-slate-600'}`}>
+          <p className={`text-[11.5px] leading-relaxed max-w-xl ${
+            isAuto ? 'text-slate-600 dark:text-[#CBD5E1]' : isDark ? 'text-[#CBD5E1]' : 'text-slate-600'
+          }`}>
             A {BUSINESS_INFO.tradeName} atua como plataforma tecnológica de intermediação de pagamentos digitais.
             O conteúdo, a entrega e o suporte específico do produto adquirido são da responsabilidade do vendedor identificado,
             assegurando-se ao comprador o prazo legal mínimo de garantia de {BUSINESS_INFO.defaultGuaranteeDays} dias.
@@ -48,54 +55,64 @@ export default function LegalFooter({ variant = 'light', compact = false }: Lega
           <Link
             href="/privacidade"
             className={`font-semibold underline underline-offset-2 transition-colors focus:outline-none focus-visible:ring-2 rounded ${
-              isDark
-                ? 'text-violet-300 hover:text-white focus-visible:ring-violet-400'
-                : 'text-slate-800 hover:text-emerald-800 focus-visible:ring-emerald-700'
+              isAuto
+                ? 'text-slate-800 dark:text-violet-300 hover:text-emerald-800 dark:hover:text-white'
+                : isDark
+                  ? 'text-violet-300 hover:text-white focus-visible:ring-violet-400'
+                  : 'text-slate-800 hover:text-emerald-800 focus-visible:ring-emerald-700'
             }`}
           >
             Política de Privacidade
           </Link>
-          <span aria-hidden="true" className={isDark ? 'text-slate-600' : 'text-slate-400'}>•</span>
+          <span aria-hidden="true" className={isAuto ? 'text-slate-400 dark:text-slate-600' : isDark ? 'text-slate-600' : 'text-slate-400'}>•</span>
           <Link
             href="/termos"
             className={`font-semibold underline underline-offset-2 transition-colors focus:outline-none focus-visible:ring-2 rounded ${
-              isDark
-                ? 'text-violet-300 hover:text-white focus-visible:ring-violet-400'
-                : 'text-slate-800 hover:text-emerald-800 focus-visible:ring-emerald-700'
+              isAuto
+                ? 'text-slate-800 dark:text-violet-300 hover:text-emerald-800 dark:hover:text-white'
+                : isDark
+                  ? 'text-violet-300 hover:text-white focus-visible:ring-violet-400'
+                  : 'text-slate-800 hover:text-emerald-800 focus-visible:ring-emerald-700'
             }`}
           >
             Termos e Condições
           </Link>
-          <span aria-hidden="true" className={isDark ? 'text-slate-600' : 'text-slate-400'}>•</span>
+          <span aria-hidden="true" className={isAuto ? 'text-slate-400 dark:text-slate-600' : isDark ? 'text-slate-600' : 'text-slate-400'}>•</span>
           <Link
             href="/cookies"
             className={`font-semibold underline underline-offset-2 transition-colors focus:outline-none focus-visible:ring-2 rounded ${
-              isDark
-                ? 'text-violet-300 hover:text-white focus-visible:ring-violet-400'
-                : 'text-slate-800 hover:text-emerald-800 focus-visible:ring-emerald-700'
+              isAuto
+                ? 'text-slate-800 dark:text-violet-300 hover:text-emerald-800 dark:hover:text-white'
+                : isDark
+                  ? 'text-violet-300 hover:text-white focus-visible:ring-violet-400'
+                  : 'text-slate-800 hover:text-emerald-800 focus-visible:ring-emerald-700'
             }`}
           >
             Política de Cookies
           </Link>
-          <span aria-hidden="true" className={isDark ? 'text-slate-600' : 'text-slate-400'}>•</span>
+          <span aria-hidden="true" className={isAuto ? 'text-slate-400 dark:text-slate-600' : isDark ? 'text-slate-600' : 'text-slate-400'}>•</span>
           <Link
             href="/reembolso"
             className={`font-semibold underline underline-offset-2 transition-colors focus:outline-none focus-visible:ring-2 rounded ${
-              isDark
-                ? 'text-violet-300 hover:text-white focus-visible:ring-violet-400'
-                : 'text-slate-800 hover:text-emerald-800 focus-visible:ring-emerald-700'
+              isAuto
+                ? 'text-slate-800 dark:text-violet-300 hover:text-emerald-800 dark:hover:text-white'
+                : isDark
+                  ? 'text-violet-300 hover:text-white focus-visible:ring-violet-400'
+                  : 'text-slate-800 hover:text-emerald-800 focus-visible:ring-emerald-700'
             }`}
           >
             Política de Reembolso
           </Link>
-          <span aria-hidden="true" className={isDark ? 'text-slate-600' : 'text-slate-400'}>•</span>
+          <span aria-hidden="true" className={isAuto ? 'text-slate-400 dark:text-slate-600' : isDark ? 'text-slate-600' : 'text-slate-400'}>•</span>
           <button
             type="button"
             onClick={openCookieSettingsModal}
             className={`font-semibold underline underline-offset-2 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 rounded ${
-              isDark
-                ? 'text-violet-300 hover:text-white focus-visible:ring-violet-400'
-                : 'text-slate-800 hover:text-emerald-800 focus-visible:ring-emerald-700'
+              isAuto
+                ? 'text-slate-800 dark:text-violet-300 hover:text-emerald-800 dark:hover:text-white'
+                : isDark
+                  ? 'text-violet-300 hover:text-white focus-visible:ring-violet-400'
+                  : 'text-slate-800 hover:text-emerald-800 focus-visible:ring-emerald-700'
             }`}
           >
             Gerir Cookies
@@ -104,10 +121,12 @@ export default function LegalFooter({ variant = 'light', compact = false }: Lega
 
         {/* Business Details & Trademark Disclaimer */}
         <div className={`pt-3 border-t text-[11px] leading-relaxed space-y-1.5 ${
-          isDark ? 'border-[#1E1B26] text-[#94A3B8]' : 'border-slate-200 text-slate-600'
+          isAuto
+            ? 'border-slate-200 dark:border-[#1E1B26] text-slate-600 dark:text-[#94A3B8]'
+            : isDark ? 'border-[#1E1B26] text-[#94A3B8]' : 'border-slate-200 text-slate-600'
         }`}>
           <p>
-            <strong className={isDark ? 'text-slate-200' : 'text-slate-800'}>{BUSINESS_INFO.legalName}</strong>{' '}
+            <strong className={isAuto ? 'text-slate-800 dark:text-slate-200' : isDark ? 'text-slate-200' : 'text-slate-800'}>{BUSINESS_INFO.legalName}</strong>{' '}
             • NUIT: {BUSINESS_INFO.nuit} • {BUSINESS_INFO.address}
           </p>
           <p>

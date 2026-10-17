@@ -198,19 +198,19 @@ export function PaymentMethodOptionCard({
       className={`relative w-full p-3.5 sm:p-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center justify-between gap-3 cursor-pointer select-none group ${
         selected
           ? isMpesa
-            ? 'border-[#E60000] bg-[#FF0000]/[0.06] shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/20'
+            ? 'border-[#E60000] bg-red-50/90 dark:bg-red-950/30 shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/25'
             : isEmola
-              ? 'border-[#FF6600] bg-[#FF6600]/[0.06] shadow-md shadow-[#FF6600]/10 ring-2 ring-[#FF6600]/20'
-              : 'border-violet-600 bg-violet-600/[0.06] shadow-md shadow-violet-600/10 ring-2 ring-violet-600/20'
-          : 'border-slate-200 dark:border-[#252033] bg-white dark:bg-[#121018] hover:border-slate-300 dark:hover:border-[#352D48]'
+              ? 'border-[#FF6600] bg-orange-50/90 dark:bg-orange-950/30 shadow-md shadow-[#FF6600]/10 ring-2 ring-[#FF6600]/25'
+              : 'border-violet-600 bg-violet-50/90 dark:bg-violet-950/30 shadow-md shadow-violet-600/10 ring-2 ring-violet-600/25'
+          : 'border-slate-200 dark:border-[#252033] bg-white dark:bg-[#121018] hover:border-slate-300 dark:hover:border-[#352D48] hover:bg-slate-50/50 dark:hover:bg-[#16131F]'
       } ${className}`}
     >
       <div className="flex items-center gap-3.5 min-w-0">
-        {/* Prominent Logo Container with Smooth Outline & No Sharp Corners */}
+        {/* Prominent Logo Container with Smooth Outline & Clean Contrast */}
         <div
           className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl p-2 bg-white shadow-xs flex items-center justify-center shrink-0 border-2 transition-transform duration-200 group-hover:scale-105 ${
             selected
-              ? 'border-transparent shadow-md'
+              ? 'shadow-md'
               : 'border-slate-200 dark:border-white/15'
           }`}
           style={{ borderColor: selected ? brandAccent : undefined }}
@@ -230,22 +230,42 @@ export function PaymentMethodOptionCard({
           )}
         </div>
 
-        {/* Titles and Fast Helper */}
+        {/* Titles and Fast Helper with Flawless Contrast */}
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight leading-none">
+            <h4
+              className={`text-xs sm:text-sm font-black tracking-tight leading-none ${
+                selected
+                  ? isMpesa
+                    ? 'text-[#C40000] dark:text-red-300'
+                    : isEmola
+                      ? 'text-[#C74900] dark:text-orange-300'
+                      : 'text-violet-700 dark:text-violet-300'
+                  : 'text-slate-900 dark:text-[#F8FAFC]'
+              }`}
+            >
               {title}
             </h4>
             {selected && (
               <span
-                className="px-1.5 py-0.2 text-[9px] font-black rounded uppercase tracking-wider text-white"
+                className="otter-keep-colors px-1.5 py-0.5 text-[9px] font-black rounded uppercase tracking-wider text-white"
                 style={{ backgroundColor: brandAccent }}
               >
                 Ativo
               </span>
             )}
           </div>
-          <p className="text-[11px] font-medium text-slate-500 dark:text-[#94A3B8] mt-1 truncate">
+          <p
+            className={`text-[11px] mt-1 truncate ${
+              selected
+                ? isMpesa
+                  ? 'text-red-900/80 dark:text-red-200/80 font-semibold'
+                  : isEmola
+                    ? 'text-orange-900/80 dark:text-orange-200/80 font-semibold'
+                    : 'text-violet-900/80 dark:text-violet-200/80 font-semibold'
+                : 'text-slate-600 dark:text-[#94A3B8] font-medium'
+            }`}
+          >
             {subtitle}
           </p>
         </div>
@@ -253,9 +273,9 @@ export function PaymentMethodOptionCard({
 
       {/* Custom Selected Radio Bubble */}
       <div
-        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+        className={`otter-keep-colors w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
           selected
-            ? 'border-transparent'
+            ? 'border-transparent shadow-xs'
             : 'border-slate-300 dark:border-slate-600 bg-transparent'
         }`}
         style={{ backgroundColor: selected ? brandAccent : 'transparent' }}

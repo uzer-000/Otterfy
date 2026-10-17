@@ -13,6 +13,8 @@ model User {
   email        String    @unique
   passwordHash String
   name         String
+  avatarImage  String?
+  phone        String?
   products     Product[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface DeviceItem {
   id: string;
@@ -13,6 +13,11 @@ interface DeviceItem {
 
 export default function AccountSettingsPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Foto de Perfil & Nuvem
+  const [avatarImage, setAvatarImage] = useState<string>('');
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Informações Pessoais
   const [fullName, setFullName] = useState('Pedro Filipe');
@@ -73,7 +78,7 @@ export default function AccountSettingsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
 
-  // Sincronizar com perfil salvo
+  // Sincronizar com perfil salvo e nuvem PostgreSQL
   useEffect(() => {
     try {
       const saved = localStorage.getItem('otterfy_user_account_settings');
@@ -86,24 +91,131 @@ export default function AccountSettingsPage() {
         if (parsed.phone) setPhone(parsed.phone);
         if (parsed.supportEmails) setSupportEmails(parsed.supportEmails);
         if (parsed.selectedLanguage) setSelectedLanguage(parsed.selectedLanguage);
-      } else {
-        // Tentar obter da API
-        fetch('/api/user/profile')
+      }
+
+      const localAvatar = localStorage.getItem('otterfy_profile_avatar');
+      if (localAvatar) setAvatarImage(localAvatar);
+
+      // Obter da API com no-cache para garantir dados frescos do Neon PostgreSQL (sync mobile <-> pc)
+      const fetchCloudProfile = () => {
+        fetch('/api/user/profile', { cache: 'no-store' })
           .then((res) => res.json())
           .then((d) => {
             if (d.profile) {
               if (d.profile.name) setFullName(d.profile.name);
               if (d.profile.phone) setPhone(d.profile.phone);
             }
+            const cloudAvatar = d.avatarImage || d.profile?.avatarImage || d.user?.avatarImage;
+            if (cloudAvatar) {
+              setAvatarImage(cloudAvatar);
+              localStorage.setItem('otterfy_profile_avatar', cloudAvatar);
+            }
           })
           .catch(() => {});
-      }
+      };
+
+      fetchCloudProfile();
+
+      window.addEventListener('profile_updated', fetchCloudProfile);
+      window.addEventListener('focus', fetchCloudProfile);
+
+      return () => {
+        window.removeEventListener('profile_updated', fetchCloudProfile);
+        window.removeEventListener('focus', fetchCloudProfile);
+      };
     } catch {}
   }, []);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Carregar e comprimir foto de perfil (WebP/JPEG 400x400 para sincronia instantânea entre celular e PC)
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Por favor selecione um arquivo de imagem válido (JPG, PNG ou WebP).');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = async () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const maxDim = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.88);
+
+            setAvatarImage(compressed);
+            localStorage.setItem('otterfy_profile_avatar', compressed);
+
+            // Sincronizar na nuvem (PostgreSQL) para estar imediatamente disponível no PC/Mobile
+            await fetch('/api/user/profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ avatarImage: compressed, name: fullName }),
+            });
+
+            window.dispatchEvent(new Event('profile_updated'));
+            window.dispatchEvent(new Event('storage'));
+            showToast('Foto atualizada! Sincronizada entre celular e PC.');
+          }
+        } catch {
+          showToast('Erro ao processar imagem.');
+        } finally {
+          setIsUploadingAvatar(false);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatar = async () => {
+    try {
+      setIsUploadingAvatar(true);
+      setAvatarImage('');
+      localStorage.removeItem('otterfy_profile_avatar');
+
+      await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarImage: '', name: fullName }),
+      });
+
+      window.dispatchEvent(new Event('profile_updated'));
+      window.dispatchEvent(new Event('storage'));
+      showToast('Foto de perfil removida.');
+    } catch {
+      showToast('Erro ao remover foto.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const handleSavePersonalInfo = async () => {
@@ -122,10 +234,11 @@ export default function AccountSettingsPage() {
       await fetch('/api/user/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: fullName, phone: `${countryCode} ${phone}` }),
+        body: JSON.stringify({ name: fullName, phone: `${countryCode} ${phone}`, avatarImage }),
       }).catch(() => {});
 
       window.dispatchEvent(new Event('profile_updated'));
+      window.dispatchEvent(new Event('storage'));
       showToast('Alterações salvas com sucesso!');
     } catch {
       showToast('Erro ao salvar informações.');
@@ -217,6 +330,91 @@ export default function AccountSettingsPage() {
           <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-0.5">
             Atualize seus dados pessoais e de contato
           </p>
+        </div>
+
+        {/* Foto de Perfil com Sincronização em Nuvem (PostgreSQL) */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5 p-4 sm:p-5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-color)]">
+          <div className="relative group shrink-0 self-start sm:self-center">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-violet-600/30 to-violet-900/40 border-2 border-violet-500/40 flex items-center justify-center text-xl sm:text-2xl font-black text-violet-300 shadow-md overflow-hidden">
+              {avatarImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarImage} alt="Foto de perfil" className="w-full h-full object-cover" />
+              ) : (
+                <span>{fullName ? fullName.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : 'AD'}</span>
+              )}
+            </div>
+
+            {/* Quick Upload Button on Avatar click */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingAvatar}
+              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center shadow-lg cursor-pointer transition-transform group-hover:scale-105 active:scale-95 disabled:opacity-50"
+              title="Trocar foto de perfil"
+              aria-label="Trocar foto de perfil"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="flex-1 min-w-0 space-y-2">
+            <div>
+              <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                Foto de Perfil
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                Atualize sua foto pelo celular ou computador. Sincronização automática na nuvem em tempo real.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleAvatarFileChange}
+                className="hidden"
+                id="avatar-file-upload-input"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+              >
+                {isUploadingAvatar ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>Salvando na nuvem...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    <span>{avatarImage ? 'Alterar Foto' : 'Carregar Foto'}</span>
+                  </>
+                )}
+              </button>
+
+              {avatarImage && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  disabled={isUploadingAvatar}
+                  className="px-3.5 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-red-500/10 border border-[var(--border-color)] hover:border-red-500/30 text-[var(--text-secondary)] hover:text-red-500 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Remover Foto
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">

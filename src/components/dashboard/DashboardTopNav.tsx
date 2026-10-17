@@ -22,31 +22,99 @@ export default function DashboardTopNav() {
   const [approvedOrders, setApprovedOrders] = useState<any[]>([]);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [profileAvatar, setProfileAvatar] = useState<string>('');
+  const [isSyncingAvatar, setIsSyncingAvatar] = useState(false);
+  const topNavFileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Synchronize avatar from localStorage & API
+  const handleQuickAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    setIsSyncingAvatar(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = async () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const maxDim = 400;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.88);
+            setProfileAvatar(compressed);
+            localStorage.setItem('otterfy_profile_avatar', compressed);
+
+            await fetch('/api/user/profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ avatarImage: compressed }),
+            });
+
+            window.dispatchEvent(new Event('profile_updated'));
+            window.dispatchEvent(new Event('storage'));
+          }
+        } catch {
+          // ignore
+        } finally {
+          setIsSyncingAvatar(false);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Synchronize avatar from localStorage & Cloud Database (Cross-device sync)
   useEffect(() => {
-    const updateAvatar = () => {
+    const updateAvatarFromStorage = () => {
       const saved = localStorage.getItem('otterfy_profile_avatar');
       if (saved) setProfileAvatar(saved);
     };
-    updateAvatar();
+    updateAvatarFromStorage();
 
-    // Fetch from API to ensure persistence across devices
-    fetch('/api/user/profile')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.profile?.avatarImage) {
-          setProfileAvatar(d.profile.avatarImage);
-          localStorage.setItem('otterfy_profile_avatar', d.profile.avatarImage);
-        }
-      })
-      .catch(() => {});
+    // Fetch from API to ensure cross-device persistence (e.g. updated on Mobile, viewed on PC)
+    const syncProfileFromCloud = () => {
+      fetch('/api/user/profile', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((d) => {
+          const avatar = d.avatarImage || d.profile?.avatarImage || d.user?.avatarImage;
+          if (avatar) {
+            setProfileAvatar(avatar);
+            localStorage.setItem('otterfy_profile_avatar', avatar);
+          }
+        })
+        .catch(() => {});
+    };
 
-    window.addEventListener('profile_updated', updateAvatar);
-    window.addEventListener('storage', updateAvatar);
+    syncProfileFromCloud();
+
+    window.addEventListener('profile_updated', updateAvatarFromStorage);
+    window.addEventListener('storage', updateAvatarFromStorage);
+    window.addEventListener('focus', syncProfileFromCloud);
+
+    // Periodic light polling (every 45s) for instant background sync across tabs/devices
+    const syncInterval = setInterval(syncProfileFromCloud, 45000);
+
     return () => {
-      window.removeEventListener('profile_updated', updateAvatar);
-      window.removeEventListener('storage', updateAvatar);
+      window.removeEventListener('profile_updated', updateAvatarFromStorage);
+      window.removeEventListener('storage', updateAvatarFromStorage);
+      window.removeEventListener('focus', syncProfileFromCloud);
+      clearInterval(syncInterval);
     };
   }, []);
 
@@ -441,17 +509,55 @@ export default function DashboardTopNav() {
               <h3 className="font-bold text-sm">Perfil do Usuário</h3>
               <button onClick={() => setProfileModalOpen(false)} aria-label="Fechar janela de perfil" className="text-[#94A3B8] hover:text-white text-xs">✕</button>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-sm font-bold text-violet-400 overflow-hidden">
-                {profileAvatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profileAvatar} alt="Foto de perfil" className="w-full h-full object-cover" />
-                ) : (
-                  <span>AD</span>
-                )}
+            <div className="flex items-center gap-3.5">
+              <div className="relative group shrink-0">
+                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-sm font-bold text-violet-400 overflow-hidden shadow-inner">
+                  {profileAvatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={profileAvatar} alt="Foto de perfil" className="w-full h-full object-cover" />
+                  ) : (
+                    <span>PH</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => topNavFileInputRef.current?.click()}
+                  disabled={isSyncingAvatar}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center shadow-md cursor-pointer transition-transform group-hover:scale-110 active:scale-95 disabled:opacity-50"
+                  title="Alterar foto de perfil"
+                  aria-label="Alterar foto de perfil"
+                >
+                  {isSyncingAvatar ? (
+                    <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                    </svg>
+                  )}
+                </button>
+                <input
+                  ref={topNavFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleQuickAvatarUpload}
+                  className="hidden"
+                />
               </div>
-              <div>
-                <p className="font-bold text-sm text-[#F8FAFC]">Pedro Hill</p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-sm text-[#F8FAFC]">Pedro Hill</p>
+                  <button
+                    type="button"
+                    onClick={() => topNavFileInputRef.current?.click()}
+                    className="text-[11px] text-violet-400 hover:text-violet-300 font-semibold cursor-pointer underline"
+                  >
+                    Alterar foto
+                  </button>
+                </div>
                 <p className="text-xs text-[#94A3B8]">nhacossfilipe@gmail.com</p>
                 <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-600/20 text-violet-300 border border-violet-500/30">
                   Produtor Verificado
