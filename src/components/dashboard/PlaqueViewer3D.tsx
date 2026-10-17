@@ -192,41 +192,42 @@ export default function PlaqueViewer3D({
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.05, 50);
     cameraRef.current = camera;
 
-    // 3. Renderer with SRGB and Tone Mapping
+    // 3. Renderer with SRGB and Tone Mapping in Full HD Crisp Quality
     renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
       alpha: true,
       powerPreference: 'high-performance',
+      precision: 'highp',
     });
     rendererRef.current = renderer;
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.3;
+    renderer.toneMappingExposure = 1.35;
 
-    // 4. Studio Lighting Rig
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
+    // 4. Studio Lighting Rig (Enhanced for Full HD Specular Highlights)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.35);
     scene.add(ambientLight);
 
-    // Key Light
-    const keyLight = new THREE.DirectionalLight(0xfff5e6, 2.6);
+    // Key Light (warm studio accent)
+    const keyLight = new THREE.DirectionalLight(0xfff5e6, 2.7);
     keyLight.position.set(2.5, 3.5, 3.0);
     scene.add(keyLight);
 
-    // Cool Rim Light
-    const rimLight = new THREE.DirectionalLight(0x60a5fa, 2.0);
+    // Cool Rim Light (edge definition)
+    const rimLight = new THREE.DirectionalLight(0x60a5fa, 2.1);
     rimLight.position.set(-2.5, -1.0, 2.0);
     scene.add(rimLight);
 
     // Top Specular Highlight
-    const topLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    const topLight = new THREE.DirectionalLight(0xffffff, 1.9);
     topLight.position.set(0, 4.0, -2.0);
     scene.add(topLight);
 
     // Dynamic Cursor-Tracking Specular Light
-    const specularLight = new THREE.PointLight(0xffffff, 1.4, 8);
+    const specularLight = new THREE.PointLight(0xffffff, 1.5, 8);
     specularLight.position.set(0, 0, 2.2);
     specularLightRef.current = specularLight;
     scene.add(specularLight);
@@ -248,7 +249,8 @@ export default function PlaqueViewer3D({
             if (mesh.material) {
               const mat = mesh.material as THREE.MeshStandardMaterial;
               if (mat.metalness !== undefined && mat.metalness > 0.05) {
-                mat.roughness = Math.max(0.1, mat.roughness * 0.7);
+                mat.roughness = Math.max(0.08, mat.roughness * 0.65);
+                mat.metalness = Math.min(1.0, mat.metalness * 1.15);
                 mat.needsUpdate = true;
               }
             }
