@@ -153,43 +153,35 @@ export default function CustomizableWidgets({
   // Live 24-hour daily flow synchronization (00:00 - 23:59 in local timezone)
   useEffect(() => {
     let active = true;
-    const hoursList = [
-      '00:00', '01:00', '02:00', '03:00', '04:00', '05:00',
-      '06:00', '07:00', '08:00', '09:00', '10:00', '11:00',
-      '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
-      '18:00', '19:00', '20:00', '21:00', '22:00', '23:59'
-    ];
 
     const syncLive24hFlow = async () => {
       try {
-        const res = await fetch('/api/payments', { cache: 'no-store' });
-        if (!res.ok) return;
-        const json = await res.json();
-        const orders: { createdAt: string; status: string }[] = Array.isArray(json.orders) ? json.orders : [];
+        const now = new Date();
+        const yDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        const yMonth = String(yDate.getMonth() + 1).padStart(2, '0');
+        const yDay = String(yDate.getDate()).padStart(2, '0');
+        const yesterdayIso = `${yDate.getFullYear()}-${yMonth}-${yDay}`;
+
+        const [resToday, resYesterday] = await Promise.all([
+          fetch('/api/analytics/hourly', { cache: 'no-store' }),
+          fetch(`/api/analytics/hourly?date=${yesterdayIso}`, { cache: 'no-store' }),
+        ]);
+
         if (!active) return;
 
-        const now = new Date();
-        const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        const startYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+        if (resToday.ok) {
+          const jsonToday = await resToday.json();
+          if (jsonToday.success && Array.isArray(jsonToday.data)) {
+            setLiveHourlyToday(jsonToday.data);
+          }
+        }
 
-        const todayList = orders.filter((o) => new Date(o.createdAt) >= startToday);
-        const yesterdayList = orders.filter((o) => {
-          const d = new Date(o.createdAt);
-          return d >= startYesterday && d < startToday;
-        });
-
-        const build24h = (list: typeof orders) =>
-          hoursList.map((hour, idx) => {
-            const inHour = list.filter((o) => new Date(o.createdAt).getHours() === idx);
-            return {
-              hour,
-              iniciados: inHour.length,
-              aprovados: inHour.filter((o) => o.status === 'APPROVED').length,
-            };
-          });
-
-        setLiveHourlyToday(build24h(todayList));
-        setLiveHourlyYesterday(build24h(yesterdayList));
+        if (resYesterday.ok) {
+          const jsonYesterday = await resYesterday.json();
+          if (jsonYesterday.success && Array.isArray(jsonYesterday.data)) {
+            setLiveHourlyYesterday(jsonYesterday.data);
+          }
+        }
       } catch {
         // Keep server-rendered 24h series if offline
       }

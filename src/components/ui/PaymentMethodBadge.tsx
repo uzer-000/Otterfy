@@ -173,6 +173,7 @@ interface PaymentMethodOptionCardProps {
   onSelect: () => void;
   prefixHelper?: string;
   className?: string;
+  layout?: 'horizontal' | 'vertical';
 }
 
 export function PaymentMethodOptionCard({
@@ -181,36 +182,136 @@ export function PaymentMethodOptionCard({
   onSelect,
   prefixHelper,
   className = '',
+  layout = 'horizontal',
 }: PaymentMethodOptionCardProps) {
   const isMpesa = method === 'MPESA';
   const isEmola = method === 'EMOLA';
   const isStripe = method === 'STRIPE';
+  const isBank = method === 'BANK';
 
   const title = isMpesa ? 'M-Pesa' : isEmola ? 'e-Mola' : isStripe ? 'Cartão Visa/Master' : 'Banco (NIB)';
   const subtitle = prefixHelper || (isMpesa ? '84 • 85 (Vodacom)' : isEmola ? '86 • 87 (Movitel)' : isStripe ? 'Crédito / Débito' : 'Transferência');
   const logo = isMpesa ? '/gateways/mpesa.svg' : isEmola ? '/gateways/emola.svg' : isStripe ? '/gateways/stripe-cards.svg' : '';
   const brandAccent = isMpesa ? '#E60000' : isEmola ? '#FF6600' : isStripe ? '#635BFF' : '#10B981';
 
+  // Vertical layout (ideal for 3-column modal grids and compact selectors)
+  if (layout === 'vertical') {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        className={`relative w-full p-3 sm:p-3.5 rounded-2xl border-2 transition-all duration-200 text-center flex flex-col items-center justify-center cursor-pointer select-none group min-w-0 ${
+          selected
+            ? isMpesa
+              ? 'border-[#E60000] bg-red-50/90 dark:bg-red-950/30 shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/25'
+              : isEmola
+                ? 'border-[#FF6600] bg-orange-50/90 dark:bg-orange-950/30 shadow-md shadow-[#FF6600]/10 ring-2 ring-[#FF6600]/25'
+                : isBank
+                  ? 'border-emerald-600 bg-emerald-50/90 dark:bg-emerald-950/30 shadow-md shadow-emerald-600/10 ring-2 ring-emerald-600/25'
+                  : 'border-violet-600 bg-violet-50/90 dark:bg-violet-950/30 shadow-md shadow-violet-600/10 ring-2 ring-violet-600/25'
+            : 'border-slate-200 dark:border-[#252033] bg-white dark:bg-[#121018] hover:border-slate-300 dark:hover:border-[#352D48] hover:bg-slate-50/50 dark:hover:bg-[#16131F]'
+        } ${className}`}
+      >
+        {/* Subtle Checkmark Badge in Top Right */}
+        <div
+          className={`otter-keep-colors absolute top-2 right-2 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+            selected
+              ? 'border-transparent shadow-xs'
+              : 'border-slate-300 dark:border-slate-600 bg-transparent'
+          }`}
+          style={{ backgroundColor: selected ? brandAccent : 'transparent' }}
+        >
+          {selected && (
+            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
+
+        {/* Logo Container */}
+        <div
+          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl p-1.5 bg-white shadow-xs flex items-center justify-center shrink-0 border-2 transition-transform duration-200 group-hover:scale-105 ${
+            selected ? 'shadow-md border-transparent' : 'border-slate-200 dark:border-white/15'
+          }`}
+          style={{ borderColor: selected ? brandAccent : undefined }}
+        >
+          {logo ? (
+            <Image
+              src={logo}
+              alt={title}
+              width={40}
+              height={40}
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 3l9 7H3l9-7z" />
+            </svg>
+          )}
+        </div>
+
+        {/* Title and Subtitle */}
+        <div className="w-full text-center min-w-0 mt-2 px-0.5">
+          <div className="flex items-center justify-center gap-1">
+            <h4
+              className={`text-xs sm:text-sm font-black tracking-tight whitespace-nowrap leading-tight ${
+                selected
+                  ? isMpesa
+                    ? 'text-[#C40000] dark:text-red-300'
+                    : isEmola
+                      ? 'text-[#C74900] dark:text-orange-300'
+                      : isBank
+                        ? 'text-emerald-700 dark:text-emerald-300'
+                        : 'text-violet-700 dark:text-violet-300'
+                  : 'text-slate-900 dark:text-[#F8FAFC]'
+              }`}
+            >
+              {title}
+            </h4>
+          </div>
+          <p
+            className={`text-[10px] mt-0.5 truncate block w-full ${
+              selected
+                ? isMpesa
+                  ? 'text-red-900/80 dark:text-red-200/80 font-semibold'
+                  : isEmola
+                    ? 'text-orange-900/80 dark:text-orange-200/80 font-semibold'
+                    : isBank
+                      ? 'text-emerald-900/80 dark:text-emerald-200/80 font-semibold'
+                      : 'text-violet-900/80 dark:text-violet-200/80 font-semibold'
+                : 'text-slate-500 dark:text-[#94A3B8] font-medium'
+            }`}
+          >
+            {subtitle}
+          </p>
+        </div>
+      </button>
+    );
+  }
+
+  // Horizontal layout (for checkouts and wide cards)
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`relative w-full p-3.5 sm:p-4 rounded-2xl border-2 transition-all duration-200 text-left flex items-center justify-between gap-3 cursor-pointer select-none group ${
+      className={`relative w-full p-3 sm:p-3.5 rounded-2xl border-2 transition-all duration-200 text-left flex items-center justify-between gap-3 cursor-pointer select-none group min-w-0 ${
         selected
           ? isMpesa
             ? 'border-[#E60000] bg-red-50/90 dark:bg-red-950/30 shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/25'
             : isEmola
               ? 'border-[#FF6600] bg-orange-50/90 dark:bg-orange-950/30 shadow-md shadow-[#FF6600]/10 ring-2 ring-[#FF6600]/25'
-              : 'border-violet-600 bg-violet-50/90 dark:bg-violet-950/30 shadow-md shadow-violet-600/10 ring-2 ring-violet-600/25'
+              : isBank
+                ? 'border-emerald-600 bg-emerald-50/90 dark:bg-emerald-950/30 shadow-md shadow-emerald-600/10 ring-2 ring-emerald-600/25'
+                : 'border-violet-600 bg-violet-50/90 dark:bg-violet-950/30 shadow-md shadow-violet-600/10 ring-2 ring-violet-600/25'
           : 'border-slate-200 dark:border-[#252033] bg-white dark:bg-[#121018] hover:border-slate-300 dark:hover:border-[#352D48] hover:bg-slate-50/50 dark:hover:bg-[#16131F]'
       } ${className}`}
     >
-      <div className="flex items-center gap-3.5 min-w-0">
-        {/* Prominent Logo Container with Smooth Outline & Clean Contrast */}
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        {/* Prominent Logo Container */}
         <div
-          className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl p-2 bg-white shadow-xs flex items-center justify-center shrink-0 border-2 transition-transform duration-200 group-hover:scale-105 ${
+          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl p-1.5 bg-white shadow-xs flex items-center justify-center shrink-0 border-2 transition-transform duration-200 group-hover:scale-105 ${
             selected
-              ? 'shadow-md'
+              ? 'shadow-md border-transparent'
               : 'border-slate-200 dark:border-white/15'
           }`}
           style={{ borderColor: selected ? brandAccent : undefined }}
@@ -219,8 +320,8 @@ export function PaymentMethodOptionCard({
             <Image
               src={logo}
               alt={title}
-              width={48}
-              height={48}
+              width={40}
+              height={40}
               className="w-full h-full object-contain"
             />
           ) : (
@@ -231,16 +332,18 @@ export function PaymentMethodOptionCard({
         </div>
 
         {/* Titles and Fast Helper with Flawless Contrast */}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h4
-              className={`text-xs sm:text-sm font-black tracking-tight leading-none ${
+              className={`text-xs sm:text-sm font-black tracking-tight whitespace-nowrap leading-tight ${
                 selected
                   ? isMpesa
                     ? 'text-[#C40000] dark:text-red-300'
                     : isEmola
                       ? 'text-[#C74900] dark:text-orange-300'
-                      : 'text-violet-700 dark:text-violet-300'
+                      : isBank
+                        ? 'text-emerald-700 dark:text-emerald-300'
+                        : 'text-violet-700 dark:text-violet-300'
                   : 'text-slate-900 dark:text-[#F8FAFC]'
               }`}
             >
@@ -248,7 +351,7 @@ export function PaymentMethodOptionCard({
             </h4>
             {selected && (
               <span
-                className="otter-keep-colors px-1.5 py-0.5 text-[9px] font-black rounded uppercase tracking-wider text-white"
+                className="otter-keep-colors px-1.5 py-0.5 text-[9px] font-black rounded uppercase tracking-wider text-white shrink-0"
                 style={{ backgroundColor: brandAccent }}
               >
                 Ativo
@@ -256,13 +359,15 @@ export function PaymentMethodOptionCard({
             )}
           </div>
           <p
-            className={`text-[11px] mt-1 truncate ${
+            className={`text-[11px] mt-0.5 truncate block ${
               selected
                 ? isMpesa
                   ? 'text-red-900/80 dark:text-red-200/80 font-semibold'
                   : isEmola
                     ? 'text-orange-900/80 dark:text-orange-200/80 font-semibold'
-                    : 'text-violet-900/80 dark:text-violet-200/80 font-semibold'
+                    : isBank
+                      ? 'text-emerald-900/80 dark:text-emerald-200/80 font-semibold'
+                      : 'text-violet-900/80 dark:text-violet-200/80 font-semibold'
                 : 'text-slate-600 dark:text-[#94A3B8] font-medium'
             }`}
           >

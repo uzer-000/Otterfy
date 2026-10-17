@@ -212,7 +212,7 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
               }`}
             >
               <div
-                className="h-full bg-gradient-to-r from-violet-600 to-sky-500 rounded-full transition-all duration-700"
+                className="h-full bg-gradient-to-r from-violet-600 to-purple-500 rounded-full transition-all duration-700"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -256,8 +256,8 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
                       : 'bg-violet-950/20 border-violet-500/40 text-[#F8FAFC]'
                     : isCurrent
                     ? isLight
-                      ? 'bg-sky-50/60 border-sky-300 text-[#0F172A] ring-1 ring-sky-300'
-                      : 'bg-[#10192b]/60 border-sky-500/50 text-[#F8FAFC] ring-1 ring-sky-500/30'
+                      ? 'bg-violet-50/70 border-violet-300 text-[#0F172A] ring-1 ring-violet-400/40'
+                      : 'bg-[#151022]/80 border-violet-500/50 text-[#F8FAFC] ring-1 ring-violet-500/30'
                     : isLight
                     ? 'bg-[#F8F7FC] border-[#E2E8F0] text-[#334155]'
                     : 'bg-[#0F0E14] border-[#1E1B26] text-[#94A3B8]'
@@ -303,7 +303,7 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
                           isUnlocked
                             ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
                             : isCurrent
-                            ? 'bg-sky-500/10 text-sky-500 border-sky-500/30'
+                            ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/30'
                             : 'bg-violet-500/10 text-violet-600 border-violet-500/20'
                         }`}
                       >
@@ -317,7 +317,7 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
                           ✓ Conquistado
                         </span>
                       ) : isCurrent ? (
-                        <span className="text-[10px] font-bold text-sky-500 dark:text-sky-400">
+                        <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400">
                           📍 Você está aqui
                         </span>
                       ) : null}

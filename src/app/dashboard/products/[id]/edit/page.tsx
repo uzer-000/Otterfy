@@ -231,11 +231,11 @@ function EditProductContent({ params }: PageProps) {
           setActiveTab('config');
         }
       } else {
-        alert('Erro ao salvar produto.');
+        setToastMessage('Erro ao salvar produto.');
       }
     } catch (err) {
       console.error(err);
-      alert('Erro de conexão ao salvar.');
+      setToastMessage('Erro de conexão ao salvar.');
     } finally {
       setLoading(false);
     }

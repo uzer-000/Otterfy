@@ -420,7 +420,7 @@ export default function PlaqueViewer3D({
               <span>DESBLOQUEADO</span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-sky-500/10 border border-sky-500/30 text-sky-400 shadow-sm shadow-sky-500/15">
+            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-violet-500/10 border border-violet-500/30 text-violet-400 shadow-sm shadow-violet-500/15">
               <span>STILL LOCKED</span>
             </div>
           )}
@@ -512,13 +512,13 @@ export default function PlaqueViewer3D({
           {/* Loading Indicator for 3D GLB */}
           {loading && (
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center space-y-3 pointer-events-none">
-              <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+              <div className="w-10 h-10 rounded-2xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-400">
                 <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
               </div>
-              <span className="text-[11px] font-mono text-sky-300">
+              <span className="text-[11px] font-mono text-violet-300">
                 Carregando 3D ({loadProgress}%)
               </span>
             </div>
@@ -604,7 +604,7 @@ export default function PlaqueViewer3D({
                 onClose();
                 onClaim?.();
               }}
-              className="px-7 py-2.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 shadow-lg shadow-violet-600/30 transition-all cursor-pointer flex items-center gap-2"
+              className="px-7 py-2.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-600/30 transition-all cursor-pointer flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />

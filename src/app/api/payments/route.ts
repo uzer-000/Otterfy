@@ -63,6 +63,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       data: paginatedOrders,
+      orders: paginatedOrders,
       meta: {
         total,
         page,

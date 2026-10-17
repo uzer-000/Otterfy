@@ -346,9 +346,9 @@ export default function AwardsPage() {
       <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-[#1E1B26] bg-white dark:bg-[#07060B] shadow-sm">
         {/* Glowing Decorative Stripes in Top Right (Otterfy Neon Accent) */}
         <div className="absolute top-0 right-0 w-80 h-32 pointer-events-none overflow-hidden">
-          <div className="absolute -top-16 -right-16 w-48 h-48 bg-gradient-to-bl from-violet-600/25 via-indigo-500/15 to-transparent rounded-full blur-2xl" />
-          <div className="absolute top-0 right-8 w-2 h-24 bg-gradient-to-b from-blue-500 to-violet-600 rotate-45 transform origin-top-right opacity-70 blur-[1px]" />
-          <div className="absolute top-0 right-14 w-1.5 h-20 bg-gradient-to-b from-purple-500 to-pink-500 rotate-45 transform origin-top-right opacity-60 blur-[1px]" />
+          <div className="absolute -top-16 -right-16 w-48 h-48 bg-gradient-to-bl from-violet-600/25 via-purple-500/15 to-transparent rounded-full blur-2xl" />
+          <div className="absolute top-0 right-8 w-2 h-24 bg-gradient-to-b from-purple-500 to-violet-600 rotate-45 transform origin-top-right opacity-70 blur-[1px]" />
+          <div className="absolute top-0 right-14 w-1.5 h-20 bg-gradient-to-b from-violet-500 to-fuchsia-500 rotate-45 transform origin-top-right opacity-60 blur-[1px]" />
         </div>
 
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -414,9 +414,9 @@ export default function AwardsPage() {
               <div
                 className={`absolute -left-8 sm:-left-12 top-6 -translate-x-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs z-10 transition-all ${
                   isConquered
-                    ? 'bg-blue-600 dark:bg-violet-600 text-white shadow-md ring-4 ring-white dark:ring-[#07060B]'
+                    ? 'bg-violet-600 text-white shadow-md ring-4 ring-white dark:ring-[#07060B]'
                     : isCurrentTarget
-                    ? 'bg-blue-600 dark:bg-violet-600 text-white ring-4 ring-blue-500/30 dark:ring-violet-500/30 shadow-lg shadow-violet-600/30'
+                    ? 'bg-violet-600 text-white ring-4 ring-violet-500/30 shadow-lg shadow-violet-600/30'
                     : 'bg-slate-100 dark:bg-[#121016] text-slate-400 dark:text-[#64748B] border border-slate-200 dark:border-[#1E1B26] ring-4 ring-white dark:ring-[#07060B]'
                 }`}
               >
@@ -438,7 +438,7 @@ export default function AwardsPage() {
                 onClick={() => handleMilestoneClick(milestone)}
                 className={`rounded-2xl border p-4 sm:p-5 transition-all duration-200 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 cursor-pointer ${
                   isCurrentTarget
-                    ? 'border-blue-500/90 dark:border-violet-500/90 ring-1 ring-blue-500/20 dark:ring-violet-500/25 bg-blue-50/20 dark:bg-[#0D0B14] shadow-lg shadow-violet-500/5'
+                    ? 'border-violet-500/90 ring-1 ring-violet-500/25 bg-violet-50/30 dark:bg-[#0D0B14] shadow-lg shadow-violet-500/10'
                     : isConquered
                     ? 'border-slate-200 dark:border-[#1E1B26] bg-white dark:bg-[#0E0C15] hover:border-violet-400/50 shadow-xs'
                     : 'border-slate-200/90 dark:border-[#16131F] bg-white/80 dark:bg-[#090810] hover:border-violet-500/30 hover:bg-slate-50/40 dark:hover:bg-[#0C0A13]'
@@ -464,7 +464,7 @@ export default function AwardsPage() {
                       </span>
                     </div>
 
-                    <div className="text-xs sm:text-sm font-extrabold text-blue-600 dark:text-blue-400 font-mono">
+                    <div className="text-xs sm:text-sm font-extrabold text-violet-600 dark:text-violet-400 font-mono">
                       {milestone.heading}
                     </div>
 
@@ -492,7 +492,7 @@ export default function AwardsPage() {
                         </>
                       ) : isCurrentTarget ? (
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-blue-600 dark:bg-violet-600 px-3 py-1 rounded-lg shadow-sm">
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-violet-600 px-3 py-1 rounded-lg shadow-sm">
                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                             Você está aqui
                           </span>
@@ -548,7 +548,7 @@ export default function AwardsPage() {
                               e.stopPropagation();
                               setClaimModalMilestone(milestone);
                             }}
-                            className="block w-full text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 px-4 py-1.5 rounded-xl transition-all shadow-md shadow-violet-600/20 cursor-pointer"
+                            className="block w-full text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 px-4 py-1.5 rounded-xl transition-all shadow-md shadow-violet-600/20 cursor-pointer"
                           >
                             Resgatar Troféu
                           </button>

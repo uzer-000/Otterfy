@@ -81,6 +81,12 @@ export default function NewProductWizardPage() {
   const [loading, setLoading] = useState(false);
   const [createdProductId, setCreatedProductId] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type?: 'error' | 'success' | 'info' } | null>(null);
+
+  const showToast = (text: string, type: 'error' | 'success' | 'info' = 'error') => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const parsedPrice = parseFloat(price) || 0;
   const isPriceValid = parsedPrice >= 50;
@@ -88,11 +94,11 @@ export default function NewProductWizardPage() {
   // Step 1 Validation
   const validateStep1 = () => {
     if (!title.trim() || title.trim().length < 3) {
-      alert('Por favor preencha o título do produto (mínimo 3 caracteres).');
+      showToast('Por favor preencha o título do produto (mínimo 3 caracteres).', 'error');
       return false;
     }
     if (!price || parsedPrice < 50) {
-      alert('Por favor selecione um dos preços oficiais da tabela.');
+      showToast('Por favor selecione um dos preços oficiais da tabela.', 'error');
       return false;
     }
     return true;
@@ -102,18 +108,18 @@ export default function NewProductWizardPage() {
   const validateStep2 = () => {
     if (selectedCategory === 'ebook') {
       if (!ebookFileUrl.trim()) {
-        alert('Por favor insira o Link ou Arquivo PDF do E-book que o cliente irá receber após o pagamento.');
+        showToast('Por favor insira o Link ou Arquivo PDF do E-book que o cliente irá receber após o pagamento.', 'error');
         return false;
       }
     } else if (selectedCategory === 'course') {
       const invalidLessons = courseLessons.filter((l) => !l.title.trim() || !l.videoUrl.trim());
       if (courseLessons.length === 0 || invalidLessons.length > 0) {
-        alert('Por favor adicione pelo menos uma aula com título e link do vídeo para o curso.');
+        showToast('Por favor adicione pelo menos uma aula com título e link do vídeo para o curso.', 'error');
         return false;
       }
     } else if (selectedCategory === 'saas') {
       if (!saasDeliveryUrl.trim()) {
-        alert('Por favor insira a URL de ativação ou acesso do SaaS para o cliente.');
+        showToast('Por favor insira a URL de ativação ou acesso do SaaS para o cliente.', 'error');
         return false;
       }
     }
@@ -123,7 +129,7 @@ export default function NewProductWizardPage() {
   // Step 4 Validation (Métodos de Pagamento)
   const validateStep4 = () => {
     if (!acceptMpesa && !acceptEmola) {
-      alert('Selecione pelo menos uma carteira móvel (M-Pesa ou e-Mola) para aceitar pagamentos.');
+      showToast('Selecione pelo menos uma carteira móvel (M-Pesa ou e-Mola) para aceitar pagamentos.', 'error');
       return false;
     }
     return true;
@@ -194,7 +200,7 @@ export default function NewProductWizardPage() {
   // Final Submit
   const handleCreateProduct = async () => {
     if (!title || parsedPrice < 50) {
-      alert('Por favor preencha o título e verifique o preço mínimo de 50 MZN.');
+      showToast('Por favor preencha o título e verifique o preço mínimo de 50 MZN.', 'error');
       return;
     }
 
@@ -284,11 +290,11 @@ export default function NewProductWizardPage() {
         const prod = await res.json();
         setCreatedProductId(prod.id);
       } else {
-        alert('Erro ao criar produto.');
+        showToast('Erro ao criar produto.', 'error');
       }
     } catch (e) {
       console.error(e);
-      alert('Erro de conexão ao criar produto.');
+      showToast('Erro de conexão ao criar produto.', 'error');
     } finally {
       setLoading(false);
     }
@@ -575,6 +581,29 @@ export default function NewProductWizardPage() {
         document.body
       )}
 
+      {/* IN-APP TOAST NOTIFICATION (Replaces native browser alert) */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-[10000] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border text-sm font-medium bg-[#16131E] border-violet-500/40 text-white animate-in slide-in-from-top-2 duration-300">
+          <div
+            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+              toastMessage.type === 'success'
+                ? 'bg-emerald-400'
+                : toastMessage.type === 'info'
+                ? 'bg-violet-400'
+                : 'bg-rose-400 animate-pulse'
+            }`}
+          />
+          <span className="leading-snug">{toastMessage.text}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="ml-2 w-6 h-6 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-slate-400 hover:text-white text-xs cursor-pointer transition-colors shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Main Stepper Header (Print 2 style) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E1B26] pb-4">
         <div>
@@ -788,11 +817,11 @@ export default function NewProductWizardPage() {
               type="button"
               onClick={() => {
                 if (!title.trim() || title.trim().length < 3) {
-                  alert('Por favor preencha o título do produto (mínimo 3 caracteres).');
+                  showToast('Por favor preencha o título do produto (mínimo 3 caracteres).', 'error');
                   return;
                 }
                 if (!price || parseFloat(price) < 50) {
-                  alert('Por favor selecione um dos preços da tabela oficial.');
+                  showToast('Por favor selecione um dos preços da tabela oficial.', 'error');
                   return;
                 }
                 setCurrentStep(2);

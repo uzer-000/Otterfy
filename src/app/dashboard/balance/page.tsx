@@ -870,24 +870,24 @@ export default function BalancePage() {
       {withdrawModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div
-            className={`w-full max-w-lg rounded-2xl p-6 shadow-2xl border ${
+            className={`w-full max-w-xl rounded-3xl p-6 sm:p-7 shadow-2xl border ${
               isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#121018] border-[#252033] text-white'
             }`}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#252033] mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-violet-600/20 border border-violet-500/30 text-violet-500 dark:text-violet-400 flex items-center justify-center font-bold">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-[#252033] mb-5">
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-2xl bg-violet-600/20 border border-violet-500/30 text-violet-500 dark:text-violet-400 flex items-center justify-center font-bold text-sm">
                   $
                 </span>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Solicitar Saque</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">Solicitar Saque</h3>
                   <p className="text-xs text-slate-500 dark:text-[#94A3B8]">0% de comissão de retirada • Transferência segura</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setWithdrawModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 dark:text-[#94A3B8] dark:hover:text-white text-lg font-bold p-1 cursor-pointer"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:text-[#94A3B8] dark:hover:text-white text-sm font-bold flex items-center justify-center cursor-pointer transition-colors"
               >
                 ✕
               </button>
@@ -899,12 +899,13 @@ export default function BalancePage() {
                 <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-2 uppercase tracking-wide">
                   Selecione o Canal de Saque
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
                   <PaymentMethodOptionCard
                     method="MPESA"
                     selected={withdrawMethod === 'MPESA'}
                     onSelect={() => setWithdrawMethod('MPESA')}
                     prefixHelper="Instantâneo (0% taxa)"
+                    layout="vertical"
                   />
 
                   <PaymentMethodOptionCard
@@ -912,6 +913,7 @@ export default function BalancePage() {
                     selected={withdrawMethod === 'EMOLA'}
                     onSelect={() => setWithdrawMethod('EMOLA')}
                     prefixHelper="Instantâneo (0% taxa)"
+                    layout="vertical"
                   />
 
                   <PaymentMethodOptionCard
@@ -919,6 +921,7 @@ export default function BalancePage() {
                     selected={withdrawMethod === 'BANK'}
                     onSelect={() => setWithdrawMethod('BANK')}
                     prefixHelper="Até 2h (Bancos MZ)"
+                    layout="vertical"
                   />
                 </div>
               </div>
@@ -926,12 +929,12 @@ export default function BalancePage() {
               {/* Bank Selector if method is BANK */}
               {withdrawMethod === 'BANK' && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1">Banco de Moçambique</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1.5">Banco de Moçambique</label>
                   <select
                     value={withdrawBankName}
                     onChange={(e) => setWithdrawBankName(e.target.value)}
-                    className={`w-full p-2.5 rounded-xl text-xs border outline-none ${
-                      isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0F0E14] border-[#1E1B26] text-white'
+                    className={`w-full p-2.5 rounded-xl text-xs border outline-none font-medium transition-all ${
+                      isLight ? 'bg-white border-slate-200 text-slate-900 focus:border-violet-500' : 'bg-[#0F0E14] border-[#1E1B26] text-white focus:border-violet-500'
                     }`}
                   >
                     {MOZ_BANKS.map((b) => (
@@ -946,21 +949,21 @@ export default function BalancePage() {
               {/* Titular e Destino */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1">Nome do Titular</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1.5">Nome do Titular</label>
                   <input
                     type="text"
                     required
                     placeholder="Nome completo cadastrado"
                     value={withdrawRecipient}
                     onChange={(e) => setWithdrawRecipient(e.target.value)}
-                    className={`w-full p-2.5 rounded-xl text-xs border outline-none ${
-                      isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0F0E14] border-[#1E1B26] text-white'
+                    className={`w-full p-2.5 rounded-xl text-xs border outline-none transition-all ${
+                      isLight ? 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-violet-500' : 'bg-[#0F0E14] border-[#1E1B26] text-white placeholder:text-slate-600 focus:border-violet-500'
                     }`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#94A3B8] mb-1.5">
                     {withdrawMethod === 'BANK' ? 'NIB / Conta Bancária' : 'Número de Telefone (+258)'}
                   </label>
                   <input
@@ -969,8 +972,8 @@ export default function BalancePage() {
                     placeholder={withdrawMethod === 'BANK' ? '0001 0000 xxxx xxxx x' : '84 / 85 / 86 / 87 ...'}
                     value={withdrawDestination}
                     onChange={(e) => setWithdrawDestination(e.target.value)}
-                    className={`w-full p-2.5 rounded-xl text-xs border outline-none ${
-                      isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0F0E14] border-[#1E1B26] text-white'
+                    className={`w-full p-2.5 rounded-xl text-xs border outline-none transition-all ${
+                      isLight ? 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-violet-500' : 'bg-[#0F0E14] border-[#1E1B26] text-white placeholder:text-slate-600 focus:border-violet-500'
                     }`}
                   />
                 </div>

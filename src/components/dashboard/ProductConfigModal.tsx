@@ -243,7 +243,7 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
 
   const handleTestProductWebhook = async () => {
     if (!webhookUrl.trim()) {
-      alert('Insira primeiro a URL do Webhook para testar.');
+      showToastMsg('Insira primeiro a URL do Webhook para testar.');
       return;
     }
     setTestingWebhook(true);
@@ -374,11 +374,11 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
         if (onSaved) onSaved(updated);
         setActiveItem(null);
       } else {
-        alert('Erro ao salvar configurações.');
+        showToastMsg('Erro ao salvar configurações.');
       }
     } catch (err) {
       console.error(err);
-      alert('Erro de comunicação ao salvar.');
+      showToastMsg('Erro de comunicação ao salvar.');
     } finally {
       setSaving(false);
     }
