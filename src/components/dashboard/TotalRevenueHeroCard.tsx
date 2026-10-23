@@ -16,12 +16,13 @@ export default function TotalRevenueHeroCard({
 }: TotalRevenueHeroCardProps) {
   const [awardsOpen, setAwardsOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   // Synchronize theme with html data-theme
   useEffect(() => {
     const updateTheme = () => {
-      const current = (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
+      const attr = document.documentElement.getAttribute('data-theme');
+      const current = attr === 'dark' ? 'dark' : 'light';
       setTheme(current);
     };
     updateTheme();

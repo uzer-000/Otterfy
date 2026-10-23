@@ -114,16 +114,6 @@ export default function DiscordBotPage() {
             Atribua cargos automaticamente no seu servidor Discord quando um cliente compra um produto e receba embeds de vendas em tempo real.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={handleSendTestWebhook}
-          disabled={testing}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xs transition-all"
-        >
-          <Send className="w-4 h-4" />
-          {testing ? 'A enviar Embed...' : 'Testar Embed no Discord'}
-        </button>
       </div>
 
       {feedback && (

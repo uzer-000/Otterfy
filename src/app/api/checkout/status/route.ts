@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import dbStore from '@/lib/store';
 import { zenofyProvider } from '@/services/payment/zenofy';
-import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@/services/tracking/dispatcher';
+import { dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
 import { clientIp, enforceRateLimit, rateLimitResponse } from '@/lib/security';
 
 export async function GET(req: Request) {
@@ -55,14 +55,7 @@ export async function GET(req: Request) {
             ]);
           } catch {}
 
-          if (product) {
-            const approvedOrder = { ...order, status: 'APPROVED' as const };
-            Promise.allSettled([
-              dispatchProductWebhook(product, 'order.approved', approvedOrder),
-              dispatchMetaCapi(product, 'Purchase', approvedOrder),
-              dispatchUtmifyOrder(product, approvedOrder),
-            ]).catch((err) => console.warn('[Status Poll Webhook Error]:', err));
-          }
+          await dispatchAllApprovedOrderEvents(product, { ...order, status: 'APPROVED' });
 
           return NextResponse.json({
             status: 'APPROVED',

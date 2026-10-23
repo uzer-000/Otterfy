@@ -5,7 +5,22 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AwardsModal from './AwardsModal';
 import NotificationStack from './NotificationStack';
-import { formatMZN, formatSaleNotificationMessage } from '@/lib/utils';
+import { formatMZN, formatSaleNotificationMessage, SALE_NOTIFICATION_TITLE } from '@/lib/utils';
+
+const DEFAULT_VAPID_PUBLIC_KEY =
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+  'BKzVwF1vwtLCjElp3c-x9-_rJ7BDV7lXHiqAqiz9NglgP867pU82R0RGRUKW14TLnwvAXraItEf3neQbSV2c8HY';
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 declare global {
   interface Window {
@@ -16,7 +31,7 @@ declare global {
 export default function DashboardTopNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [awardsModalOpen, setAwardsModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [approvedOrders, setApprovedOrders] = useState<any[]>([]);
@@ -156,24 +171,57 @@ export default function DashboardTopNav() {
     window.dispatchEvent(new Event('storage'));
   };
 
-  // Register Service Worker for Mobile (PWA/Chrome on Android) and Desktop Push
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
-        console.warn('Service worker registration failed:', err);
-      });
+  // Register Service Worker & Subscribe to Real Background Web Push (works when app/browser is closed!)
+  const ensureWebPushSubscription = async () => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      return;
     }
-  }, []);
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
 
-  // Request browser/mobile push permissions
-  const requestPushPermission = async () => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'default') {
+      if ('Notification' in window && Notification.permission === 'default') {
         try {
           await Notification.requestPermission();
         } catch {}
       }
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        return;
+      }
+
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        const applicationServerKey = urlBase64ToUint8Array(DEFAULT_VAPID_PUBLIC_KEY);
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
+        });
+      }
+
+      if (sub) {
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: sub.toJSON() }),
+        });
+      }
+    } catch (err) {
+      console.warn('WebPush subscription setup warning:', err);
     }
+  };
+
+  useEffect(() => {
+    void ensureWebPushSubscription();
+    const onFirstClick = () => {
+      void ensureWebPushSubscription();
+    };
+    window.addEventListener('click', onFirstClick, { once: true });
+    return () => window.removeEventListener('click', onFirstClick);
+  }, []);
+
+  // Request browser/mobile push permissions
+  const requestPushPermission = async () => {
+    await ensureWebPushSubscription();
   };
 
   // Cross-platform push dispatcher (Mobile PWA/Android + Desktop Windows/Mac)
@@ -221,14 +269,14 @@ export default function DashboardTopNav() {
       if (window.NotifStack) {
         window.NotifStack.push({
           id: `test-${Date.now()}`,
-          title: 'Venda Aprovada',
+          title: SALE_NOTIFICATION_TITLE,
           message: msg,
           amount: finalAmount,
           icon: '/logo.png',
         });
         window.NotifStack.open();
       }
-      sendSystemPushNotification('Venda Aprovada', msg, `test-${Date.now()}`);
+      sendSystemPushNotification(SALE_NOTIFICATION_TITLE, msg, `test-${Date.now()}`);
     };
     return () => {
       delete window.triggerSaleNotification;
@@ -249,7 +297,6 @@ export default function DashboardTopNav() {
 
     async function checkOrdersAndAlert() {
       if (isCancelled || isFetchingRef.current) return;
-      if (typeof document !== 'undefined' && document.hidden) return;
 
       isFetchingRef.current = true;
       const controller = new AbortController();
@@ -303,7 +350,7 @@ export default function DashboardTopNav() {
               if (window.NotifStack) {
                 window.NotifStack.push({
                   id: order.id,
-                  title: 'Venda Aprovada',
+                  title: SALE_NOTIFICATION_TITLE,
                   message: saleMsg,
                   amount: Number(order.amount) || 0,
                   customerName: order.customerName || 'Cliente',
@@ -314,7 +361,7 @@ export default function DashboardTopNav() {
 
               // 3. Mobile / Desktop Native Push Notification
               sendSystemPushNotification(
-                'Venda Aprovada',
+                SALE_NOTIFICATION_TITLE,
                 saleMsg,
                 `sale-${order.id}`
               );
@@ -425,16 +472,16 @@ export default function DashboardTopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-[#08070C]/90 backdrop-blur-md border-b border-[#1E1B26] px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 transition-colors w-full max-w-full">
+      <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#08070C]/90 backdrop-blur-md border-b border-slate-200 dark:border-[#1E1B26] px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 transition-colors w-full max-w-full">
         <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto flex items-center justify-between gap-2.5 sm:gap-3 min-w-0">
           {/* Milestone Progress Bar (Visible in ALL TABS, direct link to /dashboard/awards) */}
           <Link
             href="/dashboard/awards"
-            className="flex items-center gap-2.5 sm:gap-3 p-1.5 px-2.5 sm:px-3 rounded-xl bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] hover:border-violet-500/40 transition-all text-left group cursor-pointer shadow-sm flex-1 sm:flex-initial min-w-0 max-w-[340px] md:max-w-[440px]"
+            className="flex items-center gap-2.5 sm:gap-3 p-1.5 px-2.5 sm:px-3 rounded-xl bg-slate-50 dark:bg-[#121016] hover:bg-violet-50/70 dark:hover:bg-[#1A1820] border border-slate-200 dark:border-[#1E1B26] hover:border-violet-500/40 transition-all text-left group cursor-pointer shadow-sm flex-1 sm:flex-initial min-w-0 max-w-[340px] md:max-w-[440px]"
             title={`Meta: ${nextMilestone.name} (${nextMilestone.tag}). Clique para ver a jornada de conquistas completa.`}
           >
             {/* Award Badge */}
-            <div className="relative w-8 h-8 rounded-lg bg-[#171420] border border-amber-500/40 group-hover:border-amber-400 flex flex-col items-center justify-center shrink-0 overflow-hidden shadow-inner">
+            <div className="relative w-8 h-8 rounded-lg bg-white dark:bg-[#171420] border border-amber-500/40 group-hover:border-amber-400 flex flex-col items-center justify-center shrink-0 overflow-hidden shadow-inner">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={nextMilestone.image}
@@ -455,15 +502,15 @@ export default function DashboardTopNav() {
 
             <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
               <div className="flex items-center justify-between text-xs font-semibold gap-2">
-                <span className="text-[#94A3B8] group-hover:text-violet-400 transition-colors truncate">
-                  {nextMilestone.name}: <span className="text-[#F8FAFC] font-bold">{formatMZN(totalRevenue)}</span> / {formatMZN(nextMilestone.target)}
+                <span className="text-slate-600 dark:text-[#94A3B8] group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors truncate">
+                  {nextMilestone.name}: <span className="text-slate-900 dark:text-[#F8FAFC] font-bold">{formatMZN(totalRevenue)}</span> / {formatMZN(nextMilestone.target)}
                 </span>
-                <span className="text-violet-400 font-mono font-bold text-[11px] shrink-0">
+                <span className="text-violet-600 dark:text-violet-400 font-mono font-bold text-[11px] shrink-0">
                   {milestoneProgress}%
                 </span>
               </div>
 
-              <div className="w-full h-1.5 bg-[#0F0E14] rounded-full overflow-hidden border border-[#1E1B26]">
+              <div className="w-full h-1.5 bg-slate-200 dark:bg-[#0F0E14] rounded-full overflow-hidden border border-slate-300/60 dark:border-[#1E1B26]">
                 <div
                   className="h-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-emerald-400 rounded-full transition-all duration-500"
                   style={{ width: `${milestoneProgress}%` }}
@@ -482,7 +529,7 @@ export default function DashboardTopNav() {
               type="button"
               onClick={toggleTheme}
               aria-label={`Alternar para tema ${theme === 'dark' ? 'Claro' : 'Escuro'}`}
-              className="w-9 h-9 rounded-xl bg-[#121016] hover:bg-[#1A1820] border border-[#1E1B26] text-[#94A3B8] hover:text-[#F8FAFC] flex items-center justify-center transition-colors cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-[#121016] hover:bg-violet-50 dark:hover:bg-[#1A1820] border border-slate-200 dark:border-[#1E1B26] text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] flex items-center justify-center transition-colors cursor-pointer"
               title={`Alternar para tema ${theme === 'dark' ? 'Claro' : 'Escuro'}`}
             >
               {theme === 'dark' ? (
@@ -501,7 +548,7 @@ export default function DashboardTopNav() {
               type="button"
               onClick={() => setProfileModalOpen(true)}
               aria-label="Abrir perfil do utilizador"
-              className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600/30 to-violet-900/40 border border-violet-500/30 flex items-center justify-center text-xs font-black text-violet-300 hover:border-violet-500 transition-all cursor-pointer relative overflow-hidden"
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600/20 to-violet-700/30 dark:from-violet-600/30 dark:to-violet-900/40 border border-violet-500/30 flex items-center justify-center text-xs font-black text-violet-700 dark:text-violet-300 hover:border-violet-500 transition-all cursor-pointer relative overflow-hidden"
               title="Perfil Administrador"
             >
               {profileAvatar ? (
@@ -510,7 +557,7 @@ export default function DashboardTopNav() {
               ) : (
                 <span>AD</span>
               )}
-              <span className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-[#121016]" aria-hidden="true" />
+              <span className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-white dark:border-[#121016]" aria-hidden="true" />
             </button>
           </div>
         </div>

@@ -15,7 +15,8 @@ export default function CheckoutTrackingScripts({ metaPixelId, utmifyPixelId }: 
   useEffect(() => {
     const checkConsent = () => {
       const consent = getCookieConsent();
-      setMarketingAllowed(Boolean(consent?.marketing));
+      // Load by default unless the buyer explicitly opted out of marketing cookies
+      setMarketingAllowed(consent ? Boolean(consent.marketing) : true);
     };
 
     checkConsent();

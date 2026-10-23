@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import dbStore from '@/lib/store';
 import { zenofyProvider } from '@/services/payment/zenofy';
-import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@/services/tracking/dispatcher';
+import { dispatchProductWebhook, dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
 
 export async function POST(req: Request) {
   try {
@@ -115,13 +115,8 @@ export async function POST(req: Request) {
         });
 
         const prod = await dbStore.getProductById(matchedOrder.productId);
-        if (prod && localStatus === 'APPROVED') {
-          const approvedOrder = { ...matchedOrder, status: 'APPROVED' as const };
-          Promise.allSettled([
-            dispatchProductWebhook(prod, 'order.approved', approvedOrder),
-            dispatchMetaCapi(prod, 'Purchase', approvedOrder),
-            dispatchUtmifyOrder(prod, approvedOrder),
-          ]).catch((e) => console.warn('[Zenofy Local Store Webhook Error]:', e));
+        if (localStatus === 'APPROVED') {
+          await dispatchAllApprovedOrderEvents(prod, { ...matchedOrder, status: 'APPROVED' });
         }
 
         return NextResponse.json({ received: true, source: 'local_store' });
@@ -215,19 +210,15 @@ export async function POST(req: Request) {
         };
 
         if (newStatus === 'APPROVED') {
-          Promise.allSettled([
-            dispatchProductWebhook(fullProduct, 'order.approved', fullOrder),
-            dispatchMetaCapi(fullProduct, 'Purchase', fullOrder),
-            dispatchUtmifyOrder(fullProduct, fullOrder),
-          ]).catch((e) => console.warn('[Tracking Dispatch Error]:', e));
+          await dispatchAllApprovedOrderEvents(fullProduct, fullOrder);
         } else if (newStatus === 'REFUNDED' || newStatus === 'CHARGEBACK') {
-          Promise.allSettled([
+          await Promise.allSettled([
             dispatchProductWebhook(fullProduct, 'order.refunded', fullOrder),
-          ]).catch((e) => console.warn('[Tracking Refund Webhook Error]:', e));
+          ]);
         } else if (newStatus === 'DECLINED') {
-          Promise.allSettled([
+          await Promise.allSettled([
             dispatchProductWebhook(fullProduct, 'order.declined', fullOrder),
-          ]).catch((e) => console.warn('[Tracking Declined Webhook Error]:', e));
+          ]);
         }
       }
     } else {

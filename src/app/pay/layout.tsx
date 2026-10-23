@@ -10,7 +10,7 @@ export default function PayLayout({
   useLayoutEffect(() => {
     const enforceLightOnPay = () => {
       try {
-        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.setAttribute('data-theme', 'checkout');
         document.documentElement.classList.remove('dark');
         document.documentElement.style.colorScheme = 'light';
         if (document.body) {
@@ -24,7 +24,7 @@ export default function PayLayout({
 
     const observer = new MutationObserver(() => {
       if (
-        document.documentElement.getAttribute('data-theme') !== 'light' ||
+        document.documentElement.getAttribute('data-theme') !== 'checkout' ||
         document.documentElement.classList.contains('dark')
       ) {
         enforceLightOnPay();
@@ -66,7 +66,7 @@ export default function PayLayout({
           __html: `
             (function() {
               try {
-                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.setAttribute('data-theme', 'checkout');
                 document.documentElement.classList.remove('dark');
                 document.documentElement.style.colorScheme = 'light';
                 if (document.body) {

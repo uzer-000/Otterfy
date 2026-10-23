@@ -6,7 +6,6 @@ import Link from 'next/link';
 import ProductConfigModal, { ModalSubview } from '@/components/dashboard/ProductConfigModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { formatMZN } from '@/lib/utils';
-import { ZENOFY_PRICE_TIERS, DEFAULT_ZENOFY_PRODUCT_ID, getClosestZenofyTierByPrice } from '@/lib/zenofyPrices';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -38,8 +37,8 @@ function EditProductContent({ params }: PageProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    price: '297.00',
-    zenofyProductId: DEFAULT_ZENOFY_PRODUCT_ID,
+    price: '',
+    zenofyProductId: '',
     imageUrl: '',
     contentUrl: '',
   });
@@ -64,11 +63,11 @@ function EditProductContent({ params }: PageProps) {
         if (res.ok) {
           const data = await res.json();
           setFullProduct(data);
-          const currentZenofyId = data.zenofyProductId || data.checkoutSettings?.zenofyProductId || data.checkoutSettings?.customCheckout?.zenofyProductId || DEFAULT_ZENOFY_PRODUCT_ID;
+          const currentZenofyId = data.zenofyProductId || data.checkoutSettings?.zenofyProductId || data.checkoutSettings?.customCheckout?.zenofyProductId;
           setFormData({
             name: data.name || '',
             description: data.description || '',
-            price: data.price !== undefined ? String(data.price) : '297.00',
+            price: data.price !== undefined ? String(Math.round(Number(data.price))) : '',
             zenofyProductId: currentZenofyId,
             imageUrl: data.imageUrl || '',
             contentUrl: data.contentUrl || '',
@@ -180,7 +179,7 @@ function EditProductContent({ params }: PageProps) {
 
       const payload = {
         ...formData,
-        price: parseFloat(formData.price) || 0,
+        price: Math.round(parseFloat(formData.price) || 0),
         zenofyProductId: formData.zenofyProductId || undefined,
         contentUrl: formData.contentUrl || undefined,
         checkoutSettings: {
@@ -752,20 +751,17 @@ function EditProductContent({ params }: PageProps) {
                   <div className="relative">
                     <input
                       type="number"
+                      inputMode="numeric"
                       min="1"
-                      step="0.01"
+                      step="1"
                       value={formData.price}
                       onChange={(e) => {
-                        const val = e.target.value;
-                        const num = parseFloat(val);
-                        const tier = !isNaN(num) && num > 0 ? getClosestZenofyTierByPrice(num) : undefined;
                         setFormData({
                           ...formData,
-                          price: val,
-                          zenofyProductId: tier ? tier.id : formData.zenofyProductId,
+                          price: e.target.value.replace(/[^\d]/g, ''),
                         });
                       }}
-                      placeholder="Ex: 297.00"
+                      placeholder="Ex: 350"
                       className="w-full px-4 py-3 pr-16 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-base text-[#F8FAFC] font-mono font-bold placeholder-[#64748B] focus:outline-none focus:border-violet-500 transition-colors"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold font-mono text-violet-400 pointer-events-none">
@@ -773,32 +769,9 @@ function EditProductContent({ params }: PageProps) {
                     </span>
                   </div>
 
-                  {/* Quick-Select Price Tier Buttons */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-                    {ZENOFY_PRICE_TIERS.map((tier) => {
-                      const isSelected = Math.round(Number(formData.price)) === tier.price;
-                      return (
-                        <button
-                          key={tier.id}
-                          type="button"
-                          onClick={() => {
-                            setFormData({
-                              ...formData,
-                              price: String(tier.price) + '.00',
-                              zenofyProductId: tier.id,
-                            });
-                          }}
-                          className={`py-3 px-4 rounded-2xl border font-mono font-bold text-center transition-all cursor-pointer flex items-center justify-center text-sm sm:text-base ${
-                            isSelected
-                              ? 'border-violet-500 bg-violet-600 text-white shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-[1.02]'
-                              : 'border-[#1E1B26] bg-[#0F0E14] text-[#F8FAFC] hover:border-violet-500/50 hover:bg-[#14121B]'
-                          }`}
-                        >
-                          {tier.price} MZN
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <p className="text-[11px] text-[#64748B] leading-relaxed">
+                    Preço livre: o cliente paga exatamente este valor no checkout (M-Pesa / e-Mola).
+                  </p>
                   <div className="pt-2">
                     <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
                       Categoria do Produto

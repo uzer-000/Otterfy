@@ -199,26 +199,24 @@ export default function CheckoutForm({
   const discountAmount = appliedCoupon ? Math.round((rawSubtotal * appliedCoupon.discountPercent) / 100) : 0;
   const totalCalculatedPrice = Math.max(1, rawSubtotal - discountAmount);
 
-  // UTMs & Affiliate (UTMs only collected/forwarded when user consented to marketing cookies)
+  // UTMs & Affiliate
   const affiliateRef = searchParams.get('ref') || undefined;
-  const utmParams = marketingAllowed
-    ? {
-        source: searchParams.get('utm_source') || undefined,
-        medium: searchParams.get('utm_medium') || undefined,
-        campaign: searchParams.get('utm_campaign') || undefined,
-        content: searchParams.get('utm_content') || undefined,
-        term: searchParams.get('utm_term') || undefined,
-      }
-    : undefined;
+  const utmParams = {
+    source: searchParams.get('utm_source') || undefined,
+    medium: searchParams.get('utm_medium') || undefined,
+    campaign: searchParams.get('utm_campaign') || undefined,
+    content: searchParams.get('utm_content') || undefined,
+    term: searchParams.get('utm_term') || undefined,
+  };
 
-  // InitiateCheckout Pixel — strictly gated behind marketing consent
+  // InitiateCheckout Pixel when buyer opens checkout
   useEffect(() => {
-    if (!marketingAllowed) return;
     try {
       if (typeof window !== 'undefined' && window.fbq) {
         window.fbq('track', 'InitiateCheckout', {
           content_name: productName,
           content_ids: [productId],
+          content_type: 'product',
           value: totalCalculatedPrice,
           currency: 'MZN',
         });
@@ -226,7 +224,7 @@ export default function CheckoutForm({
     } catch {
       // ignore
     }
-  }, [marketingAllowed, productName, productId, totalCalculatedPrice]);
+  }, [productName, productId, totalCalculatedPrice]);
 
   const formatPhoneWithMask = (rawValue: string) => {
     const digits = rawValue.replace(/\D/g, '').slice(0, 9);
@@ -262,6 +260,22 @@ export default function CheckoutForm({
 
   const handleUssdSuccess = (orderId: string, redirectUrl?: string) => {
     setIsUssdModalOpen(false);
+    if (typeof window !== 'undefined' && window.fbq) {
+      try {
+        window.fbq(
+          'track',
+          'Purchase',
+          {
+            content_name: productName,
+            content_ids: [productId],
+            content_type: 'product',
+            value: totalCalculatedPrice,
+            currency: 'MZN',
+          },
+          { eventID: `Purchase_${orderId}` }
+        );
+      } catch {}
+    }
     if (redirectUrl && /^https?:\/\//i.test(redirectUrl)) {
       window.location.href = redirectUrl;
     } else {
@@ -316,8 +330,8 @@ export default function CheckoutForm({
           couponCode: appliedCoupon?.code,
           affiliateRef,
           acceptedTerms: true,
-          marketingConsent: marketingAllowed,
-          utmParams: marketingAllowed ? utmParams : undefined,
+          marketingConsent: true,
+          utmParams,
         }),
       });
 
@@ -339,14 +353,22 @@ export default function CheckoutForm({
         );
       } catch {}
 
-      // Track Purchase in Pixel only if marketing consent was granted
-      if (marketingAllowed && typeof window !== 'undefined' && window.fbq) {
-        window.fbq('track', 'Purchase', {
-          content_name: productName,
-          content_ids: [productId],
-          value: totalCalculatedPrice,
-          currency: 'MZN',
-        });
+      // Track InitiateCheckout when the payment session starts
+      if (typeof window !== 'undefined' && window.fbq) {
+        try {
+          window.fbq(
+            'track',
+            'InitiateCheckout',
+            {
+              content_name: productName,
+              content_ids: [productId],
+              content_type: 'product',
+              value: totalCalculatedPrice,
+              currency: 'MZN',
+            },
+            data.orderId ? { eventID: `InitiateCheckout_${data.orderId}` } : undefined
+          );
+        } catch {}
       }
 
       // If PENDING USSD Push (M-Pesa / e-Mola), open interactive waiting screen with instructions & polling
@@ -362,6 +384,24 @@ export default function CheckoutForm({
         setIsUssdModalOpen(true);
         setStatus('form');
         return;
+      }
+
+      // Track Purchase only when payment is actually APPROVED
+      if (data.status === 'APPROVED' && typeof window !== 'undefined' && window.fbq) {
+        try {
+          window.fbq(
+            'track',
+            'Purchase',
+            {
+              content_name: productName,
+              content_ids: [productId],
+              content_type: 'product',
+              value: totalCalculatedPrice,
+              currency: 'MZN',
+            },
+            data.orderId ? { eventID: `Purchase_${data.orderId}` } : undefined
+          );
+        } catch {}
       }
 
       const candidateUrl = data.checkoutUrl || (data.status === 'APPROVED' ? data.upsellUrl : undefined);

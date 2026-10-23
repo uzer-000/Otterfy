@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import dbStore from '@/lib/store';
 import { dispatchCheckout } from '@/services/payment/gatewayManager';
-import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@/services/tracking/dispatcher';
+import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder, dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
 import { getZenofyTierByPrice, getClosestZenofyTierByPrice, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
+import { clientIp } from '@/lib/security';
 
 export const maxDuration = 60;
 
@@ -155,10 +156,11 @@ export async function POST(req: Request) {
     });
 
     const resolvedZenofyProductId =
-      getZenofyTierByPrice(totalAmount)?.id ||
+      process.env.ZENOFY_GATEWAY_PRODUCT_ID ||
       product.zenofyProductId ||
       product.checkoutSettings?.zenofyProductId ||
       product.checkoutSettings?.customCheckout?.zenofyProductId ||
+      getZenofyTierByPrice(totalAmount)?.id ||
       getZenofyTierByPrice(product.price)?.id ||
       getClosestZenofyTierByPrice(totalAmount)?.id ||
       DEFAULT_ZENOFY_PRODUCT_ID;
@@ -196,17 +198,10 @@ export async function POST(req: Request) {
         method: paymentMethod,
       });
 
-      const tasks: Promise<unknown>[] = [
+      await Promise.allSettled([
         dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
-        dispatchProductWebhook(product, 'order.approved', { ...order, status: 'APPROVED' }),
-      ];
-      if (marketingConsent) {
-        tasks.push(
-          dispatchMetaCapi(product, 'Purchase', { ...order, status: 'APPROVED' }),
-          dispatchUtmifyOrder(product, { ...order, status: 'APPROVED' })
-        );
-      }
-      Promise.allSettled(tasks).catch((e) => console.warn('Background tracking dispatch error:', e));
+        dispatchAllApprovedOrderEvents(product, { ...order, status: 'APPROVED' }),
+      ]);
 
       return NextResponse.json({
         checkoutUrl: upsellUrl || dispatchResult.checkoutUrl,
@@ -224,15 +219,14 @@ export async function POST(req: Request) {
         method: paymentMethod,
       });
 
+      const reqIp = clientIp(req);
+      const reqUa = req.headers.get('user-agent') || undefined;
       const pendingTasks: Promise<unknown>[] = [
         dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
+        dispatchMetaCapi(product, 'InitiateCheckout', { ...order, status: 'PENDING' }, reqIp, reqUa),
+        dispatchUtmifyOrder(product, { ...order, status: 'PENDING' }),
       ];
-      if (marketingConsent) {
-        pendingTasks.push(dispatchUtmifyOrder(product, { ...order, status: 'PENDING' }));
-      }
-      Promise.allSettled(pendingTasks).catch((e) =>
-        console.warn('Background order.created webhook dispatch error:', e)
-      );
+      await Promise.allSettled(pendingTasks);
 
       return NextResponse.json({
         checkoutUrl: dispatchResult.checkoutUrl,

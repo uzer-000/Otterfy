@@ -10,7 +10,6 @@ interface IntegrationConfig {
   category: string;
   status: 'Ativo' | 'Inativo';
   supportsEvents?: boolean;
-  supportsTestWebhook?: boolean;
   fields: {
     key: string;
     label: string;
@@ -49,7 +48,6 @@ const DEFAULT_INTEGRATIONS: IntegrationConfig[] = [
     category: 'Desenvolvedor',
     status: 'Inativo',
     supportsEvents: true,
-    supportsTestWebhook: true,
     icon: (
       <div className="w-9 h-9 rounded-xl bg-violet-600/15 border border-violet-500/25 text-violet-400 flex items-center justify-center">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -69,7 +67,6 @@ const DEFAULT_INTEGRATIONS: IntegrationConfig[] = [
     category: 'Automação',
     status: 'Inativo',
     supportsEvents: true,
-    supportsTestWebhook: true,
     icon: (
       <div className="w-9 h-9 rounded-xl bg-orange-600/15 border border-orange-500/25 text-orange-400 flex items-center justify-center">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -141,7 +138,6 @@ const DEFAULT_INTEGRATIONS: IntegrationConfig[] = [
     description: 'Liberação automática de acesso em plataformas externas via Webhook',
     category: 'Entrega',
     status: 'Inativo',
-    supportsTestWebhook: true,
     icon: (
       <div className="w-9 h-9 rounded-xl bg-blue-600/15 border border-blue-500/25 text-blue-400 flex items-center justify-center">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -164,8 +160,6 @@ export default function IntegrationsPage() {
   const [selectedEvents, setSelectedEvents] = useState<string[]>(['order.approved', 'order.created', 'order.declined', 'order.refunded']);
   const [isActiveToggle, setIsActiveToggle] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [testingWebhook, setTestingWebhook] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [logs, setLogs] = useState<WebhookLog[]>([]);
   const [incomingEndpoints, setIncomingEndpoints] = useState<{ zenofy: string; e2payment: string; escalepay: string } | null>(null);
@@ -227,7 +221,6 @@ export default function IntegrationsPage() {
   const openModal = (integration: IntegrationConfig) => {
     setSelectedIntegration(integration);
     setIsActiveToggle(integration.status === 'Ativo');
-    setTestResult(null);
 
     const fromServer = serverConfigs[integration.id];
     if (fromServer && Object.keys(fromServer.fields || {}).length > 0) {
@@ -246,56 +239,6 @@ export default function IntegrationsPage() {
 
   const closeModal = () => {
     setSelectedIntegration(null);
-    setTestResult(null);
-  };
-
-  const handleTestWebhook = async () => {
-    if (!selectedIntegration) return;
-    const targetUrl = (formValues.webhookUrl || formValues.apiUrl || '').trim();
-    if (!targetUrl || !targetUrl.startsWith('http')) {
-      setTestResult({
-        ok: false,
-        text: 'Informe uma URL válida começando com https:// ou http:// para testar.',
-      });
-      return;
-    }
-
-    setTestingWebhook(true);
-    setTestResult(null);
-    try {
-      const res = await fetch('/api/webhooks/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: targetUrl,
-          secret: formValues.secret,
-          authHeader: formValues.authHeader,
-          event: 'order.approved',
-          amount: 497,
-          productName: 'Produto Teste Otterfy',
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setTestResult({
-          ok: true,
-          text: `Disparo enviado com sucesso! Resposta HTTP ${data.status} (${data.durationMs}ms).`,
-        });
-      } else {
-        setTestResult({
-          ok: false,
-          text: `Falha no envio: ${data.error || `HTTP ${data.status} ${data.statusText || ''}`} (${data.durationMs || 0}ms).`,
-        });
-      }
-      loadFromServer();
-    } catch (err: any) {
-      setTestResult({
-        ok: false,
-        text: `Erro ao testar webhook: ${err?.message || 'Falha de rede'}`,
-      });
-    } finally {
-      setTestingWebhook(false);
-    }
   };
 
   const handleSaveConfig = async () => {
@@ -491,7 +434,7 @@ export default function IntegrationsPage() {
 
         {logs.length === 0 ? (
           <div className="py-8 text-center text-xs text-[#64748B] border border-dashed border-[#1E1B26] rounded-xl">
-            Nenhum disparo de webhook registrado ainda. Configure uma URL de Webhook acima e clique em &ldquo;Testar Webhook Agora&rdquo;.
+            Nenhum disparo de webhook registrado ainda. Os eventos reais serão listados aqui automaticamente após cada venda.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -637,39 +580,6 @@ export default function IntegrationsPage() {
                     </label>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Live Webhook Test Button */}
-            {selectedIntegration.supportsTestWebhook && (
-              <div className="p-3.5 rounded-xl bg-[#0F0E14] border border-[#1E1B26] space-y-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <span className="text-xs font-semibold text-[#F8FAFC] block">Disparar Evento de Teste</span>
-                    <span className="text-[11px] text-[#94A3B8]">Envia um payload real de Venda Aprovada (MT 497)</span>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={testingWebhook}
-                    onClick={handleTestWebhook}
-                    className="px-3.5 py-2 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/40 text-violet-300 text-xs font-bold cursor-pointer transition-all disabled:opacity-50 shrink-0"
-                  >
-                    {testingWebhook ? 'Enviando...' : '⚡ Testar Webhook Agora'}
-                  </button>
-                </div>
-
-                {testResult && (
-                  <p
-                    className={`text-xs font-medium p-2.5 rounded-lg border ${
-                      testResult.ok
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        : 'bg-red-500/10 border-red-500/30 text-red-400'
-                    }`}
-                  >
-                    {testResult.ok ? '✓ ' : '✕ '}
-                    {testResult.text}
-                  </p>
-                )}
               </div>
             )}
 

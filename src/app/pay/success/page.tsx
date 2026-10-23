@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import dbStore from '@/lib/store';
 import prisma from '@/lib/prisma';
 import { zenofyProvider } from '@/services/payment/zenofy';
+import { dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
 import { formatMZN } from '@/lib/utils';
 import { LegalFooter } from '@/components/legal/LegalFooter';
 import { BUSINESS_INFO } from '@/lib/legal';
@@ -69,6 +70,8 @@ async function SuccessContent({ orderId }: { orderId?: string }) {
           prisma.transaction.update({ where: { id: order.transaction.id }, data: { status: 'APPROVED' } }),
         ]).catch(() => {});
         await dbStore.updateOrderTransaction(order.id, { status: 'APPROVED' }).catch(() => {});
+        const prod = await dbStore.getProductById(order.productId);
+        await dispatchAllApprovedOrderEvents(prod, { ...order, status: 'APPROVED' });
       }
     } catch {}
   }

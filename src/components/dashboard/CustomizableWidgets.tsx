@@ -145,7 +145,7 @@ export default function CustomizableWidgets({
   const [activeTab, setActiveTab] = useState<'blocks' | 'kpis'>('blocks');
   const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
   const [draggedKpiIndex, setDraggedKpiIndex] = useState<number | null>(null);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [awardsModalOpen, setAwardsModalOpen] = useState(false);
   const [liveHourlyToday, setLiveHourlyToday] = useState<{ hour: string; iniciados: number; aprovados: number }[] | null>(null);
   const [liveHourlyYesterday, setLiveHourlyYesterday] = useState<{ hour: string; iniciados: number; aprovados: number }[] | null>(null);
@@ -209,7 +209,8 @@ export default function CustomizableWidgets({
   // Synchronize theme with html data-theme
   useEffect(() => {
     const updateTheme = () => {
-      const current = (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
+      const attr = document.documentElement.getAttribute('data-theme');
+      const current = attr === 'dark' ? 'dark' : 'light';
       setTheme(current);
     };
     updateTheme();

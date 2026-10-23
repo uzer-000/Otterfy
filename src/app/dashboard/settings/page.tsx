@@ -771,23 +771,6 @@ export default function AccountSettingsPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    const testAmount = 455;
-                    if (typeof window !== 'undefined' && (window as any).triggerSaleNotification) {
-                      (window as any).triggerSaleNotification(testAmount);
-                      showToast(`Notificação enviada: Venda Aprovada | Valor : Mzn ${testAmount}`);
-                    } else {
-                      showToast('Notificação enviada!');
-                    }
-                  }}
-                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-violet-600/10 hover:bg-violet-600/20 text-violet-400 border border-violet-500/20 transition-all cursor-pointer flex items-center gap-1.5"
-                  title="Testar notificação no dispositivo"
-                >
-                  <span>🔔</span>
-                  <span>Testar Notificação</span>
-                </button>
-                <button
-                  type="button"
                   onClick={() => showToast('Lista de dispositivos atualizada!')}
                   aria-label="Atualizar lista de dispositivos"
                   className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"

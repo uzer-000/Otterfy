@@ -70,6 +70,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               }
               html:has(#pay-checkout-root-container),
               body:has(#pay-checkout-root-container),
+              [data-theme="checkout"],
+              [data-theme="checkout"] body,
               [data-theme="light"],
               [data-theme="light"] body {
                 background-color: #F5F3FA !important;
@@ -84,12 +86,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               (function() {
                 try {
                   if (window.location.pathname && window.location.pathname.indexOf('/pay') !== -1) {
-                    document.documentElement.setAttribute('data-theme', 'light');
+                    document.documentElement.setAttribute('data-theme', 'checkout');
                     document.documentElement.classList.remove('dark');
+                    document.documentElement.style.colorScheme = 'light';
                     return;
                   }
                   var saved = localStorage.getItem('otterfy-theme') || 'light';
                   document.documentElement.setAttribute('data-theme', saved);
+                  document.documentElement.style.colorScheme = saved;
                 } catch(e) {}
               })();
             `,

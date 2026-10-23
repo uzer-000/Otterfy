@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import {
-  getAllIntegrations,
+  getAllIntegrationsAsync,
   saveIntegrationConfig,
-  getWebhookLogs,
+  getWebhookLogsAsync,
 } from '@/services/tracking/webhookConfig';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
-    const integrations = getAllIntegrations();
-    const logs = getWebhookLogs(30);
+    const [integrations, logs] = await Promise.all([
+      getAllIntegrationsAsync(),
+      getWebhookLogsAsync(30),
+    ]);
 
     const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'localhost:3000';
     const proto = req.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
@@ -38,7 +42,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'ID da integração é obrigatório.' }, { status: 400 });
     }
 
-    const updated = saveIntegrationConfig(id, {
+    const updated = await saveIntegrationConfig(id, {
       status,
       fields,
       events,

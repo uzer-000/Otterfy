@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbStore from '@/lib/store';
 import { escalepayProvider } from '@/services/payment/escalepay';
-import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@/services/tracking/dispatcher';
+import { dispatchProductWebhook, dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
 
 /**
  * EscalePay Webhook Handler
@@ -54,14 +54,7 @@ export async function POST(req: Request) {
       });
 
       const product = await dbStore.getProductById(order.productId);
-      if (product) {
-        const approvedOrder = { ...order, status: 'APPROVED' as const };
-        Promise.allSettled([
-          dispatchProductWebhook(product, 'order.approved', approvedOrder),
-          dispatchMetaCapi(product, 'Purchase', approvedOrder),
-          dispatchUtmifyOrder(product, approvedOrder),
-        ]).catch((err) => console.warn('[EscalePay Webhook] Tracking error:', err));
-      }
+      await dispatchAllApprovedOrderEvents(product, { ...order, status: 'APPROVED' });
 
       console.log(`[EscalePay Webhook] Pedido ${order.id} APROVADO.`);
       return NextResponse.json({ success: true, message: 'Pagamento aprovado.' });

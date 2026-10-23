@@ -7,13 +7,18 @@ export function formatMZN(amount: number): string {
   }).format(amount).replace('MZN', 'MT');
 }
 
+export const SALE_NOTIFICATION_TITLE = 'Venda Aprovada - Otterfy';
+
 export function formatSaleNotificationMessage(amount?: number | string | null): string {
   if (amount === undefined || amount === null || isNaN(Number(amount))) {
-    return 'Valor: MT 0';
+    return 'Valor : MT 0,00';
   }
   const num = Number(amount);
-  const formatted = Number.isInteger(num) ? `${num}` : num.toFixed(2);
-  return `Valor: MT ${formatted}`;
+  const formatted = new Intl.NumberFormat('pt-MZ', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+  return `Valor : MT ${formatted}`;
 }
 
 export function toMinorUnits(amount: number): number {

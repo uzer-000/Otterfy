@@ -133,12 +133,16 @@ export const zenofyProvider = {
     };
 
     // 1. Try dynamic-amount API Gateway endpoint first (/checkout/order-api-gateway)
+    const gatewayProductId =
+      process.env.ZENOFY_GATEWAY_PRODUCT_ID ||
+      process.env.ZENOFY_PRODUCT_ID ||
+      targetProductId;
     try {
       const gwRes = await fetch('https://api.zenofy.io/checkout/order-api-gateway', {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
-          productId: targetProductId,
+          productId: gatewayProductId,
           amount: Math.max(1, Math.round(params.amount)),
           currency: 'MZN',
           language: 'pt',

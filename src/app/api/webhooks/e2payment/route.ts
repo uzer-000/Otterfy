@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbStore from '@/lib/store';
-import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@/services/tracking/dispatcher';
+import { dispatchProductWebhook, dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
 import { e2paymentProvider } from '@/services/payment/e2payment';
 
 /**
@@ -53,14 +53,7 @@ export async function POST(req: Request) {
 
       // Fetch product to trigger tracking
       const product = await dbStore.getProductById(order.productId);
-      if (product) {
-        const approvedOrder = { ...order, status: 'APPROVED' as const };
-        Promise.allSettled([
-          dispatchProductWebhook(product, 'order.approved', approvedOrder),
-          dispatchMetaCapi(product, 'Purchase', approvedOrder),
-          dispatchUtmifyOrder(product, approvedOrder),
-        ]).catch((err) => console.warn('[E2Payment Webhook] Tracking error:', err));
-      }
+      await dispatchAllApprovedOrderEvents(product, { ...order, status: 'APPROVED' });
 
       console.log(`[E2Payment Webhook] Pedido ${order.id} APROVADO via M-Pesa/e-Mola.`);
       return NextResponse.json({ success: true, message: 'Pagamento processado com sucesso.' });

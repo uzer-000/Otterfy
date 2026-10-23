@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import ImageDropzone from '@/components/ui/ImageDropzone';
-import { ZENOFY_PRICE_TIERS, getClosestZenofyTierByPrice } from '@/lib/zenofyPrices';
 
 export interface ProductConfigData {
   id: string;
@@ -148,7 +147,7 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
   const [timerMinutes, setTimerMinutes] = useState(6);
   const [timerText, setTimerText] = useState('Esta oferta especial termina em:');
   const [zenofyProductId, setZenofyProductId] = useState('');
-  const [productPrice, setProductPrice] = useState<string>('297.00');
+  const [productPrice, setProductPrice] = useState<string>('');
 
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [whatsappMsg, setWhatsappMsg] = useState('Olá! Preciso de ajuda com o pedido.');
@@ -156,8 +155,6 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
   // Automation
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookEvents, setWebhookEvents] = useState<string[]>(['order.approved']);
-  const [testingWebhook, setTestingWebhook] = useState(false);
-  const [webhookTestMsg, setWebhookTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [recoveryEmail, setRecoveryEmail] = useState(true);
   const [recoveryWhatsapp, setRecoveryWhatsapp] = useState(true);
 
@@ -227,7 +224,7 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
       setTimerText(product.checkoutSettings?.customCheckout?.timerText || 'Esta oferta especial termina em:');
       setZenofyProductId(product.zenofyProductId || product.checkoutSettings?.customCheckout?.zenofyProductId || '');
       if (product.price !== undefined) {
-        setProductPrice(String(product.price));
+        setProductPrice(String(Math.round(Number(product.price))));
       }
 
       setWhatsappPhone(product.checkoutSettings?.whatsappSupport?.phone || '');
@@ -245,43 +242,6 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
-  };
-
-  const handleTestProductWebhook = async () => {
-    if (!webhookUrl.trim()) {
-      showToastMsg('Insira primeiro a URL do Webhook para testar.');
-      return;
-    }
-    setTestingWebhook(true);
-    setWebhookTestMsg(null);
-    try {
-      const res = await fetch('/api/webhooks/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: webhookUrl.trim(),
-          event: 'order.approved',
-          productName: product.name,
-          amount: 297,
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setWebhookTestMsg({
-          ok: true,
-          text: `✓ Disparado com sucesso! HTTP ${data.status} (${data.durationMs}ms) — Venda Aprovada | Valor: MT 297`,
-        });
-      } else {
-        setWebhookTestMsg({
-          ok: false,
-          text: `✕ Falha no disparo (${data.status ? `HTTP ${data.status}` : data.statusText || data.error})`,
-        });
-      }
-    } catch {
-      setWebhookTestMsg({ ok: false, text: '✕ Erro de conexão ao testar webhook.' });
-    } finally {
-      setTestingWebhook(false);
-    }
   };
 
   const handleSaveSubitem = async () => {
@@ -309,7 +269,7 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
       const firstOffer = normalizedOffers[0];
       const bumpActive = normalizedOffers.length > 0 || (orderBumpEnabled && !!orderBumpTitle.trim() && (parseFloat(orderBumpPrice) || 0) > 0);
 
-      const parsedProductPrice = parseFloat(productPrice);
+      const parsedProductPrice = Math.round(parseFloat(productPrice) || 0);
       const payload = {
         ...(parsedProductPrice > 0 ? { price: parsedProductPrice } : {}),
         ...(zenofyProductId ? { zenofyProductId } : {}),
@@ -1163,59 +1123,23 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
                     </span>
                   </div>
                   <p className="text-[11px] text-[#94A3B8]">
-                    Defina o valor em MZN ou clique num dos botões rápidos para atualizar o preço e o ID do produto automaticamente:
+                    Preço livre em MZN: o cliente paga exatamente este valor no checkout.
                   </p>
                   <div className="relative">
                     <input
                       type="number"
+                      inputMode="numeric"
                       min="1"
-                      step="0.01"
+                      step="1"
                       value={productPrice}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setProductPrice(val);
-                        const num = parseFloat(val);
-                        if (!isNaN(num) && num > 0) {
-                          const tier = getClosestZenofyTierByPrice(num);
-                          if (tier) setZenofyProductId(tier.id);
-                        }
-                      }}
-                      placeholder="Ex: 297.00"
+                      onChange={(e) => setProductPrice(e.target.value.replace(/[^\d]/g, ''))}
+                      placeholder="Ex: 350"
                       className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2.5 pr-14 text-sm text-[#F8FAFC] font-mono font-bold focus:outline-none"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold font-mono text-violet-400 pointer-events-none">
                       MZN
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                    {ZENOFY_PRICE_TIERS.map((item) => {
-                      const isSelected = Math.round(Number(productPrice)) === item.price || zenofyProductId === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            setProductPrice(String(item.price) + '.00');
-                            setZenofyProductId(item.id);
-                          }}
-                          className={`p-2.5 rounded-xl border text-center transition-all text-[11px] font-medium cursor-pointer ${
-                            isSelected
-                              ? 'border-violet-500 bg-violet-600 text-white font-bold shadow-[0_0_15px_rgba(124,58,237,0.3)]'
-                              : 'border-[#1E1B26] bg-[#0E0C13] text-[#F8FAFC] hover:border-violet-500/50 hover:bg-[#14121B]'
-                          }`}
-                        >
-                          <span className="block font-mono font-bold">{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <input
-                    type="text"
-                    value={zenofyProductId}
-                    onChange={(e) => setZenofyProductId(e.target.value)}
-                    placeholder="ID do produto na Zenofy (ex: 6aafae3123792dba224d2660)"
-                    className="w-full mt-1 bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] font-mono focus:outline-none"
-                  />
                 </div>
               </div>
             )}
@@ -1249,34 +1173,13 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
               <div className="space-y-4 text-xs">
                 <div>
                   <label className="block text-[#94A3B8] font-semibold mb-1">URL de Destino do Webhook</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={webhookUrl}
-                      onChange={(e) => setWebhookUrl(e.target.value)}
-                      placeholder="https://sua-api.com/webhooks/otterfy"
-                      className="flex-1 bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] font-mono focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      disabled={testingWebhook}
-                      onClick={handleTestProductWebhook}
-                      className="px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-[11px] shrink-0 cursor-pointer disabled:opacity-50"
-                    >
-                      {testingWebhook ? 'Testando...' : '⚡ Testar'}
-                    </button>
-                  </div>
-                  {webhookTestMsg && (
-                    <p
-                      className={`mt-2 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border ${
-                        webhookTestMsg.ok
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                          : 'bg-red-500/10 border-red-500/30 text-red-300'
-                      }`}
-                    >
-                      {webhookTestMsg.text}
-                    </p>
-                  )}
+                  <input
+                    type="url"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    placeholder="https://sua-api.com/webhooks/otterfy"
+                    className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] font-mono focus:outline-none"
+                  />
                 </div>
                 <div>
                   <span className="block text-[#94A3B8] font-semibold mb-2">Eventos Notificados</span>

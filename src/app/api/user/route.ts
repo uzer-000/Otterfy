@@ -42,7 +42,13 @@ export async function GET() {
   try {
     const profile = getLocalProfile();
     try {
-      const dbUser = await prisma.user.findFirst();
+      const dbUser =
+        (await prisma.user.findFirst({
+          where: { email: { equals: 'nhacossfilipe@gmail.com', mode: 'insensitive' } },
+        })) ||
+        (await prisma.user.findFirst({
+          where: { NOT: { email: { endsWith: '@otterfy.internal' } } },
+        }));
       if (dbUser) {
         const resolved = {
           name: dbUser.name || profile.name || 'Admin Otterfy',
@@ -104,7 +110,13 @@ export async function POST(req: Request) {
     saveLocalProfile(updated);
 
     try {
-      const dbUser = await prisma.user.findFirst();
+      const dbUser =
+        (await prisma.user.findFirst({
+          where: { email: { equals: 'nhacossfilipe@gmail.com', mode: 'insensitive' } },
+        })) ||
+        (await prisma.user.findFirst({
+          where: { NOT: { email: { endsWith: '@otterfy.internal' } } },
+        }));
       if (dbUser) {
         await prisma.user.update({
           where: { id: dbUser.id },

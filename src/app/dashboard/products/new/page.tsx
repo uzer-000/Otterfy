@@ -7,7 +7,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { formatMZN } from '@/lib/utils';
-import { ZENOFY_PRICE_TIERS, DEFAULT_ZENOFY_PRODUCT_ID, getClosestZenofyTierByPrice } from '@/lib/zenofyPrices';
 
 type ProductType = 'ebook' | 'course' | 'saas' | null;
 
@@ -47,8 +46,9 @@ export default function NewProductWizardPage() {
   // Form Fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState<string>('297.00');
-  const [zenofyProductId, setZenofyProductId] = useState<string>(DEFAULT_ZENOFY_PRODUCT_ID);
+  const [price, setPrice] = useState<string>('');
+  // Preço livre: o valor é enviado tal como está para o gateway (Zenofy API Gateway).
+  const zenofyProductId = '';
   const [currency] = useState('MZN');
   const [imageUrl, setImageUrl] = useState('');
   const [allowAffiliation, setAllowAffiliation] = useState(false);
@@ -88,7 +88,7 @@ export default function NewProductWizardPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const parsedPrice = parseFloat(price) || 0;
+  const parsedPrice = Math.round(parseFloat(price) || 0);
   const isPriceValid = parsedPrice >= 1;
 
   // Step 1 Validation
@@ -761,19 +761,12 @@ export default function NewProductWizardPage() {
                 <div className="relative">
                   <input
                     type="number"
+                    inputMode="numeric"
                     min="1"
-                    step="0.01"
+                    step="1"
                     value={price}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setPrice(val);
-                      const num = parseFloat(val);
-                      if (!isNaN(num) && num > 0) {
-                        const tier = getClosestZenofyTierByPrice(num);
-                        if (tier) setZenofyProductId(tier.id);
-                      }
-                    }}
-                    placeholder="Ex: 297.00"
+                    onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ''))}
+                    placeholder="Ex: 350"
                     className="w-full px-4 py-3 pr-16 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-base text-[#F8FAFC] font-mono font-bold placeholder-[#64748B] focus:outline-none focus:border-violet-500 transition-colors"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold font-mono text-violet-400 pointer-events-none">
@@ -781,29 +774,13 @@ export default function NewProductWizardPage() {
                   </span>
                 </div>
 
-                {/* Quick-Select Price Tier Buttons */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-                  {ZENOFY_PRICE_TIERS.map((tier) => {
-                    const isSelected = Math.round(Number(price)) === tier.price;
-                    return (
-                      <button
-                        key={tier.id}
-                        type="button"
-                        onClick={() => {
-                          setPrice(String(tier.price) + '.00');
-                          setZenofyProductId(tier.id);
-                        }}
-                        className={`py-3 px-4 rounded-2xl border font-mono font-bold text-center transition-all cursor-pointer flex items-center justify-center text-sm sm:text-base ${
-                          isSelected
-                            ? 'border-violet-500 bg-violet-600 text-white shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-[1.02]'
-                            : 'border-[#1E1B26] bg-[#0F0E14] text-[#F8FAFC] hover:border-violet-500/50 hover:bg-[#14121B]'
-                        }`}
-                      >
-                        {tier.price} MZN
-                      </button>
-                    );
-                  })}
-                </div>
+                <p className="text-[11px] text-[#64748B] leading-relaxed">
+                  Defina livremente o preço. O cliente paga exatamente{' '}
+                  <span className="font-bold text-violet-400">
+                    {Number(price) > 0 ? formatMZN(Math.round(Number(price))) : 'o valor definido'}
+                  </span>{' '}
+                  no checkout (M-Pesa / e-Mola).
+                </p>
               </div>
 
               {/* Configurações Avançadas */}

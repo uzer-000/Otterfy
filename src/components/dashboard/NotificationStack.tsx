@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { formatMZN, formatSaleNotificationMessage } from '@/lib/utils';
+import { formatMZN, formatSaleNotificationMessage, SALE_NOTIFICATION_TITLE } from '@/lib/utils';
 
 export interface NotifItem {
   id?: string;
@@ -48,7 +48,7 @@ function loadFromStorage(): NotifItem[] {
       .filter((n) => now - n.ts < MAX_AGE_MS && !n.id?.startsWith('seed-'))
       .map((n) => ({
         ...n,
-        title: 'Venda Aprovada',
+        title: SALE_NOTIFICATION_TITLE,
         message: formatSaleNotificationMessage(n.amount),
       }));
     return fresh;
@@ -131,7 +131,7 @@ export default function NotificationStack() {
           const list = json.data || [];
           const mapped: NotifItem[] = list.map((s: any) => ({
             id: s.id,
-            title: 'Venda Aprovada',
+            title: SALE_NOTIFICATION_TITLE,
             message: formatSaleNotificationMessage(s.amount),
             amount: Number(s.amount) || 0,
             customerName: s.customerName || 'Cliente',
@@ -164,7 +164,7 @@ export default function NotificationStack() {
           if (n.id && prev.some((it) => it.id === n.id)) return prev;
           const entry: NotifItem = {
             id: n.id,
-            title: n.title || 'Venda Aprovada',
+            title: n.title || SALE_NOTIFICATION_TITLE,
             message: n.message || formatSaleNotificationMessage(n.amount),
             amount: n.amount,
             customerName: n.customerName,
