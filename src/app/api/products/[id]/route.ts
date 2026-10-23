@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import dbStore from '@/lib/store';
+import { auth } from '@/lib/auth';
+import { getAdminCloudState, isAdminEmail } from '@/lib/adminState';
 
 const updateProductSchema = z.object({
   name: z.string().trim().min(1, 'O nome é obrigatório.').optional(),
@@ -115,7 +117,17 @@ export async function PUT(
       return NextResponse.json({ error: result.error.issues[0]?.message || 'Dados inválidos.' }, { status: 400 });
     }
 
-    const updated = await dbStore.updateProduct(id, result.data);
+    const session = await auth();
+    const isAdmin = isAdminEmail(session?.user?.email);
+    const adminState = await getAdminCloudState();
+    const modRecord = adminState.products[id];
+
+    const payload = { ...result.data };
+    if (!isAdmin && modRecord && (modRecord.status === 'BLOCKED_BLACK' || modRecord.status === 'REJECTED')) {
+      payload.status = 'INACTIVE';
+    }
+
+    const updated = await dbStore.updateProduct(id, payload);
 
     if (!updated) {
       return NextResponse.json({ error: 'Produto não encontrado.' }, { status: 404 });

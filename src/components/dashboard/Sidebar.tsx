@@ -296,6 +296,13 @@ const ICONS = {
       <path d="M4 17h10" />
     </>
   ),
+  // Admin Shield
+  admin: (
+    <>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="m9 12 2 2 4-4" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 type IconName = keyof typeof ICONS;
@@ -346,12 +353,23 @@ interface NavSection {
   entries: NavEntry[];
 }
 
-function buildSections(): NavSection[] {
+function buildSections(isAdmin: boolean): NavSection[] {
   return [
     {
       title: 'MENU',
       entries: [
         { kind: 'link', name: 'Dashboard', href: '/dashboard', icon: 'dashboard', exact: true },
+        ...(isAdmin
+          ? ([
+              {
+                kind: 'link',
+                name: 'Painel Admin',
+                href: '/dashboard/admin',
+                icon: 'admin',
+                badge: 'ADMIN',
+              },
+            ] satisfies NavEntry[])
+          : []),
         { kind: 'link', name: 'Pagamentos', href: '/dashboard/payments', icon: 'payments' },
         { kind: 'link', name: 'Saldo & Carteira', href: '/dashboard/balance', icon: 'withdrawals' },
         { kind: 'link', name: 'SAC', href: '/dashboard/sac', icon: 'sac' },
@@ -441,7 +459,8 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
   const firstMeasure = useRef(true);
   const drag = useRef<{ x: number; y: number; dx: number; axis: 'x' | 'y' | null } | null>(null);
 
-  const sections = useMemo(() => buildSections(), []);
+  const isAdmin = userEmail.trim().toLowerCase() === 'nhacossfilipe@gmail.com';
+  const sections = useMemo(() => buildSections(isAdmin), [isAdmin]);
 
   const leaves = useMemo(
     () =>

@@ -3,13 +3,14 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import bcryptjs from 'bcryptjs';
 import { prisma } from './prisma';
+import { getUserApprovalStatus, ADMIN_EMAIL } from './adminState';
+
+export { ADMIN_EMAIL };
 
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1).max(72),
 });
-
-export const ADMIN_EMAIL = 'nhacossfilipe@gmail.com';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET || 'otterfy-super-secret-key-2024-jwt-prod',
@@ -28,7 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const email = parsedCredentials.data.email.trim().toLowerCase();
           const { password } = parsedCredentials.data;
 
-          if (email !== ADMIN_EMAIL) return null;
+          if (email.endsWith('@otterfy.internal')) return null;
 
           try {
             const user = await prisma.user.findFirst({
@@ -40,6 +41,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (user) {
               const passwordsMatch = await bcryptjs.compare(password, user.passwordHash);
               if (passwordsMatch) {
+                const approvalStatus = await getUserApprovalStatus(user.email, user.id);
+                if (approvalStatus !== 'APPROVED') {
+                  return null;
+                }
                 return {
                   id: user.id,
                   email: user.email,

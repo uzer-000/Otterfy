@@ -3,6 +3,7 @@ import bcryptjs from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { clientIp, enforceRateLimit, rateLimitResponse } from '@/lib/security';
+import { setUserApprovalStatus } from '@/lib/adminState';
 
 const schema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -15,7 +16,7 @@ const schema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const limit = await enforceRateLimit(`signup:${clientIp(req)}`, { limit: 3, windowMs: 60 * 60 * 1000 });
+    const limit = await enforceRateLimit(`signup:${clientIp(req)}`, { limit: 5, windowMs: 60 * 60 * 1000 });
     if (!limit.success) return rateLimitResponse(limit.reset);
     const contentLength = Number(req.headers.get('content-length') || 0);
     if (contentLength > 16_384) return NextResponse.json({ error: 'Pedido demasiado grande.' }, { status: 413 });
@@ -51,9 +52,11 @@ export async function POST(req: Request) {
 
     const passwordHash = await bcryptjs.hash(password, 12);
 
-    await prisma.user.create({
+    const createdUser = await prisma.user.create({
       data: { name: name.trim(), email: normalizedEmail, passwordHash },
     });
+
+    await setUserApprovalStatus(normalizedEmail, 'PENDING', createdUser.id);
 
     return NextResponse.json({ ok: true, pendingApproval: true });
   } catch (error) {

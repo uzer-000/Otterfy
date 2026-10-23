@@ -40,6 +40,26 @@ export default function LoginPage() {
       });
 
       if (res?.error) {
+        try {
+          const checkRes = await fetch('/api/auth/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanEmail, password: password.trim() }),
+          });
+          const checkData = await checkRes.json();
+          if (checkData?.status === 'PENDING') {
+            router.push('/auth/pending-approval');
+            return;
+          }
+          if (checkData?.status === 'REJECTED' || checkData?.status === 'BLOCKED') {
+            setError(
+              'A sua conta foi recusada ou suspensa pela administração da Otterfy. Contacte o suporte.'
+            );
+            return;
+          }
+        } catch {
+          // ignore
+        }
         setError('Credenciais inválidas. Verifique o seu email e senha.');
       } else {
         router.push('/dashboard');

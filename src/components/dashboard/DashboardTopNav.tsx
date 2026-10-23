@@ -467,6 +467,7 @@ export default function DashboardTopNav() {
 
   const getPageTitle = (path: string) => {
     if (path === '/dashboard') return 'Painel Geral';
+    if (path.startsWith('/dashboard/admin')) return 'Painel do Administrador';
     if (path.startsWith('/dashboard/awards')) return 'Premiações';
     if (path.startsWith('/dashboard/settings')) return 'Configurações da Conta';
     if (path.startsWith('/dashboard/metrics')) return 'Métricas & Relatórios';
