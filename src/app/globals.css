@@ -1,23 +1,34 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *):not(:where(.pay-checkout-root, .pay-checkout-root *)));
 
 @theme inline {
-  --color-background: var(--bg-main, #08070C);
-  --color-foreground: var(--text-primary, #F8FAFC);
-  --color-surface: var(--bg-surface, #121016);
-  --color-surface-hover: var(--bg-surface-hover, #1A1820);
-  --color-input-bg: var(--bg-input, #0F0E14);
-  --color-border: var(--border-color, #1E1B26);
+  --color-background: var(--bg-main, #F5F3FA);
+  --color-foreground: var(--text-primary, #0F172A);
+  --color-surface: var(--bg-surface, #FFFFFF);
+  --color-surface-hover: var(--bg-surface-hover, #EDE9FE);
+  --color-input-bg: var(--bg-input, #F8FAFC);
+  --color-border: var(--border-color, #CBD5E1);
   --color-accent: #7C3AED;
   --color-accent-hover: #6D28D9;
-  --color-text-primary: var(--text-primary, #F8FAFC);
-  --color-text-secondary: var(--text-secondary, #94A3B8);
-  --color-text-muted: var(--text-muted, #64748B);
+  --color-text-primary: var(--text-primary, #0F172A);
+  --color-text-secondary: var(--text-secondary, #334155);
+  --color-text-muted: var(--text-muted, #475569);
   --font-sans: var(--font-satoshi);
 }
 
 :root {
+  --bg-main: #F5F3FA;
+  --bg-surface: #FFFFFF;
+  --bg-surface-hover: #EDE9FE;
+  --bg-input: #F8FAFC;
+  --border-color: #CBD5E1;
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+}
+
+[data-theme="dark"] {
   --bg-main: #08070C;
   --bg-surface: #121016;
   --bg-surface-hover: #1A1820;
@@ -39,9 +50,19 @@
   --text-muted: #475569;
 }
 
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+}
+
 [data-theme="light"] body {
-  background-color: var(--bg-main) !important;
-  color: var(--text-primary) !important;
+  background-color: #F5F3FA !important;
+  color: #0F172A !important;
+}
+
+[data-theme="dark"]:not(:has(.pay-checkout-root)) body {
+  background-color: #08070C !important;
+  color: #F8FAFC !important;
 }
 
 html {
@@ -1941,5 +1962,33 @@ svg.otter-sb-icon {
   animation: checkout-cta-shine 2.4s ease-in-out infinite;
   pointer-events: none;
 }
+
+/* ========================================================================= */
+/* CHECKOUT STRICT LIGHT THEME ENFORCEMENT                                   */
+/* Guarantees that the checkout is ALWAYS white/light, with high-contrast    */
+/* typography, light background (#F5F3FA) and pure white card (#FFFFFF).     */
+/* ========================================================================= */
+html:has(.pay-checkout-root),
+body:has(.pay-checkout-root),
+.pay-checkout-root,
+#pay-checkout-root-container,
+[data-checkout-root="true"] {
+  color-scheme: light !important;
+  background-color: #F5F3FA !important;
+  color: #0F172A !important;
+}
+
+html:has(.pay-checkout-root) body {
+  background-color: #F5F3FA !important;
+  color: #0F172A !important;
+}
+
+.pay-checkout-root input,
+.pay-checkout-root select,
+.pay-checkout-root textarea {
+  color-scheme: light !important;
+}
+
+
 
 

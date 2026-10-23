@@ -67,40 +67,40 @@ export default function CheckoutExitIntentModal({
       aria-modal="true"
       aria-label="Oferta Especial de Retenção"
     >
-      <div className="bg-white dark:bg-[#121016] border border-amber-500/40 rounded-3xl max-w-sm sm:max-w-md w-full p-6 sm:p-7 shadow-2xl relative overflow-hidden text-center text-slate-900 dark:text-[#F8FAFC] animate-in zoom-in-95 duration-200">
+      <div className="bg-white border border-amber-500/40 rounded-3xl max-w-sm sm:max-w-md w-full p-6 sm:p-7 shadow-2xl relative overflow-hidden text-center text-slate-900 animate-in zoom-in-95 duration-200">
         {/* Top Gold Stripe */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500" />
 
         {/* Floating Discount Badge */}
-        <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 text-amber-500 flex items-center justify-center mx-auto text-3xl mb-3 shadow-lg shadow-amber-500/10">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-300 text-amber-500 flex items-center justify-center mx-auto text-3xl mb-3 shadow-lg shadow-amber-500/10">
           🎁
         </div>
 
-        <span className="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 mb-2">
+        <span className="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 mb-2">
           ⚡ Espere! Oferta Especial de Última Hora
         </span>
 
-        <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-[#F8FAFC] leading-snug">
+        <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-snug">
           Não perca o acesso a {productName}!
         </h3>
 
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-[#94A3B8] mt-2 leading-relaxed">
-          Gere o seu acesso agora e ganhe um <strong className="text-emerald-600 dark:text-emerald-400">desconto exclusivo de 10%</strong> antes que esta condição expire.
+        <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+          Gere o seu acesso agora e ganhe um <strong className="text-emerald-600">desconto exclusivo de 10%</strong> antes que esta condição expire.
         </p>
 
         {/* Voucher Box */}
-        <div className="my-4 p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0F0E14] border-2 border-dashed border-amber-500/50 flex items-center justify-between gap-3">
+        <div className="my-4 p-3.5 rounded-2xl bg-slate-50 border-2 border-dashed border-amber-500/50 flex items-center justify-between gap-3">
           <div className="text-left">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8] block">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
               Cupom de Cortesia:
             </span>
-            <span className="font-mono text-base font-black text-violet-600 dark:text-violet-400 tracking-wider">
+            <span className="font-mono text-base font-black text-violet-600 tracking-wider">
               {defaultCouponCode}
             </span>
           </div>
 
           <div className="text-right">
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-[#047857] dark:text-emerald-400 font-extrabold text-xs">
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-[#047857] font-extrabold text-xs">
               -10% OFF
             </span>
           </div>
@@ -119,7 +119,7 @@ export default function CheckoutExitIntentModal({
           <button
             type="button"
             onClick={handleClose}
-            className="text-xs text-slate-500 dark:text-[#94A3B8] hover:text-slate-800 dark:hover:text-white pt-2 transition-colors cursor-pointer block mx-auto underline"
+            className="text-xs text-slate-500 hover:text-slate-800 pt-2 transition-colors cursor-pointer block mx-auto underline"
           >
             Não quero desconto, prefiro pagar o valor integral
           </button>

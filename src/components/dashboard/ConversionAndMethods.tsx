@@ -110,13 +110,13 @@ export default function ConversionAndMethods({
           <div className="space-y-2 p-2.5 rounded-xl bg-orange-500/[0.04] border border-orange-500/10">
             <div className="flex justify-between items-center text-xs">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center p-1.5 shrink-0 border border-slate-200/90 dark:border-white/10">
+                <div className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center p-0.5 shrink-0 border border-slate-200/90 dark:border-white/10 overflow-hidden">
                   <Image
-                    src="/gateways/emola.svg"
+                    src="/gateways/emola.png"
                     alt="e-Mola"
                     width={28}
                     height={28}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover rounded-md"
                   />
                 </div>
                 <div className="min-w-0">
@@ -146,13 +146,13 @@ export default function ConversionAndMethods({
           <div className="space-y-2 p-2.5 rounded-xl bg-red-500/[0.04] border border-red-500/10">
             <div className="flex justify-between items-center text-xs">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center p-1.5 shrink-0 border border-slate-200/90 dark:border-white/10">
+                <div className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center p-0.5 shrink-0 border border-slate-200/90 dark:border-white/10 overflow-hidden">
                   <Image
-                    src="/gateways/mpesa.svg"
+                    src="/gateways/mpesa.png"
                     alt="M-Pesa"
                     width={28}
                     height={28}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover rounded-md"
                   />
                 </div>
                 <div className="min-w-0">

@@ -193,7 +193,7 @@ export default function SignUpPage() {
               }`}
             >
               <Image
-                src="/gateways/Mpesa.png"
+                src="/gateways/mpesa.png"
                 alt="M-Pesa"
                 width={72}
                 height={28}

@@ -51,20 +51,29 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt" className={`${satoshi.variable} h-full w-full max-w-[100vw] overflow-x-hidden antialiased`} suppressHydrationWarning>
+    <html lang="pt" data-theme="light" className={`${satoshi.variable} h-full w-full max-w-[100vw] overflow-x-hidden antialiased`} suppressHydrationWarning>
       <head>
         <style
           dangerouslySetInnerHTML={{
             __html: `
               html, body {
-                background-color: #0e0b12;
+                background-color: #F5F3FA;
+                color: #0F172A;
                 max-width: 100vw;
                 overflow-x: hidden;
                 overscroll-behavior-x: none;
               }
+              [data-theme="dark"],
+              [data-theme="dark"] body {
+                background-color: #08070C;
+                color: #F8FAFC;
+              }
+              html:has(.pay-checkout-root),
+              body:has(.pay-checkout-root),
               [data-theme="light"],
               [data-theme="light"] body {
-                background-color: #f4f2ee;
+                background-color: #F5F3FA !important;
+                color: #0F172A !important;
               }
             `,
           }}
@@ -74,6 +83,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `
               (function() {
                 try {
+                  if (window.location.pathname && window.location.pathname.indexOf('/pay') !== -1) {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    document.documentElement.classList.remove('dark');
+                    return;
+                  }
                   var saved = localStorage.getItem('otterfy-theme') || 'light';
                   document.documentElement.setAttribute('data-theme', saved);
                 } catch(e) {}
@@ -82,7 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="min-h-full w-full max-w-[100vw] overflow-x-hidden flex flex-col bg-[#0e0b12] text-[#F8FAFC] font-sans">
+      <body className="min-h-full w-full max-w-[100vw] overflow-x-hidden flex flex-col bg-[#F5F3FA] text-[#0F172A] font-sans">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[10000] focus:px-4 focus:py-2.5 focus:rounded-xl focus:bg-emerald-700 focus:text-white focus:font-bold focus:text-sm focus:shadow-xl"

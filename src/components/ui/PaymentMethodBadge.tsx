@@ -27,7 +27,7 @@ export default function PaymentMethodBadge({
       return {
         label: 'M-Pesa',
         subLabel: 'Vodacom (84 / 85)',
-        logoSrc: '/gateways/mpesa.svg',
+        logoSrc: '/gateways/mpesa.png',
         bgLight: 'bg-[#FF0000]/10 border-[#FF0000]/30 text-[#D80000]',
         bgDark: 'bg-[#FF0000]/15 border-[#FF0000]/30 text-[#FF4D4D]',
         accentColor: '#E60000',
@@ -38,7 +38,7 @@ export default function PaymentMethodBadge({
       return {
         label: 'e-Mola',
         subLabel: 'Movitel (86 / 87)',
-        logoSrc: '/gateways/emola.svg',
+        logoSrc: '/gateways/emola.png',
         bgLight: 'bg-[#FF6600]/10 border-[#FF6600]/30 text-[#D95300]',
         bgDark: 'bg-[#FF6600]/15 border-[#FF6600]/30 text-[#FFA04D]',
         accentColor: '#FF6600',
@@ -174,6 +174,7 @@ interface PaymentMethodOptionCardProps {
   prefixHelper?: string;
   className?: string;
   layout?: 'horizontal' | 'vertical';
+  forceLight?: boolean;
 }
 
 export function PaymentMethodOptionCard({
@@ -183,6 +184,7 @@ export function PaymentMethodOptionCard({
   prefixHelper,
   className = '',
   layout = 'horizontal',
+  forceLight = false,
 }: PaymentMethodOptionCardProps) {
   const isMpesa = method === 'MPESA';
   const isEmola = method === 'EMOLA';
@@ -191,7 +193,7 @@ export function PaymentMethodOptionCard({
 
   const title = isMpesa ? 'M-Pesa' : isEmola ? 'e-Mola' : isStripe ? 'Cartão Visa/Master' : 'Banco (NIB)';
   const subtitle = prefixHelper || (isMpesa ? '84 • 85 (Vodacom)' : isEmola ? '86 • 87 (Movitel)' : isStripe ? 'Crédito / Débito' : 'Transferência');
-  const logo = isMpesa ? '/gateways/mpesa.svg' : isEmola ? '/gateways/emola.svg' : isStripe ? '/gateways/stripe-cards.svg' : '';
+  const logo = isMpesa ? '/gateways/mpesa.png' : isEmola ? '/gateways/emola.png' : isStripe ? '/gateways/stripe-cards.svg' : '';
   const brandAccent = isMpesa ? '#E60000' : isEmola ? '#FF6600' : isStripe ? '#635BFF' : '#10B981';
 
   // Vertical layout (ideal for 3-column modal grids and compact selectors)
@@ -203,13 +205,13 @@ export function PaymentMethodOptionCard({
         className={`relative w-full p-3 sm:p-3.5 rounded-2xl border-2 transition-all duration-200 text-center flex flex-col items-center justify-center cursor-pointer select-none group min-w-0 ${
           selected
             ? isMpesa
-              ? 'border-[#E60000] bg-red-50/90 dark:bg-red-950/30 shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/25'
+              ? forceLight ? 'border-[#E60000] bg-red-50/90 shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/25' : 'border-[#E60000] bg-red-50/90 dark:bg-red-950/30 shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/25'
               : isEmola
-                ? 'border-[#FF6600] bg-orange-50/90 dark:bg-orange-950/30 shadow-md shadow-[#FF6600]/10 ring-2 ring-[#FF6600]/25'
+                ? forceLight ? 'border-[#FF6600] bg-orange-50/90 shadow-md shadow-[#FF6600]/10 ring-2 ring-[#FF6600]/25' : 'border-[#FF6600] bg-orange-50/90 dark:bg-orange-950/30 shadow-md shadow-[#FF6600]/10 ring-2 ring-[#FF6600]/25'
                 : isBank
-                  ? 'border-emerald-600 bg-emerald-50/90 dark:bg-emerald-950/30 shadow-md shadow-emerald-600/10 ring-2 ring-emerald-600/25'
-                  : 'border-violet-600 bg-violet-50/90 dark:bg-violet-950/30 shadow-md shadow-violet-600/10 ring-2 ring-violet-600/25'
-            : 'border-slate-200 dark:border-[#252033] bg-white dark:bg-[#121018] hover:border-slate-300 dark:hover:border-[#352D48] hover:bg-slate-50/50 dark:hover:bg-[#16131F]'
+                  ? forceLight ? 'border-emerald-600 bg-emerald-50/90 shadow-md shadow-emerald-600/10 ring-2 ring-emerald-600/25' : 'border-emerald-600 bg-emerald-50/90 dark:bg-emerald-950/30 shadow-md shadow-emerald-600/10 ring-2 ring-emerald-600/25'
+                  : forceLight ? 'border-violet-600 bg-violet-50/90 shadow-md shadow-violet-600/10 ring-2 ring-violet-600/25' : 'border-violet-600 bg-violet-50/90 dark:bg-violet-950/30 shadow-md shadow-violet-600/10 ring-2 ring-violet-600/25'
+            : forceLight ? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50' : 'border-slate-200 dark:border-[#252033] bg-white dark:bg-[#121018] hover:border-slate-300 dark:hover:border-[#352D48] hover:bg-slate-50/50 dark:hover:bg-[#16131F]'
         } ${className}`}
       >
         {/* Subtle Checkmark Badge in Top Right */}
@@ -217,7 +219,7 @@ export function PaymentMethodOptionCard({
           className={`otter-keep-colors absolute top-2 right-2 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
             selected
               ? 'border-transparent shadow-xs'
-              : 'border-slate-300 dark:border-slate-600 bg-transparent'
+              : forceLight ? 'border-slate-300 bg-transparent' : 'border-slate-300 dark:border-slate-600 bg-transparent'
           }`}
           style={{ backgroundColor: selected ? brandAccent : 'transparent' }}
         >
@@ -230,8 +232,8 @@ export function PaymentMethodOptionCard({
 
         {/* Logo Container */}
         <div
-          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl p-1.5 bg-white shadow-xs flex items-center justify-center shrink-0 border-2 transition-transform duration-200 group-hover:scale-105 ${
-            selected ? 'shadow-md border-transparent' : 'border-slate-200 dark:border-white/15'
+          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl p-1 bg-white shadow-xs flex items-center justify-center shrink-0 border-2 transition-transform duration-200 group-hover:scale-105 overflow-hidden ${
+            selected ? 'shadow-md border-transparent' : forceLight ? 'border-slate-200' : 'border-slate-200 dark:border-white/15'
           }`}
           style={{ borderColor: selected ? brandAccent : undefined }}
         >
@@ -239,9 +241,9 @@ export function PaymentMethodOptionCard({
             <Image
               src={logo}
               alt={title}
-              width={40}
-              height={40}
-              className="w-full h-full object-contain"
+              width={48}
+              height={48}
+              className="w-full h-full object-cover rounded-lg"
             />
           ) : (
             <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -257,13 +259,13 @@ export function PaymentMethodOptionCard({
               className={`text-xs sm:text-sm font-black tracking-tight whitespace-nowrap leading-tight ${
                 selected
                   ? isMpesa
-                    ? 'text-[#C40000] dark:text-red-300'
+                    ? forceLight ? 'text-[#C40000]' : 'text-[#C40000] dark:text-red-300'
                     : isEmola
-                      ? 'text-[#C74900] dark:text-orange-300'
+                      ? forceLight ? 'text-[#C74900]' : 'text-[#C74900] dark:text-orange-300'
                       : isBank
-                        ? 'text-emerald-700 dark:text-emerald-300'
-                        : 'text-violet-700 dark:text-violet-300'
-                  : 'text-slate-900 dark:text-[#F8FAFC]'
+                        ? forceLight ? 'text-emerald-700' : 'text-emerald-700 dark:text-emerald-300'
+                        : forceLight ? 'text-violet-700' : 'text-violet-700 dark:text-violet-300'
+                  : forceLight ? 'text-slate-900' : 'text-slate-900 dark:text-[#F8FAFC]'
               }`}
             >
               {title}
@@ -273,13 +275,13 @@ export function PaymentMethodOptionCard({
             className={`text-[10px] mt-0.5 truncate block w-full ${
               selected
                 ? isMpesa
-                  ? 'text-red-900/80 dark:text-red-200/80 font-semibold'
+                  ? forceLight ? 'text-red-900/80 font-semibold' : 'text-red-900/80 dark:text-red-200/80 font-semibold'
                   : isEmola
-                    ? 'text-orange-900/80 dark:text-orange-200/80 font-semibold'
+                    ? forceLight ? 'text-orange-900/80 font-semibold' : 'text-orange-900/80 dark:text-orange-200/80 font-semibold'
                     : isBank
-                      ? 'text-emerald-900/80 dark:text-emerald-200/80 font-semibold'
-                      : 'text-violet-900/80 dark:text-violet-200/80 font-semibold'
-                : 'text-slate-500 dark:text-[#94A3B8] font-medium'
+                      ? forceLight ? 'text-emerald-900/80 font-semibold' : 'text-emerald-900/80 dark:text-emerald-200/80 font-semibold'
+                      : forceLight ? 'text-violet-900/80 font-semibold' : 'text-violet-900/80 dark:text-violet-200/80 font-semibold'
+                : forceLight ? 'text-slate-500 font-medium' : 'text-slate-500 dark:text-[#94A3B8] font-medium'
             }`}
           >
             {subtitle}
@@ -297,22 +299,22 @@ export function PaymentMethodOptionCard({
       className={`relative w-full p-3 sm:p-3.5 rounded-2xl border-2 transition-all duration-200 text-left flex items-center justify-between gap-3 cursor-pointer select-none group min-w-0 ${
         selected
           ? isMpesa
-            ? 'border-[#E60000] bg-red-50/90 dark:bg-red-950/30 shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/25'
+            ? forceLight ? 'border-[#E60000] bg-red-50/90 shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/25' : 'border-[#E60000] bg-red-50/90 dark:bg-red-950/30 shadow-md shadow-[#E60000]/10 ring-2 ring-[#E60000]/25'
             : isEmola
-              ? 'border-[#FF6600] bg-orange-50/90 dark:bg-orange-950/30 shadow-md shadow-[#FF6600]/10 ring-2 ring-[#FF6600]/25'
+              ? forceLight ? 'border-[#FF6600] bg-orange-50/90 shadow-md shadow-[#FF6600]/10 ring-2 ring-[#FF6600]/25' : 'border-[#FF6600] bg-orange-50/90 dark:bg-orange-950/30 shadow-md shadow-[#FF6600]/10 ring-2 ring-[#FF6600]/25'
               : isBank
-                ? 'border-emerald-600 bg-emerald-50/90 dark:bg-emerald-950/30 shadow-md shadow-emerald-600/10 ring-2 ring-emerald-600/25'
-                : 'border-violet-600 bg-violet-50/90 dark:bg-violet-950/30 shadow-md shadow-violet-600/10 ring-2 ring-violet-600/25'
-          : 'border-slate-200 dark:border-[#252033] bg-white dark:bg-[#121018] hover:border-slate-300 dark:hover:border-[#352D48] hover:bg-slate-50/50 dark:hover:bg-[#16131F]'
+                ? forceLight ? 'border-emerald-600 bg-emerald-50/90 shadow-md shadow-emerald-600/10 ring-2 ring-emerald-600/25' : 'border-emerald-600 bg-emerald-50/90 dark:bg-emerald-950/30 shadow-md shadow-emerald-600/10 ring-2 ring-emerald-600/25'
+                : forceLight ? 'border-violet-600 bg-violet-50/90 shadow-md shadow-violet-600/10 ring-2 ring-violet-600/25' : 'border-violet-600 bg-violet-50/90 dark:bg-violet-950/30 shadow-md shadow-violet-600/10 ring-2 ring-violet-600/25'
+          : forceLight ? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50' : 'border-slate-200 dark:border-[#252033] bg-white dark:bg-[#121018] hover:border-slate-300 dark:hover:border-[#352D48] hover:bg-slate-50/50 dark:hover:bg-[#16131F]'
       } ${className}`}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {/* Prominent Logo Container */}
         <div
-          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl p-1.5 bg-white shadow-xs flex items-center justify-center shrink-0 border-2 transition-transform duration-200 group-hover:scale-105 ${
+          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl p-1 bg-white shadow-xs flex items-center justify-center shrink-0 border-2 transition-transform duration-200 group-hover:scale-105 overflow-hidden ${
             selected
               ? 'shadow-md border-transparent'
-              : 'border-slate-200 dark:border-white/15'
+              : forceLight ? 'border-slate-200' : 'border-slate-200 dark:border-white/15'
           }`}
           style={{ borderColor: selected ? brandAccent : undefined }}
         >
@@ -320,9 +322,9 @@ export function PaymentMethodOptionCard({
             <Image
               src={logo}
               alt={title}
-              width={40}
-              height={40}
-              className="w-full h-full object-contain"
+              width={48}
+              height={48}
+              className="w-full h-full object-cover rounded-lg"
             />
           ) : (
             <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -338,13 +340,13 @@ export function PaymentMethodOptionCard({
               className={`text-xs sm:text-sm font-black tracking-tight whitespace-nowrap leading-tight ${
                 selected
                   ? isMpesa
-                    ? 'text-[#C40000] dark:text-red-300'
+                    ? forceLight ? 'text-[#C40000]' : 'text-[#C40000] dark:text-red-300'
                     : isEmola
-                      ? 'text-[#C74900] dark:text-orange-300'
+                      ? forceLight ? 'text-[#C74900]' : 'text-[#C74900] dark:text-orange-300'
                       : isBank
-                        ? 'text-emerald-700 dark:text-emerald-300'
-                        : 'text-violet-700 dark:text-violet-300'
-                  : 'text-slate-900 dark:text-[#F8FAFC]'
+                        ? forceLight ? 'text-emerald-700' : 'text-emerald-700 dark:text-emerald-300'
+                        : forceLight ? 'text-violet-700' : 'text-violet-700 dark:text-violet-300'
+                  : forceLight ? 'text-slate-900' : 'text-slate-900 dark:text-[#F8FAFC]'
               }`}
             >
               {title}
@@ -362,13 +364,13 @@ export function PaymentMethodOptionCard({
             className={`text-[11px] mt-0.5 truncate block ${
               selected
                 ? isMpesa
-                  ? 'text-red-900/80 dark:text-red-200/80 font-semibold'
+                  ? forceLight ? 'text-red-900/80 font-semibold' : 'text-red-900/80 dark:text-red-200/80 font-semibold'
                   : isEmola
-                    ? 'text-orange-900/80 dark:text-orange-200/80 font-semibold'
+                    ? forceLight ? 'text-orange-900/80 font-semibold' : 'text-orange-900/80 dark:text-orange-200/80 font-semibold'
                     : isBank
-                      ? 'text-emerald-900/80 dark:text-emerald-200/80 font-semibold'
-                      : 'text-violet-900/80 dark:text-violet-200/80 font-semibold'
-                : 'text-slate-600 dark:text-[#94A3B8] font-medium'
+                      ? forceLight ? 'text-emerald-900/80 font-semibold' : 'text-emerald-900/80 dark:text-emerald-200/80 font-semibold'
+                      : forceLight ? 'text-violet-900/80 font-semibold' : 'text-violet-900/80 dark:text-violet-200/80 font-semibold'
+                : forceLight ? 'text-slate-600 font-medium' : 'text-slate-600 dark:text-[#94A3B8] font-medium'
             }`}
           >
             {subtitle}
@@ -381,7 +383,7 @@ export function PaymentMethodOptionCard({
         className={`otter-keep-colors w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
           selected
             ? 'border-transparent shadow-xs'
-            : 'border-slate-300 dark:border-slate-600 bg-transparent'
+            : forceLight ? 'border-slate-300 bg-transparent' : 'border-slate-300 dark:border-slate-600 bg-transparent'
         }`}
         style={{ backgroundColor: selected ? brandAccent : 'transparent' }}
       >

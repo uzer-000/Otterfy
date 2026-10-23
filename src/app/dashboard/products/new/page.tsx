@@ -1258,7 +1258,7 @@ export default function NewProductWizardPage() {
             >
               <div className="flex items-center gap-3.5">
                 <div className="w-14 h-14 rounded-2xl bg-white shadow-xs border-2 border-slate-200/90 p-2 flex items-center justify-center shrink-0 overflow-hidden">
-                  <Image src="/gateways/mpesa.svg" alt="M-Pesa" width={44} height={44} className="w-full h-full object-contain" />
+                  <Image src="/gateways/mpesa.png" alt="M-Pesa" width={48} height={48} className="w-full h-full object-cover rounded-xl" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-[#F8FAFC]">M-Pesa (Vodacom)</h4>
@@ -1283,7 +1283,7 @@ export default function NewProductWizardPage() {
             >
               <div className="flex items-center gap-3.5">
                 <div className="w-14 h-14 rounded-2xl bg-white shadow-xs border-2 border-slate-200/90 p-2 flex items-center justify-center shrink-0 overflow-hidden">
-                  <Image src="/gateways/emola.svg" alt="e-Mola" width={44} height={44} className="w-full h-full object-contain" />
+                  <Image src="/gateways/emola.png" alt="e-Mola" width={48} height={48} className="w-full h-full object-cover rounded-xl" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-[#F8FAFC]">e-Mola (Movitel)</h4>

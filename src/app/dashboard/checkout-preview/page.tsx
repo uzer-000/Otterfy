@@ -169,10 +169,12 @@ export default function CheckoutPreviewPage() {
       {/* Simulator Container */}
       <div className="w-full flex justify-center py-4">
         <div
-          className={`transition-all duration-300 overflow-hidden ${
+          data-theme="light"
+          style={{ colorScheme: 'light', backgroundColor: '#F5F3FA', color: '#0F172A' }}
+          className={`pay-checkout-root light transition-all duration-300 overflow-hidden text-[#0F172A] ${
             deviceMode === 'mobile'
-              ? 'w-full max-w-[420px] rounded-[40px] border-8 border-slate-900 dark:border-[#1A1820] shadow-[0_0_50px_rgba(0,0,0,0.15)] dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-[#F5F3FA] dark:bg-[#08070C]'
-              : 'w-full max-w-[560px] rounded-3xl border border-slate-200 dark:border-[#1E1B26] shadow-xl bg-[#F5F3FA] dark:bg-[#08070C]'
+              ? 'w-full max-w-[420px] rounded-[36px] border-[6px] border-slate-200/90 shadow-2xl bg-[#F5F3FA]'
+              : 'w-full max-w-[560px] rounded-3xl border border-slate-200/90 shadow-xl bg-[#F5F3FA]'
           }`}
         >
           {/* Urgency Scarcity Timer */}
@@ -187,7 +189,7 @@ export default function CheckoutPreviewPage() {
           <div className="p-4 sm:p-6 space-y-5">
             {/* Banner */}
             {bannerUrl && (
-              <div className="w-full rounded-2xl overflow-hidden border border-gray-200 dark:border-[#1E1B26] shadow-sm bg-white dark:bg-[#121016]">
+              <div className="w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white">
                 <img
                   src={bannerUrl}
                   alt="Banner do Checkout"
@@ -208,10 +210,10 @@ export default function CheckoutPreviewPage() {
             </Suspense>
 
             {/* Small Footer Branding Only */}
-            <div className="text-center pb-2 flex items-center justify-center gap-1.5 text-slate-500 dark:text-gray-400 text-xs font-medium">
+            <div className="text-center pb-2 flex items-center justify-center gap-1.5 text-slate-500 text-xs font-medium">
               <span>Powered by</span>
               <img src="/logo.png" alt="Otterfy" className="w-3.5 h-3.5 object-contain inline-block align-middle opacity-90" />
-              <span className="font-bold text-slate-700 dark:text-gray-300">Otterfy</span>
+              <span className="font-bold text-slate-700">Otterfy</span>
             </div>
           </div>
         </div>

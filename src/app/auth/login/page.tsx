@@ -159,11 +159,11 @@ export default function LoginPage() {
               }`}
             >
               <Image
-                src="/gateways/Mpesa.png"
+                src="/gateways/mpesa.png"
                 alt="M-Pesa"
                 width={72}
                 height={28}
-                className="object-contain h-6 w-auto"
+                className="object-contain h-6 w-auto rounded"
               />
             </div>
             <div
