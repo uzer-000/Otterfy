@@ -1989,6 +1989,25 @@ html:has(.pay-checkout-root) body {
   color-scheme: light !important;
 }
 
+/* Nuclear override: ANY element inside .pay-checkout-root stays light */
+.pay-checkout-root,
+.pay-checkout-root *,
+.pay-checkout-root *::before,
+.pay-checkout-root *::after {
+  --bg-main: #F5F3FA !important;
+  --bg-surface: #FFFFFF !important;
+  --bg-surface-hover: #EDE9FE !important;
+  --bg-input: #F8FAFC !important;
+  --border-color: #CBD5E1 !important;
+  --text-primary: #0F172A !important;
+  --text-secondary: #334155 !important;
+  --text-muted: #475569 !important;
+}
 
+/* Prevent dark variant from applying inside checkout */
+[data-theme="dark"] .pay-checkout-root,
+[data-theme="dark"] .pay-checkout-root * {
+  color-scheme: light !important;
+}
 
 

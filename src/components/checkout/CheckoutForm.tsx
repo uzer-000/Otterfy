@@ -385,6 +385,7 @@ export default function CheckoutForm({
       <div
         role="alert"
         className="bg-white border border-gray-200 rounded-3xl p-8 text-center max-w-md mx-auto shadow-xl animate-fadeIn text-slate-900"
+        style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}
       >
         <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-100">
           <svg aria-hidden="true" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -406,11 +407,11 @@ export default function CheckoutForm({
 
   return (
     <>
-      <div className="w-full max-w-[480px] mx-auto bg-white rounded-[28px] border border-slate-200/85 shadow-[0_16px_44px_-12px_rgba(15,23,42,0.09),0_4px_14px_-4px_rgba(15,23,42,0.04)] overflow-hidden transition-colors">
+      <div className="w-full max-w-[480px] mx-auto bg-white rounded-[28px] border border-slate-200/85 shadow-[0_16px_44px_-12px_rgba(15,23,42,0.09),0_4px_14px_-4px_rgba(15,23,42,0.04)] overflow-hidden transition-colors" style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}>
         {/* Top subtle emerald accent line */}
         <div className="h-1 w-full bg-gradient-to-r from-[#059669] via-[#10B981] to-[#059669]" />
 
-      <form onSubmit={handleSubmit} noValidate className="p-5 sm:p-6 md:p-7 space-y-4 sm:space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="p-5 sm:p-6 md:p-7 space-y-4 sm:space-y-5" style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}>
         {/* ========================================================================= */}
         {/* 1. TOP HEADER: COMPRA SEGURA & MOÇAMBIQUE                                 */}
         {/* ========================================================================= */}
@@ -882,7 +883,7 @@ export default function CheckoutForm({
           aria-live="polite"
           aria-label="Processando pagamento..."
         >
-          <div className="bg-white rounded-3xl p-7 sm:p-8 max-w-sm w-full mx-auto flex flex-col items-center text-center shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl p-7 sm:p-8 max-w-sm w-full mx-auto flex flex-col items-center text-center shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150" style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}>
             {/* Branded Logo Container with Pulsing Ring & Smooth Outline */}
             <div className="relative mb-4">
               <div
