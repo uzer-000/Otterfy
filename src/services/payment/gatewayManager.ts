@@ -1,8 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import prisma from '@/lib/prisma';
 import { zenofyProvider, DEFAULT_ZENOFY_API_KEY } from './zenofy';
 import { E2PaymentProvider } from './e2payment';
 import { EscalePayProvider } from './escalepay';
+
+const CONFIG_EMAIL_GATEWAYS = '__system_gateways__@otterfy.internal';
+let memoryGateways: StoredGatewayConfig[] | null = null;
 
 export interface StoredGatewayConfig {
   id: string;
@@ -125,14 +129,33 @@ function ensureGatewaysFile() {
 }
 
 export function getAllGateways(): StoredGatewayConfig[] {
+  if (memoryGateways && memoryGateways.length > 0) return memoryGateways;
   try {
     ensureGatewaysFile();
     const content = fs.readFileSync(GATEWAYS_FILE_PATH, 'utf8');
-    return JSON.parse(content);
+    memoryGateways = JSON.parse(content);
+    return memoryGateways || [];
   } catch (e) {
     console.error('Erro ao ler gateways.json:', e);
     return [];
   }
+}
+
+export async function getAllGatewaysAsync(): Promise<StoredGatewayConfig[]> {
+  try {
+    const row = await prisma.user.findUnique({
+      where: { email: CONFIG_EMAIL_GATEWAYS },
+      select: { avatarImage: true },
+    });
+    if (row?.avatarImage) {
+      const parsed = JSON.parse(row.avatarImage);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        memoryGateways = parsed;
+        return parsed;
+      }
+    }
+  } catch {}
+  return getAllGateways();
 }
 
 export function saveGatewayConfig(
@@ -164,7 +187,25 @@ export function saveGatewayConfig(
     });
   }
 
-  fs.writeFileSync(GATEWAYS_FILE_PATH, JSON.stringify(all, null, 2), 'utf8');
+  memoryGateways = all;
+
+  // Persist to Neon DB asynchronously so changes are immediately live across all serverless instances
+  prisma.user.upsert({
+    where: { email: CONFIG_EMAIL_GATEWAYS },
+    create: {
+      email: CONFIG_EMAIL_GATEWAYS,
+      name: 'System Gateways Config',
+      passwordHash: '__system_gateways_hash__',
+      avatarImage: JSON.stringify(all),
+    },
+    update: {
+      avatarImage: JSON.stringify(all),
+    },
+  }).catch(() => {});
+
+  try {
+    fs.writeFileSync(GATEWAYS_FILE_PATH, JSON.stringify(all, null, 2), 'utf8');
+  } catch {}
   return all;
 }
 
@@ -214,7 +255,13 @@ export async function dispatchCheckout(params: DispatchCheckoutParams): Promise<
   if (activeGateway?.id === 'zenofy') {
     const creds = activeGateway.credentials || {};
     const apiKey = process.env.ZENOFY_API_KEY || creds.apiKey || DEFAULT_ZENOFY_API_KEY;
-    const targetProductId = params.zenofyProductId || creds.productId || process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2';
+    const targetProductId =
+      params.zenofyProductId ||
+      creds.gatewayProductId ||
+      process.env.ZENOFY_GATEWAY_PRODUCT_ID ||
+      creds.productId ||
+      process.env.ZENOFY_PRODUCT_ID ||
+      '6a14cb656c431b52f6375dc2';
 
     if (apiKey) {
       const res = await zenofyProvider.createCheckoutOrder({
