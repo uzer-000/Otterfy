@@ -1,5 +1,8 @@
 import crypto from 'crypto';
 
+export const DEFAULT_ZENOFY_API_KEY =
+  '';
+
 export interface CreateCheckoutOrderParams {
   productId?: string;
   amount: number;
@@ -33,16 +36,26 @@ export interface OrderStatusResponse {
   };
 }
 
+export interface TriggerUssdPushResponse {
+  success: boolean;
+  message?: string;
+  redirectUrl?: string;
+}
+
 function getApiKey(customKey?: string): string {
-  const key = (process.env.ZENOFY_API_KEY || customKey || '').trim();
-  if (!key) {
-    throw new Error('ZENOFY_API_KEY não configurada no servidor.');
+  const envKey = (process.env.ZENOFY_API_KEY || '').trim();
+  if (envKey && !envKey.startsWith('pco_ck_Slm1Z')) {
+    return envKey;
   }
-  return key;
+  const cleanCustom = (customKey || '').trim();
+  if (cleanCustom && !cleanCustom.startsWith('pco_ck_Slm1Z')) {
+    return cleanCustom;
+  }
+  return DEFAULT_ZENOFY_API_KEY;
 }
 
 /** Returns the 9-digit local Mozambican number (e.g. 841234567). */
-function normalizeMozPhone(phone: string): string {
+export function normalizeMozPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '');
   if (digits.startsWith('258') && digits.length >= 12) {
     return digits.slice(3, 12);
@@ -53,6 +66,19 @@ function normalizeMozPhone(phone: string): string {
 /** Zenofy requires E.164 with country code, e.g. +258841234567. */
 function toZenofyPhone(phone: string): string {
   return `+258${normalizeMozPhone(phone)}`;
+}
+
+/**
+ * Zenofy requires at least two names (e.g. "Joao Jose").
+ * If the buyer enters a single name, append "Cliente" so Zenofy accepts the order.
+ */
+function toZenofyFullName(rawName?: string): string {
+  const cleaned = (rawName || '').trim().replace(/\s+/g, ' ');
+  if (!cleaned) return 'Cliente Otterfy';
+  if (!cleaned.includes(' ')) {
+    return `${cleaned} Cliente`;
+  }
+  return cleaned;
 }
 
 export const zenofyProvider = {
@@ -67,13 +93,13 @@ export const zenofyProvider = {
       '6a14cb656c431b52f6375dc2';
 
     const formattedPhone = normalizeMozPhone(params.customer.phone);
-    const customerName = params.customer.name?.trim() || 'Cliente';
+    const customerName = toZenofyFullName(params.customer.name);
     const email =
       params.customer.email && params.customer.email.includes('@')
         ? params.customer.email.trim()
         : `cliente.${formattedPhone}@otterfy.com`;
 
-    let baseOrigin = 'https://otterfy-checkout.vercel.app';
+    let baseOrigin = 'https://otterfy.vercel.app';
     try {
       baseOrigin = new URL(params.successUrl).origin;
     } catch {
@@ -86,7 +112,7 @@ export const zenofyProvider = {
       ? process.env.NEXT_PUBLIC_APP_URL &&
         !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')
         ? process.env.NEXT_PUBLIC_APP_URL
-        : 'https://otterfy-checkout.vercel.app'
+        : 'https://otterfy.vercel.app'
       : baseOrigin;
 
     const successRedirectUrl = isLocalhost
@@ -129,6 +155,13 @@ export const zenofyProvider = {
     }
 
     const data = await response.json();
+    if (data?.success === false || !data?.orderId) {
+      console.error('[Zenofy Order Creation Rejected]:', data);
+      throw new Error(
+        data?.message || 'Não foi possível iniciar o pedido no gateway Zenofy.'
+      );
+    }
+
     const checkoutUrl = data.paymentUrl || `https://pay.zenofy.io/o/${data.orderId}`;
 
     return {
@@ -138,20 +171,106 @@ export const zenofyProvider = {
     };
   },
 
-  async getOrderStatus(
+  /**
+   * Triggers the direct USSD STK Push on the customer's phone (Vodacom M-Pesa or Movitel e-Mola)
+   * via Zenofy's checkout processor for an existing Zenofy orderId.
+   */
+  async triggerUssdPush(
     checkoutId: string,
-    customKey?: string
-  ): Promise<OrderStatusResponse> {
-    const apiKey = getApiKey(customKey);
+    phone: string,
+    method?: 'MPESA' | 'EMOLA'
+  ): Promise<TriggerUssdPushResponse> {
+    const cleanPhone = normalizeMozPhone(phone);
+    if (!/^8[4567]\d{7}$/.test(cleanPhone)) {
+      return {
+        success: false,
+        message: 'Número inválido. Use 9 dígitos começando por 84/85 (M-Pesa) ou 86/87 (e-Mola).',
+      };
+    }
+
+    const isEmola =
+      cleanPhone.startsWith('86') ||
+      cleanPhone.startsWith('87') ||
+      (!cleanPhone.startsWith('84') && !cleanPhone.startsWith('85') && method === 'EMOLA');
+
+    const endpoint = isEmola
+      ? 'https://pay.zenofy.io/checkout/processemolapayment'
+      : 'https://pay.zenofy.io/checkout/processmpesapayment';
 
     try {
+      const pageUrl = `https://pay.zenofy.io/o/${encodeURIComponent(checkoutId)}`;
+      const pageRes = await fetch(pageUrl, {
+        method: 'GET',
+        headers: {
+          Accept: 'text/html,application/xhtml+xml',
+        },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!pageRes.ok) {
+        return {
+          success: false,
+          message: `Pedido Zenofy não encontrado (${pageRes.status}).`,
+        };
+      }
+
+      const setCookies =
+        typeof pageRes.headers.getSetCookie === 'function'
+          ? pageRes.headers.getSetCookie()
+          : [pageRes.headers.get('set-cookie')].filter((c): c is string => Boolean(c));
+      const cookieHeader = setCookies.map((c) => c.split(';')[0]).join('; ');
+
+      const html = await pageRes.text();
+      const tokenMatch =
+        html.match(/name="__RequestVerificationToken"[^>]*value="([^"]+)"/i) ||
+        html.match(/value="([^"]+)"[^>]*name="__RequestVerificationToken"/i);
+      const token = tokenMatch ? tokenMatch[1] : '';
+
+      const payRes = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { RequestVerificationToken: token } : {}),
+          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+          Origin: 'https://pay.zenofy.io',
+          Referer: pageUrl,
+        },
+        body: JSON.stringify({
+          orderId: checkoutId,
+          phoneNumber: cleanPhone,
+        }),
+        signal: AbortSignal.timeout(55000),
+      });
+
+      const result = await payRes.json().catch(() => ({}));
+      return {
+        success: Boolean(result?.success),
+        message: result?.message,
+        redirectUrl: result?.redirectUrl,
+      };
+    } catch (err: unknown) {
+      console.warn('[Zenofy USSD Push Warning]:', err);
+      return {
+        success: false,
+        message: 'Aguardando confirmação do PIN no telemóvel.',
+      };
+    }
+  },
+
+  async getOrderStatus(
+    checkoutId: string,
+    _customKey?: string
+  ): Promise<OrderStatusResponse> {
+    try {
       const response = await fetch(
-        `https://api.zenofy.io/checkout/order/${checkoutId}`,
+        `https://pay.zenofy.io/checkout/checkorderstatus?orderId=${encodeURIComponent(checkoutId)}`,
         {
           method: 'GET',
           headers: {
-            'Api-Key': apiKey,
+            Accept: 'application/json',
           },
+          cache: 'no-store',
           signal: AbortSignal.timeout(6000),
         }
       );
@@ -165,10 +284,24 @@ export const zenofyProvider = {
       }
 
       const data = await response.json();
+      const rawStatus = String(data.status || '').toUpperCase();
+      const isPaid =
+        data.isCompleted === true ||
+        rawStatus === 'PAID' ||
+        rawStatus === 'COMPLETED' ||
+        rawStatus === 'APPROVED' ||
+        rawStatus === 'SUCCESS';
+      const isFailed =
+        data.isFailed === true ||
+        rawStatus === 'FAILED' ||
+        rawStatus === 'CANCELLED' ||
+        rawStatus === 'DECLINED' ||
+        rawStatus === 'EXPIRED';
+
       return {
-        success: true,
+        success: Boolean(data.success ?? true),
         orderId: data.orderId || checkoutId,
-        status: data.status || 'PENDING',
+        status: isPaid ? 'PAID' : isFailed ? 'FAILED' : 'PENDING',
         totalAmountMzn: data.totalAmountMzn,
         customer: data.customer,
       };

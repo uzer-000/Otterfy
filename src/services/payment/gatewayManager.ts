@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { zenofyProvider } from './zenofy';
+import { zenofyProvider, DEFAULT_ZENOFY_API_KEY } from './zenofy';
 import { E2PaymentProvider } from './e2payment';
 import { EscalePayProvider } from './escalepay';
 
@@ -169,7 +169,13 @@ export function saveGatewayConfig(
 
 export function getActiveGateway(): StoredGatewayConfig | null {
   const all = getAllGateways();
-  return all.find((g) => g.status === 'Ativo') || all[0] || null;
+  const realIds = ['zenofy', 'e2payment', 'escalepay'];
+  return (
+    all.find((g) => realIds.includes(g.id) && g.status === 'Ativo') ||
+    all.find((g) => g.status === 'Ativo') ||
+    all[0] ||
+    null
+  );
 }
 
 export interface DispatchCheckoutParams {
@@ -206,8 +212,7 @@ export async function dispatchCheckout(params: DispatchCheckoutParams): Promise<
   // 1. Zenofy
   if (activeGateway?.id === 'zenofy') {
     const creds = activeGateway.credentials || {};
-    // Server env always wins over the (tracked) JSON store.
-    const apiKey = process.env.ZENOFY_API_KEY || creds.apiKey;
+    const apiKey = process.env.ZENOFY_API_KEY || creds.apiKey || DEFAULT_ZENOFY_API_KEY;
     const targetProductId = params.zenofyProductId || creds.productId || process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2';
 
     if (apiKey) {
@@ -299,7 +304,7 @@ export async function dispatchCheckout(params: DispatchCheckoutParams): Promise<
   }
 
   // 4. Fallback to Zenofy with default credentials
-  const fallbackApiKey = process.env.ZENOFY_API_KEY;
+  const fallbackApiKey = process.env.ZENOFY_API_KEY || DEFAULT_ZENOFY_API_KEY;
   const fallbackProductId = params.zenofyProductId || process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2';
 
   const res = await zenofyProvider.createCheckoutOrder({

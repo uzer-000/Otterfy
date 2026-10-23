@@ -29,6 +29,42 @@ export default function CheckoutUssdPushModal({
   const [status, setStatus] = useState<'waiting' | 'approved' | 'expired'>('waiting');
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const triggeredOrderRef = React.useRef<string | null>(null);
+
+  const triggerPhoneUssdPush = React.useCallback(
+    async (targetOrderId: string) => {
+      try {
+        const res = await fetch('/api/checkout/ussd', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: targetOrderId }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === 'APPROVED') {
+          setStatus('approved');
+          setTimeout(() => {
+            onSuccess(targetOrderId, data.upsellUrl || upsellUrl);
+          }, 1500);
+        }
+      } catch {
+        // Polling /api/checkout/status continues in background
+      }
+    },
+    [onSuccess, upsellUrl]
+  );
+
+  useEffect(() => {
+    if (!isOpen || !orderId) {
+      triggeredOrderRef.current = null;
+      return;
+    }
+    if (triggeredOrderRef.current === orderId) return;
+    triggeredOrderRef.current = orderId;
+    setTimeLeft(60);
+    setStatus('waiting');
+    void triggerPhoneUssdPush(orderId);
+  }, [isOpen, orderId, triggerPhoneUssdPush]);
 
   const isMpesa = paymentMethod === 'MPESA';
   const brandName = isMpesa ? 'M-Pesa' : 'e-Mola';
@@ -136,8 +172,11 @@ export default function CheckoutUssdPushModal({
   const handleRestartTimer = () => {
     setTimeLeft(60);
     setStatus('waiting');
-    setResendMessage('Tempo reiniciado. Aguarde o pop-up no seu telemóvel.');
-    setTimeout(() => setResendMessage(null), 3000);
+    setResendMessage('Novo pedido USSD enviado! Verifique o ecrã do seu telemóvel.');
+    if (orderId) {
+      void triggerPhoneUssdPush(orderId);
+    }
+    setTimeout(() => setResendMessage(null), 3500);
   };
 
   if (!isOpen) return null;

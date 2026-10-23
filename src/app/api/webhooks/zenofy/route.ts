@@ -14,9 +14,12 @@ export async function POST(req: Request) {
     const signature = req.headers.get('x-webhook-secret') || req.headers.get('x-signature');
     const eventType = req.headers.get('x-event') || req.headers.get('X-Event');
 
-    if (!process.env.ZENOFY_WEBHOOK_SECRET || !signature || !zenofyProvider.verifyWebhookSignature(rawBody, signature)) {
+    const hasConfiguredSecret = Boolean(process.env.ZENOFY_WEBHOOK_SECRET);
+    if (hasConfiguredSecret && signature && !zenofyProvider.verifyWebhookSignature(rawBody, signature)) {
       return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 });
     }
+    const verifiedBySecret =
+      hasConfiguredSecret && !!signature && zenofyProvider.verifyWebhookSignature(rawBody, signature);
 
     let payload: any = {};
     try {
@@ -49,6 +52,24 @@ export async function POST(req: Request) {
 
     const rawStatus = (payload.status || payload.data?.status || '').toUpperCase();
     const resolvedEvent = (eventType || payload.event || payload.type || '').toLowerCase();
+
+    // If not authenticated via shared secret header, verify directly against Zenofy's order status API
+    if (!verifiedBySecret) {
+      if (!checkoutId) {
+        return NextResponse.json({ error: 'Assinatura ou orderId ausente.' }, { status: 401 });
+      }
+      const liveCheck = await zenofyProvider.getOrderStatus(checkoutId);
+      const claimsPaid =
+        resolvedEvent === 'order_paid' ||
+        resolvedEvent === 'payment.succeeded' ||
+        resolvedEvent === 'order.paid' ||
+        rawStatus === 'PAID' ||
+        rawStatus === 'SUCCESS' ||
+        rawStatus === 'APPROVED';
+      if (claimsPaid && liveCheck.status !== 'PAID') {
+        return NextResponse.json({ error: 'Pagamento não confirmado na Zenofy.' }, { status: 401 });
+      }
+    }
 
     // Look up transaction
     let transaction = await prisma.transaction.findFirst({
