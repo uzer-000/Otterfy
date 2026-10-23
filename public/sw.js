@@ -1,4 +1,4 @@
-// Otterfy Service Worker for Real Background Web Push & System Notifications
+// Otterfy Service Worker for Real Background Web Push & System Notifications (v2.2)
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
@@ -6,6 +6,21 @@ self.addEventListener('install', () => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
+
+function formatMznBody(amount) {
+  if (amount === undefined || amount === null || isNaN(Number(amount))) {
+    return 'Valor : MT 0,00';
+  }
+  try {
+    const formatted = new Intl.NumberFormat('pt-MZ', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(amount));
+    return `Valor : MT ${formatted}`;
+  } catch {
+    return `Valor : MT ${amount},00`;
+  }
+}
 
 // Receive Web Push messages from Otterfy server even when the app/browser is completely closed!
 self.addEventListener('push', (event) => {
@@ -26,6 +41,9 @@ self.addEventListener('push', (event) => {
         ...parsed,
         title: parsed.title || 'Venda Aprovada - Otterfy',
       };
+      if (parsed.amount !== undefined && !parsed.body) {
+        payload.body = formatMznBody(parsed.amount);
+      }
     } catch {
       try {
         payload.body = event.data.text() || payload.body;

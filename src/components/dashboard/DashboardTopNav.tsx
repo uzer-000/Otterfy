@@ -191,7 +191,10 @@ export default function DashboardTopNav() {
       return;
     }
     try {
-      const reg = await navigator.serviceWorker.register('/sw.js');
+      const reg = await navigator.serviceWorker.register('/sw.js?v=2.2');
+      try {
+        await reg.update();
+      } catch {}
       await navigator.serviceWorker.ready;
 
       if ('Notification' in window && Notification.permission === 'default') {

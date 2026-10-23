@@ -82,6 +82,7 @@ function ensureGatewaysFile() {
         credentials: {
           apiKey: '',
           productId: process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2',
+          gatewayProductId: process.env.ZENOFY_GATEWAY_PRODUCT_ID || '',
           webhookSecret: process.env.ZENOFY_WEBHOOK_SECRET || '',
         },
       },

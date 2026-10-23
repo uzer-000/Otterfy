@@ -148,7 +148,8 @@ const BACKUP_GATEWAYS: GatewaySpec[] = [
     environment: 'Produção',
     fields: [
       { key: 'apiKey', label: 'Zenofy API Key', placeholder: 'pco_ck_xxxxxxxxxxxxxxxxxxxxxxxx', type: 'password' },
-      { key: 'productId', label: 'Product ID Padrão', placeholder: '6a14cb656c431b52f6375dc2' },
+      { key: 'productId', label: 'Product ID Padrão (Preço Fixo)', placeholder: '6a14cb656c431b52f6375dc2' },
+      { key: 'gatewayProductId', label: 'Product ID (API Gateway Dinâmico)', placeholder: 'ID do Produto API Gateway da sua conta Zenofy', help: 'Crie um produto do tipo API Gateway no app.zenofy.io para aceitar qualquer valor customizado (10, 50, 120, 150 MT) direto na sua conta.' },
       { key: 'webhookSecret', label: 'Webhook Secret', placeholder: 'whsec_xxxxxxxxxxxxxxxxxxxxxx', type: 'password' },
     ],
   },
