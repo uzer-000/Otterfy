@@ -551,6 +551,11 @@ export const dbStore = {
     }
   },
 
+  /** Orders persisted only in the local JSON fallback store (e.g. when the DB write failed). */
+  getLocalOrders(): OrderItem[] {
+    return readLocalStore().orders;
+  },
+
   async getOrderById(id: string): Promise<OrderItem | null> {
     try {
       const o = await prisma.order.findUnique({

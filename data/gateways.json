@@ -57,7 +57,7 @@
     "status": "Ativo",
     "environment": "Produção",
     "credentials": {
-      "apiKey": "pco_ck_Slm1ZREq0Mp5Fsrn6uZiR-SXQ8WBlheCXzESal0S73Y",
+      "apiKey": "",
       "productId": "6a14cb656c431b52f6375dc2",
       "webhookSecret": ""
     }

@@ -10,7 +10,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Payload demasiado grande.' }, { status: 413 });
     }
     const rawBody = await req.text();
-    const signature = req.headers.get('x-signature') || req.headers.get('X-Signature');
+    // Zenofy sends the product's shared secret verbatim in X-Webhook-Secret.
+    const signature = req.headers.get('x-webhook-secret') || req.headers.get('x-signature');
     const eventType = req.headers.get('x-event') || req.headers.get('X-Event');
 
     if (!process.env.ZENOFY_WEBHOOK_SECRET || !signature || !zenofyProvider.verifyWebhookSignature(rawBody, signature)) {
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
 
     // If not found in prisma, check local store
     if (!transaction) {
-      const allOrders = await dbStore.getOrders();
+      const allOrders = [...(await dbStore.getOrders()), ...dbStore.getLocalOrders()];
       const matchedOrder = allOrders.find(
         (o) =>
           (checkoutId && o.transaction?.zenofyCheckoutId === checkoutId) ||
@@ -71,14 +72,29 @@ export async function POST(req: Request) {
       );
 
       if (matchedOrder) {
+        const evt = String(payload.event || '').toLowerCase();
+        const st = String(payload.status || '').toUpperCase();
+        const localStatus =
+          evt === 'order_paid' || st === 'PAID'
+            ? ('APPROVED' as const)
+            : evt === 'order_refunded' || st === 'REFUNDED'
+            ? ('REFUNDED' as const)
+            : evt === 'order_cancelled' || st === 'CANCELLED'
+            ? ('DECLINED' as const)
+            : undefined;
+
+        if (!localStatus) {
+          return NextResponse.json({ received: true, source: 'local_store', note: 'Evento ignorado' });
+        }
+
         await dbStore.updateOrderTransaction(matchedOrder.id, {
-          status: 'APPROVED',
+          status: localStatus,
           zenofyTransactionId: paymentId || checkoutId,
           responsePayload: payload,
         });
 
         const prod = await dbStore.getProductById(matchedOrder.productId);
-        if (prod) {
+        if (prod && localStatus === 'APPROVED') {
           const approvedOrder = { ...matchedOrder, status: 'APPROVED' as const };
           Promise.allSettled([
             dispatchProductWebhook(prod, 'order.approved', approvedOrder),
@@ -97,6 +113,7 @@ export async function POST(req: Request) {
     let newStatus: 'APPROVED' | 'REFUNDED' | 'CHARGEBACK' | 'DECLINED' | undefined;
 
     if (
+      resolvedEvent === 'order_paid' ||
       resolvedEvent === 'payment.succeeded' ||
       resolvedEvent === 'order.paid' ||
       rawStatus === 'PAID' ||
@@ -104,11 +121,12 @@ export async function POST(req: Request) {
       rawStatus === 'APPROVED'
     ) {
       newStatus = 'APPROVED';
-    } else if (resolvedEvent === 'payment.refunded' || rawStatus === 'REFUNDED') {
+    } else if (resolvedEvent === 'order_refunded' || resolvedEvent === 'payment.refunded' || rawStatus === 'REFUNDED') {
       newStatus = 'REFUNDED';
     } else if (resolvedEvent === 'payment.chargeback' || rawStatus === 'CHARGEBACK') {
       newStatus = 'CHARGEBACK';
     } else if (
+      resolvedEvent === 'order_cancelled' ||
       resolvedEvent === 'payment.failed' ||
       rawStatus === 'FAILED' ||
       rawStatus === 'DECLINED' ||
@@ -126,7 +144,7 @@ export async function POST(req: Request) {
     };
 
     const resolvedMethod =
-      mapPaymentMethod(payload.payment_method || payload.paymentMethod || payload.data?.paymentMethod) ??
+      mapPaymentMethod(payload.payment_method || payload.paymentMethod || payload.paymentGateway || payload.data?.paymentMethod) ??
       transaction.method;
 
     if (newStatus) {

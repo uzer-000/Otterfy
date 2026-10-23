@@ -34,19 +34,25 @@ export interface OrderStatusResponse {
 }
 
 function getApiKey(customKey?: string): string {
-  return (
-    customKey ||
-    process.env.ZENOFY_API_KEY ||
-    'pco_ck_Slm1ZREq0Mp5Fsrn6uZiR-SXQ8WBlheCXzESal0S73Y'
-  );
+  const key = (process.env.ZENOFY_API_KEY || customKey || '').trim();
+  if (!key) {
+    throw new Error('ZENOFY_API_KEY não configurada no servidor.');
+  }
+  return key;
 }
 
+/** Returns the 9-digit local Mozambican number (e.g. 841234567). */
 function normalizeMozPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '');
   if (digits.startsWith('258') && digits.length >= 12) {
     return digits.slice(3, 12);
   }
   return digits.slice(-9);
+}
+
+/** Zenofy requires E.164 with country code, e.g. +258841234567. */
+function toZenofyPhone(phone: string): string {
+  return `+258${normalizeMozPhone(phone)}`;
 }
 
 export const zenofyProvider = {
@@ -93,7 +99,7 @@ export const zenofyProvider = {
       productId: targetProductId,
       customerName,
       email,
-      phoneNumber: formattedPhone,
+      phoneNumber: toZenofyPhone(params.customer.phone),
       redirectUrl: successRedirectUrl,
       webhookUrl,
     };
@@ -175,22 +181,16 @@ export const zenofyProvider = {
     }
   },
 
-  verifyWebhookSignature(rawBody: string, signature: string): boolean {
+  /**
+   * Zenofy sends the shared secret configured on the product integration
+   * verbatim in the `X-Webhook-Secret` header (no HMAC).
+   */
+  verifyWebhookSignature(_rawBody: string, signature: string): boolean {
     const webhookSecret = process.env.ZENOFY_WEBHOOK_SECRET || '';
-    if (!webhookSecret) return false;
+    if (!webhookSecret || !signature) return false;
 
-    const expectedSignature = crypto
-      .createHmac('sha256', webhookSecret)
-      .update(rawBody)
-      .digest('hex');
-
-    try {
-      return crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
-      );
-    } catch {
-      return false;
-    }
+    const a = crypto.createHash('sha256').update(signature.trim()).digest();
+    const b = crypto.createHash('sha256').update(webhookSecret).digest();
+    return crypto.timingSafeEqual(a, b);
   },
 };

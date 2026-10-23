@@ -80,7 +80,7 @@ function ensureGatewaysFile() {
         status: 'Ativo',
         environment: 'Produção',
         credentials: {
-          apiKey: process.env.ZENOFY_API_KEY || 'pco_ck_Slm1ZREq0Mp5Fsrn6uZiR-SXQ8WBlheCXzESal0S73Y',
+          apiKey: '',
           productId: process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2',
           webhookSecret: process.env.ZENOFY_WEBHOOK_SECRET || '',
         },
@@ -206,7 +206,8 @@ export async function dispatchCheckout(params: DispatchCheckoutParams): Promise<
   // 1. Zenofy
   if (activeGateway?.id === 'zenofy') {
     const creds = activeGateway.credentials || {};
-    const apiKey = creds.apiKey || process.env.ZENOFY_API_KEY || 'pco_ck_Slm1ZREq0Mp5Fsrn6uZiR-SXQ8WBlheCXzESal0S73Y';
+    // Server env always wins over the (tracked) JSON store.
+    const apiKey = process.env.ZENOFY_API_KEY || creds.apiKey;
     const targetProductId = params.zenofyProductId || creds.productId || process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2';
 
     if (apiKey) {
@@ -298,7 +299,7 @@ export async function dispatchCheckout(params: DispatchCheckoutParams): Promise<
   }
 
   // 4. Fallback to Zenofy with default credentials
-  const fallbackApiKey = process.env.ZENOFY_API_KEY || 'pco_ck_Slm1ZREq0Mp5Fsrn6uZiR-SXQ8WBlheCXzESal0S73Y';
+  const fallbackApiKey = process.env.ZENOFY_API_KEY;
   const fallbackProductId = params.zenofyProductId || process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2';
 
   const res = await zenofyProvider.createCheckoutOrder({
