@@ -106,9 +106,19 @@ export default function AccountSettingsPage() {
               if (d.profile.phone) setPhone(d.profile.phone);
             }
             const cloudAvatar = d.avatarImage || d.profile?.avatarImage || d.user?.avatarImage;
-            if (cloudAvatar) {
+            if (cloudAvatar && typeof cloudAvatar === 'string' && cloudAvatar.length > 10) {
               setAvatarImage(cloudAvatar);
               localStorage.setItem('otterfy_profile_avatar', cloudAvatar);
+            } else {
+              const currentLocal = localStorage.getItem('otterfy_profile_avatar');
+              if (currentLocal && currentLocal.length > 10) {
+                setAvatarImage(currentLocal);
+                fetch('/api/user/profile', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ avatarImage: currentLocal }),
+                }).catch(() => {});
+              }
             }
           })
           .catch(() => {});
@@ -205,7 +215,7 @@ export default function AccountSettingsPage() {
       await fetch('/api/user/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatarImage: '', name: fullName }),
+        body: JSON.stringify({ avatarImage: '', removeAvatar: true, name: fullName }),
       });
 
       window.dispatchEvent(new Event('profile_updated'));

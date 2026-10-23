@@ -3,7 +3,7 @@ import { z } from 'zod';
 import dbStore from '@/lib/store';
 import { dispatchCheckout } from '@/services/payment/gatewayManager';
 import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder, dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
-import { getZenofyTierByPrice, getClosestZenofyTierByPrice, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
+import { getZenofyTierByPrice, getZenofyTierById } from '@/lib/zenofyPrices';
 import { clientIp } from '@/lib/security';
 
 export const maxDuration = 60;
@@ -155,15 +155,21 @@ export async function POST(req: Request) {
       utmParams,
     });
 
-    const resolvedZenofyProductId =
-      process.env.ZENOFY_GATEWAY_PRODUCT_ID ||
+    const rawProductZenofyId =
       product.zenofyProductId ||
       product.checkoutSettings?.zenofyProductId ||
-      product.checkoutSettings?.customCheckout?.zenofyProductId ||
-      getZenofyTierByPrice(totalAmount)?.id ||
-      getZenofyTierByPrice(product.price)?.id ||
-      getClosestZenofyTierByPrice(totalAmount)?.id ||
-      DEFAULT_ZENOFY_PRODUCT_ID;
+      product.checkoutSettings?.customCheckout?.zenofyProductId;
+
+    const legacyTier = rawProductZenofyId ? getZenofyTierById(rawProductZenofyId) : undefined;
+    const validCustomZenofyId =
+      rawProductZenofyId && (!legacyTier || Math.round(legacyTier.price) === Math.round(totalAmount))
+        ? rawProductZenofyId
+        : undefined;
+
+    const resolvedZenofyProductId =
+      process.env.ZENOFY_GATEWAY_PRODUCT_ID ||
+      validCustomZenofyId ||
+      getZenofyTierByPrice(totalAmount)?.id;
 
     const dispatchResult = await dispatchCheckout({
       orderId: order.id,

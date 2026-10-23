@@ -106,10 +106,11 @@ export default function BalancePage() {
   const [newAccBank, setNewAccBank] = useState(MOZ_BANKS[0]);
 
   // Theme observer
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
   useEffect(() => {
     const update = () => {
-      setTheme((document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark');
+      const attr = document.documentElement.getAttribute('data-theme');
+      setTheme(attr === 'dark' ? 'dark' : 'light');
     };
     update();
     const obs = new MutationObserver(update);

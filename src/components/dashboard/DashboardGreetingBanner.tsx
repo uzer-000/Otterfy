@@ -16,13 +16,26 @@ export default function DashboardGreetingBanner() {
       fetch('/api/user/profile', { cache: 'no-store' })
         .then((r) => r.json())
         .then((d) => {
-          const cloudAvatar = d.avatarImage !== undefined ? d.avatarImage : (d.profile?.avatarImage !== undefined ? d.profile.avatarImage : d.user?.avatarImage);
-          if (cloudAvatar !== undefined) {
-            setAvatar(cloudAvatar || '');
-            if (cloudAvatar) {
-              localStorage.setItem('otterfy_profile_avatar', cloudAvatar);
+          const cloudAvatar =
+            d.avatarImage !== undefined
+              ? d.avatarImage
+              : d.profile?.avatarImage !== undefined
+              ? d.profile.avatarImage
+              : d.user?.avatarImage;
+          if (cloudAvatar && typeof cloudAvatar === 'string' && cloudAvatar.length > 10) {
+            setAvatar(cloudAvatar);
+            localStorage.setItem('otterfy_profile_avatar', cloudAvatar);
+          } else {
+            const localSaved = localStorage.getItem('otterfy_profile_avatar');
+            if (localSaved && localSaved.length > 10) {
+              setAvatar(localSaved);
+              fetch('/api/user/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ avatarImage: localSaved }),
+              }).catch(() => {});
             } else {
-              localStorage.removeItem('otterfy_profile_avatar');
+              setAvatar('');
             }
           }
         })

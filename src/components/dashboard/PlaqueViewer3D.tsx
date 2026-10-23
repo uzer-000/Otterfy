@@ -353,25 +353,25 @@ export default function PlaqueViewer3D({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200 select-none"
       onClick={onClose}
     >
-      {/* Modal Shell matching the reference screenshot */}
+      {/* Modal Shell with full Light & Dark high-contrast support */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="otter-keep-colors relative w-full max-w-[460px] sm:max-w-[490px] rounded-[28px] border border-white/10 bg-[#08070D] p-6 sm:p-7 flex flex-col items-center overflow-hidden shadow-2xl text-white"
+        className="relative w-full max-w-[460px] sm:max-w-[490px] rounded-[28px] border border-slate-200 dark:border-white/10 bg-white dark:bg-[#08070D] p-6 sm:p-7 flex flex-col items-center overflow-hidden shadow-2xl text-slate-900 dark:text-white"
         style={{
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 50px -10px rgba(139, 92, 246, 0.25)',
+          boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.35), 0 0 50px -10px rgba(139, 92, 246, 0.25)',
         }}
       >
         {/* Subtle Sunburst Radial Rays Emanating from Behind the Award */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
           {/* Radial Glow Center */}
-          <div className="absolute w-[440px] h-[440px] rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.22)_0%,rgba(124,58,237,0.08)_40%,transparent_70%)] blur-2xl" />
+          <div className="absolute w-[440px] h-[440px] rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.18)_0%,rgba(124,58,237,0.06)_40%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.22)_0%,rgba(124,58,237,0.08)_40%,transparent_70%)] blur-2xl" />
 
           {/* SVG Sunburst Rays */}
           <svg
-            className="absolute w-[600px] h-[600px] opacity-25 mix-blend-screen"
+            className="absolute w-[600px] h-[600px] opacity-15 dark:opacity-25 dark:mix-blend-screen"
             viewBox="0 0 500 500"
             fill="none"
           >
@@ -406,8 +406,7 @@ export default function PlaqueViewer3D({
         <button
           type="button"
           onClick={onClose}
-          className="otter-keep-colors absolute top-5 right-5 z-40 w-8 h-8 rounded-full flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-sm"
-          style={{ color: '#CBD5E1' }}
+          className="absolute top-5 right-5 z-40 w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 transition-colors cursor-pointer text-sm"
           title="Fechar"
         >
           ✕
@@ -416,12 +415,12 @@ export default function PlaqueViewer3D({
         {/* Top Status Pill: STILL LOCKED / DESBLOQUEADO */}
         <div className="relative z-20 mb-2">
           {isUnlocked ? (
-            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-sm shadow-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-emerald-500/15 border border-emerald-500/35 text-emerald-700 dark:text-emerald-400 shadow-sm shadow-emerald-500/15">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
               <span>DESBLOQUEADO</span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-violet-600/15 border border-violet-500/40 text-violet-300 shadow-sm shadow-violet-500/20">
+            <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-violet-600/15 border border-violet-500/40 text-violet-700 dark:text-violet-300 shadow-sm shadow-violet-500/15">
               <span>STILL LOCKED</span>
             </div>
           )}
@@ -429,7 +428,7 @@ export default function PlaqueViewer3D({
 
         {/* Color/Style Variant Switcher for 3D Wristbands (Roxa / Branca) */}
         {variants && variants.length > 1 && (
-          <div className="relative z-30 flex items-center gap-1.5 p-1 rounded-full bg-white/10 dark:bg-white/5 border border-white/15 backdrop-blur-md mb-2">
+          <div className="relative z-30 flex items-center gap-1.5 p-1 rounded-full bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/15 backdrop-blur-md mb-2">
             {variants.map((v) => {
               const isSelected = activeModelUrl === v.modelGlb;
               return (
@@ -439,8 +438,8 @@ export default function PlaqueViewer3D({
                   onClick={() => setActiveModelUrl(v.modelGlb)}
                   className={`px-3.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                     isSelected
-                      ? 'bg-white text-black shadow-md shadow-white/10'
-                      : 'text-slate-300 hover:text-white hover:bg-white/10'
+                      ? 'bg-violet-600 text-white dark:bg-white dark:text-black shadow-md'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10'
                   }`}
                 >
                   <span
@@ -496,7 +495,7 @@ export default function PlaqueViewer3D({
               <img
                 src={fallbackImage}
                 alt={title}
-                className="max-h-full max-w-full object-contain filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.85)] pointer-events-none"
+                className="max-h-full max-w-full object-contain filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.45)] dark:drop-shadow-[0_20px_35px_rgba(0,0,0,0.85)] pointer-events-none"
               />
 
               {/* Dynamic Glossy Specular Shine that follows the cursor */}
@@ -513,13 +512,13 @@ export default function PlaqueViewer3D({
           {/* Loading Indicator for 3D GLB */}
           {loading && (
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center space-y-3 pointer-events-none">
-              <div className="w-10 h-10 rounded-2xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-400">
+              <div className="w-10 h-10 rounded-2xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-600 dark:text-violet-400">
                 <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
               </div>
-              <span className="text-[11px] font-mono text-violet-300">
+              <span className="text-[11px] font-mono font-bold text-violet-700 dark:text-violet-300">
                 Carregando 3D ({loadProgress}%)
               </span>
             </div>
@@ -528,13 +527,13 @@ export default function PlaqueViewer3D({
 
         {/* Title and Subtitle */}
         <div className="relative z-20 text-center mt-3 space-y-1">
-          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight otter-keep-colors" style={{ color: '#FFFFFF' }}>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             {title}
           </h2>
-          <p className="text-xs sm:text-[13px] text-slate-300 otter-keep-colors" style={{ color: '#CBD5E1' }}>
+          <p className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-300">
             {targetAmount > 0 ? (
               <>
-                Desbloqueia aos <strong className="text-white font-bold otter-keep-colors" style={{ color: '#FFFFFF' }}>{formattedTarget}</strong> em vendas
+                Desbloqueia aos <strong className="text-slate-900 dark:text-white font-bold">{formattedTarget}</strong> em vendas
               </>
             ) : (
               <>Acesso liberado no primeiro dia na Otterfy</>
@@ -543,36 +542,36 @@ export default function PlaqueViewer3D({
         </div>
 
         {/* Horizontal Divider Line */}
-        <div className="relative z-20 w-full border-t border-white/10 my-4" />
+        <div className="relative z-20 w-full border-t border-slate-200 dark:border-white/10 my-4" />
 
         {/* Two-Column Info Bar (MARCO & INSTAGRAM / BENEFÍCIO) */}
         <div className="relative z-20 w-full grid grid-cols-2 gap-4 text-left">
           {/* Left Column: MARCO */}
           <div className="space-y-1">
-            <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase block otter-keep-colors" style={{ color: '#94A3B8' }}>
+            <span className="text-[10px] font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase block">
               MARCO
             </span>
-            <div className="text-xs sm:text-[13px] text-slate-200 otter-keep-colors" style={{ color: '#E2E8F0' }}>
-              <strong className="text-white font-bold otter-keep-colors" style={{ color: '#FFFFFF' }}>{formattedTarget}</strong> em vendas
+            <div className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-200">
+              <strong className="text-slate-900 dark:text-white font-bold">{formattedTarget}</strong> em vendas
             </div>
           </div>
 
           {/* Right Column: INSTAGRAM & RECONHECIMENTO */}
           <div className="space-y-1">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase otter-keep-colors" style={{ color: '#94A3B8' }}>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase">
               <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
               </svg>
               <span>{type === 'bracelet' ? 'ENVIO FÍSICO' : 'INSTAGRAM'}</span>
             </div>
-            <div className="text-xs sm:text-[13px] text-slate-200 otter-keep-colors" style={{ color: '#E2E8F0' }}>
+            <div className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-200">
               {type === 'bracelet' ? (
                 <>
-                  <strong className="text-white font-bold otter-keep-colors" style={{ color: '#FFFFFF' }}>2 Pulseiras Físicas</strong> entregues com frete grátis
+                  <strong className="text-slate-900 dark:text-white font-bold">2 Pulseiras Físicas</strong> entregues com frete grátis
                 </>
               ) : (
                 <>
-                  <strong className="text-white font-bold otter-keep-colors" style={{ color: '#FFFFFF' }}>Repost garantido</strong> quando você chegar aqui
+                  <strong className="text-slate-900 dark:text-white font-bold">Repost garantido</strong> quando você chegar aqui
                 </>
               )}
             </div>
@@ -580,7 +579,7 @@ export default function PlaqueViewer3D({
         </div>
 
         {/* Lower Horizontal Divider Line */}
-        <div className="relative z-20 w-full border-b border-white/10 my-4" />
+        <div className="relative z-20 w-full border-b border-slate-200 dark:border-white/10 my-4" />
 
         {/* Bottom Centered Pill Button */}
         <div className="relative z-20 w-full flex items-center justify-center pt-1">
@@ -618,8 +617,7 @@ export default function PlaqueViewer3D({
             <button
               type="button"
               onClick={onClose}
-              className="otter-keep-colors px-6 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold cursor-pointer transition-all active:scale-95 shadow-sm"
-              style={{ color: '#FFFFFF' }}
+              className="px-6 py-2 rounded-xl border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-800 dark:border-white/20 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white text-xs font-semibold cursor-pointer transition-all active:scale-95 shadow-sm"
             >
               Fechar prévia
             </button>

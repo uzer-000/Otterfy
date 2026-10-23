@@ -42,19 +42,34 @@ export async function GET() {
   try {
     const profile = getLocalProfile();
     try {
-      const dbUser =
-        (await prisma.user.findFirst({
-          where: { email: { equals: 'nhacossfilipe@gmail.com', mode: 'insensitive' } },
-        })) ||
-        (await prisma.user.findFirst({
-          where: { NOT: { email: { endsWith: '@otterfy.internal' } } },
-        }));
-      if (dbUser) {
+      const users = await prisma.user.findMany({
+        where: { NOT: { email: { endsWith: '@otterfy.internal' } } },
+      });
+      const primaryUser =
+        users.find((u) => u.email.toLowerCase() === 'nhacossfilipe@gmail.com') ||
+        users[0] ||
+        null;
+      const anyAvatarUser = users.find((u) => u.avatarImage && u.avatarImage.length > 10);
+
+      if (primaryUser) {
+        const resolvedAvatar =
+          primaryUser.avatarImage || anyAvatarUser?.avatarImage || profile.avatarImage || '';
+
+        // Auto-heal if avatar was stored on another user row previously
+        if (!primaryUser.avatarImage && resolvedAvatar) {
+          await prisma.user
+            .update({
+              where: { id: primaryUser.id },
+              data: { avatarImage: resolvedAvatar },
+            })
+            .catch(() => {});
+        }
+
         const resolved = {
-          name: dbUser.name || profile.name || 'Admin Otterfy',
-          email: dbUser.email || profile.email || 'nhacossfilipe@gmail.com',
-          phone: dbUser.phone || profile.phone || '+258 84 000 0000',
-          avatarImage: dbUser.avatarImage || profile.avatarImage || '',
+          name: primaryUser.name || profile.name || 'Pedro Hill',
+          email: primaryUser.email || profile.email || 'nhacossfilipe@gmail.com',
+          phone: primaryUser.phone || profile.phone || '+258 84 000 0000',
+          avatarImage: resolvedAvatar,
         };
         return NextResponse.json(
           {
@@ -100,34 +115,70 @@ export async function POST(req: Request) {
     const body = await req.json();
     const current = getLocalProfile();
 
-    const updated = {
-      name: body.name !== undefined ? body.name : current.name,
-      email: body.email !== undefined ? body.email : current.email,
-      phone: body.phone !== undefined ? body.phone : current.phone,
-      avatarImage: body.avatarImage !== undefined ? body.avatarImage : current.avatarImage,
-    };
-
-    saveLocalProfile(updated);
+    let dbUser: {
+      id: string;
+      name: string | null;
+      email: string;
+      phone: string | null;
+      avatarImage: string | null;
+    } | null = null;
 
     try {
-      const dbUser =
+      dbUser =
         (await prisma.user.findFirst({
           where: { email: { equals: 'nhacossfilipe@gmail.com', mode: 'insensitive' } },
         })) ||
         (await prisma.user.findFirst({
           where: { NOT: { email: { endsWith: '@otterfy.internal' } } },
         }));
+    } catch {
+      // ignore
+    }
+
+    const incomingAvatar =
+      typeof body.avatarImage === 'string' ? body.avatarImage.trim() : undefined;
+    const isExplicitRemove = body.removeAvatar === true;
+
+    const resolvedAvatar = isExplicitRemove
+      ? ''
+      : incomingAvatar && incomingAvatar.length > 0
+      ? incomingAvatar
+      : dbUser?.avatarImage || current.avatarImage || '';
+
+    const updated = {
+      name:
+        body.name !== undefined && String(body.name).trim() !== ''
+          ? String(body.name).trim()
+          : dbUser?.name || current.name || 'Pedro Hill',
+      email:
+        body.email !== undefined && String(body.email).trim() !== ''
+          ? String(body.email).trim()
+          : dbUser?.email || current.email || 'nhacossfilipe@gmail.com',
+      phone:
+        body.phone !== undefined && String(body.phone).trim() !== ''
+          ? String(body.phone).trim()
+          : dbUser?.phone || current.phone || '+258 84 000 0000',
+      avatarImage: resolvedAvatar,
+    };
+
+    saveLocalProfile(updated);
+
+    try {
       if (dbUser) {
         await prisma.user.update({
           where: { id: dbUser.id },
           data: {
             name: updated.name,
-            email: updated.email,
             phone: updated.phone,
             avatarImage: updated.avatarImage,
           },
         });
       }
+      // Keep all non-system user rows synced with the same avatarImage
+      await prisma.user.updateMany({
+        where: { NOT: { email: { endsWith: '@otterfy.internal' } } },
+        data: { avatarImage: updated.avatarImage },
+      });
     } catch (dbErr) {
       console.warn('Could not update DB user profile (offline fallback active):', dbErr);
     }

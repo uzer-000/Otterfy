@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
     console.info('[Zenofy Webhook Received]:', { eventType });
 
-    const checkoutId =
+    let checkoutId =
       payload.checkout_id ||
       payload.orderId ||
       payload.order_id ||
@@ -43,6 +43,35 @@ export async function POST(req: Request) {
       payload.external_id ||
       payload.data?.reference ||
       payload.data?.external_id;
+
+    const buyerPhoneRaw = String(
+      payload.phone ||
+        payload.buyer_phone ||
+        payload.customer_phone ||
+        payload.customer?.phone ||
+        payload.data?.phone ||
+        ''
+    ).replace(/\D/g, '');
+    const buyerPhoneSuffix = buyerPhoneRaw.length >= 9 ? buyerPhoneRaw.slice(-9) : '';
+
+    // If checkoutId was not in the payload, look up the most recent PENDING transaction by reference or buyer phone
+    if (!checkoutId) {
+      const candidateTx = await prisma.transaction.findFirst({
+        where: {
+          status: 'PENDING',
+          zenofyCheckoutId: { not: null },
+          ...(reference
+            ? { orderId: reference }
+            : buyerPhoneSuffix
+            ? { order: { customer: { phone: { endsWith: buyerPhoneSuffix } } } }
+            : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (candidateTx?.zenofyCheckoutId) {
+        checkoutId = candidateTx.zenofyCheckoutId;
+      }
+    }
 
     const paymentId =
       payload.payment_id ||

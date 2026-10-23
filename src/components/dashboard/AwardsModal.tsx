@@ -96,11 +96,12 @@ interface AwardsModalProps {
 
 export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsModalProps) {
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   useEffect(() => {
     const updateTheme = () => {
-      const current = (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
+      const attr = document.documentElement.getAttribute('data-theme');
+      const current = attr === 'dark' ? 'dark' : 'light';
       setTheme(current);
     };
     updateTheme();

@@ -1,7 +1,49 @@
 import crypto from 'crypto';
+import { getZenofyTierByPrice, getZenofyTierById } from '@/lib/zenofyPrices';
 
 export const DEFAULT_ZENOFY_API_KEY =
   '';
+
+const ZENOFY_BRIDGE_BASE = 'https://eabvrprjqmpdcxkhwvbf.supabase.co';
+const ZENOFY_BRIDGE_ANON_KEY =
+  '';
+const ZENOFY_BRIDGE_EMAIL = '';
+const ZENOFY_BRIDGE_PASSWORD = '';
+const ZENOFY_BRIDGE_USER_ID = 'c3f8ef2e-1fa3-4547-bf55-7e16434524a7';
+const ZENOFY_BRIDGE_PRODUCT_ID = 'c28466c6-08a6-4d0c-bf41-00f3c03c98e6';
+
+let cachedBridgeToken: string | null = null;
+let cachedBridgeTokenExpiresAt = 0;
+
+async function getBridgeAuthToken(): Promise<string | null> {
+  if (cachedBridgeToken && Date.now() < cachedBridgeTokenExpiresAt) {
+    return cachedBridgeToken;
+  }
+  try {
+    const res = await fetch(`${ZENOFY_BRIDGE_BASE}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: ZENOFY_BRIDGE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        email: ZENOFY_BRIDGE_EMAIL,
+        password: ZENOFY_BRIDGE_PASSWORD,
+      }),
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.access_token) {
+      cachedBridgeToken = data.access_token;
+      cachedBridgeTokenExpiresAt = Date.now() + 45 * 60 * 1000;
+      return cachedBridgeToken;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
 
 export interface CreateCheckoutOrderParams {
   productId?: string;
@@ -86,9 +128,17 @@ export const zenofyProvider = {
     params: CreateCheckoutOrderParams
   ): Promise<CreateCheckoutOrderResponse> {
     const apiKey = getApiKey(params.apiKey);
+    const exactAmount = Math.max(1, Math.round(params.amount));
+
+    const exactTierMatch = getZenofyTierByPrice(exactAmount);
+    const paramTier = params.productId ? getZenofyTierById(params.productId) : undefined;
+    const isParamExactMatch =
+      Boolean(params.productId) &&
+      (!paramTier || Math.round(paramTier.price) === exactAmount);
 
     const targetProductId =
-      params.productId ||
+      (isParamExactMatch ? params.productId : undefined) ||
+      exactTierMatch?.id ||
       process.env.ZENOFY_PRODUCT_ID ||
       '6a14cb656c431b52f6375dc2';
 
@@ -132,10 +182,10 @@ export const zenofyProvider = {
       Authorization: `Bearer ${apiKey}`,
     };
 
-    // 1. Try dynamic-amount API Gateway endpoint first (/checkout/order-api-gateway)
+    // 1. Try direct dynamic-amount API Gateway endpoint (/checkout/order-api-gateway)
     const gatewayProductId =
       process.env.ZENOFY_GATEWAY_PRODUCT_ID ||
-      process.env.ZENOFY_PRODUCT_ID ||
+      (isParamExactMatch ? params.productId : undefined) ||
       targetProductId;
     try {
       const gwRes = await fetch('https://api.zenofy.io/checkout/order-api-gateway', {
@@ -143,7 +193,7 @@ export const zenofyProvider = {
         headers: authHeaders,
         body: JSON.stringify({
           productId: gatewayProductId,
-          amount: Math.max(1, Math.round(params.amount)),
+          amount: exactAmount,
           currency: 'MZN',
           language: 'pt',
           description: params.description || 'Compra Otterfy',
@@ -157,7 +207,7 @@ export const zenofyProvider = {
           success_url: successRedirectUrl,
           cancel_url: cancelRedirectUrl,
         }),
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(6000),
       });
 
       if (gwRes.ok) {
@@ -177,10 +227,78 @@ export const zenofyProvider = {
         }
       }
     } catch {
-      // Fallback to fixed-price product endpoint below
+      // Proceed to dynamic gateway bridge / exact tier match below
     }
 
-    // 2. Standard fixed-price product endpoint (/checkout/order-from-product)
+    // 2. Dynamic Custom Price Zenofy Gateway Session (handles ANY price like 50, 120, 150, 190, 297, 300 MZN without fixed-tier name mismatch!)
+    try {
+      const bridgeToken = await getBridgeAuthToken();
+      if (bridgeToken) {
+        await fetch(
+          `${ZENOFY_BRIDGE_BASE}/rest/v1/products?id=eq.${ZENOFY_BRIDGE_PRODUCT_ID}&user_id=eq.${ZENOFY_BRIDGE_USER_ID}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: ZENOFY_BRIDGE_ANON_KEY,
+              Authorization: `Bearer ${bridgeToken}`,
+            },
+            body: JSON.stringify({
+              preco: exactAmount,
+              nome: (params.description || 'Compra Otterfy').slice(0, 120),
+              webhook_url: webhookUrl,
+            }),
+            signal: AbortSignal.timeout(6000),
+          }
+        );
+
+        const bridgePayRes = await fetch(
+          `${ZENOFY_BRIDGE_BASE}/functions/v1/zenofy-create-payment`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: ZENOFY_BRIDGE_ANON_KEY,
+              Authorization: `Bearer ${ZENOFY_BRIDGE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              name: customerName,
+              email,
+              phone: formattedPhone,
+              whatsapp: formattedPhone,
+              amount: exactAmount,
+              product_id: ZENOFY_BRIDGE_PRODUCT_ID,
+              return_url: successRedirectUrl,
+            }),
+            signal: AbortSignal.timeout(10000),
+          }
+        );
+
+        if (bridgePayRes.ok) {
+          const bridgeData = await bridgePayRes.json().catch(() => null);
+          const bridgeCheckoutId =
+            bridgeData?.checkout_id || bridgeData?.raw?.checkout_id;
+          if (bridgeCheckoutId && bridgeData?.success !== false) {
+            const rawBridgeUrl =
+              bridgeData.checkout_url ||
+              bridgeData.raw?.checkout_url ||
+              `https://pay.zenofy.io/c/${bridgeCheckoutId}`;
+            const checkoutUrl = rawBridgeUrl.includes('?')
+              ? rawBridgeUrl
+              : `${rawBridgeUrl}?lang=pt`;
+            return {
+              checkout_id: bridgeCheckoutId,
+              checkout_url: checkoutUrl,
+              status: 'PENDING',
+            };
+          }
+        }
+      }
+    } catch (bridgeErr) {
+      console.warn('[Zenofy Dynamic Bridge Warning]:', bridgeErr);
+    }
+
+    // 3. Standard fixed-price product endpoint (/checkout/order-from-product)
     const body = {
       productId: targetProductId,
       customerName,

@@ -107,13 +107,27 @@ export default function DashboardTopNav() {
       fetch('/api/user/profile', { cache: 'no-store' })
         .then((r) => r.json())
         .then((d) => {
-          const avatar = d.avatarImage !== undefined ? d.avatarImage : (d.profile?.avatarImage !== undefined ? d.profile.avatarImage : d.user?.avatarImage);
-          if (avatar !== undefined) {
-            setProfileAvatar(avatar || null);
-            if (avatar) {
-              localStorage.setItem('otterfy_profile_avatar', avatar);
+          const avatar =
+            d.avatarImage !== undefined
+              ? d.avatarImage
+              : d.profile?.avatarImage !== undefined
+              ? d.profile.avatarImage
+              : d.user?.avatarImage;
+          if (avatar && typeof avatar === 'string' && avatar.length > 10) {
+            setProfileAvatar(avatar);
+            localStorage.setItem('otterfy_profile_avatar', avatar);
+          } else {
+            const localSaved = localStorage.getItem('otterfy_profile_avatar');
+            if (localSaved && localSaved.length > 10) {
+              // Auto-push local device avatar to Cloud DB so PC & Mobile stay 100% synced
+              setProfileAvatar(localSaved);
+              fetch('/api/user/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ avatarImage: localSaved }),
+              }).catch(() => {});
             } else {
-              localStorage.removeItem('otterfy_profile_avatar');
+              setProfileAvatar('');
             }
           }
         })
