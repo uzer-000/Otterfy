@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import ImageDropzone from '@/components/ui/ImageDropzone';
-import { ZENOFY_PRICE_TIERS } from '@/lib/zenofyPrices';
+import { ZENOFY_PRICE_TIERS, getClosestZenofyTierByPrice } from '@/lib/zenofyPrices';
 
 export interface ProductConfigData {
   id: string;
   name: string;
+  price?: number;
+  zenofyProductId?: string;
   tracking?: {
     metaPixelId?: string;
     metaApiToken?: string;
@@ -146,6 +148,7 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
   const [timerMinutes, setTimerMinutes] = useState(6);
   const [timerText, setTimerText] = useState('Esta oferta especial termina em:');
   const [zenofyProductId, setZenofyProductId] = useState('');
+  const [productPrice, setProductPrice] = useState<string>('297.00');
 
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [whatsappMsg, setWhatsappMsg] = useState('Olá! Preciso de ajuda com o pedido.');
@@ -222,7 +225,10 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
       setCustomBannerUrl(product.checkoutSettings?.customCheckout?.bannerUrl || '');
       setTimerMinutes(product.checkoutSettings?.customCheckout?.timerMinutes || 6);
       setTimerText(product.checkoutSettings?.customCheckout?.timerText || 'Esta oferta especial termina em:');
-      setZenofyProductId(product.checkoutSettings?.customCheckout?.zenofyProductId || '');
+      setZenofyProductId(product.zenofyProductId || product.checkoutSettings?.customCheckout?.zenofyProductId || '');
+      if (product.price !== undefined) {
+        setProductPrice(String(product.price));
+      }
 
       setWhatsappPhone(product.checkoutSettings?.whatsappSupport?.phone || '');
       setWhatsappMsg(product.checkoutSettings?.whatsappSupport?.message || 'Olá! Preciso de ajuda com o pedido.');
@@ -303,7 +309,10 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
       const firstOffer = normalizedOffers[0];
       const bumpActive = normalizedOffers.length > 0 || (orderBumpEnabled && !!orderBumpTitle.trim() && (parseFloat(orderBumpPrice) || 0) > 0);
 
+      const parsedProductPrice = parseFloat(productPrice);
       const payload = {
+        ...(parsedProductPrice > 0 ? { price: parsedProductPrice } : {}),
+        ...(zenofyProductId ? { zenofyProductId } : {}),
         tracking: {
           metaPixelId,
           metaApiToken,
@@ -1143,41 +1152,68 @@ export default function ProductConfigModal({ product, isOpen, onClose, onSaved, 
                   </select>
                 </div>
 
-                {/* Zenofy Gateway Product ID */}
-                <div className="space-y-2 pt-3 border-t border-[#1E1B26]">
+                {/* Preço & Zenofy Gateway Product ID */}
+                <div className="space-y-3 pt-3 border-t border-[#1E1B26]">
                   <div className="flex items-center justify-between">
                     <label className="block text-[#F8FAFC] font-semibold">
-                      ID do Produto na Zenofy (M-Pesa / e-Mola)
+                      Preço do Produto & Integração Zenofy (M-Pesa / e-Mola)
                     </label>
                     <span className="text-[10px] text-violet-400 font-mono bg-violet-600/10 px-2 py-0.5 rounded-lg border border-violet-500/20">
                       Integração Zenofy
                     </span>
                   </div>
                   <p className="text-[11px] text-[#94A3B8]">
-                    Vincule a um produto específico do seu painel Zenofy ou deixe em branco para usar a chave padrão ativa.
+                    Defina o valor em MZN ou clique num dos botões rápidos para atualizar o preço e o ID do produto automaticamente:
                   </p>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={productPrice}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProductPrice(val);
+                        const num = parseFloat(val);
+                        if (!isNaN(num) && num > 0) {
+                          const tier = getClosestZenofyTierByPrice(num);
+                          if (tier) setZenofyProductId(tier.id);
+                        }
+                      }}
+                      placeholder="Ex: 297.00"
+                      className="w-full bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2.5 pr-14 text-sm text-[#F8FAFC] font-mono font-bold focus:outline-none"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold font-mono text-violet-400 pointer-events-none">
+                      MZN
+                    </span>
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                    {ZENOFY_PRICE_TIERS.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setZenofyProductId(item.id)}
-                        className={`p-2 rounded-xl border text-center transition-all text-[11px] font-medium cursor-pointer ${
-                          zenofyProductId === item.id
-                            ? 'border-violet-500 bg-violet-600/25 text-white font-bold shadow-[0_0_15px_rgba(124,58,237,0.3)] ring-1 ring-violet-500'
-                            : 'border-[#1E1B26] bg-[#0E0C13] text-[#94A3B8] hover:border-violet-500/50 hover:bg-[#14121B]'
-                        }`}
-                      >
-                        <span className="block text-violet-300 font-bold">{item.label}</span>
-                        <span className="block text-[9px] text-[#64748B] truncate font-mono">{item.id.substring(0, 8)}...</span>
-                      </button>
-                    ))}
+                    {ZENOFY_PRICE_TIERS.map((item) => {
+                      const isSelected = Math.round(Number(productPrice)) === item.price || zenofyProductId === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setProductPrice(String(item.price) + '.00');
+                            setZenofyProductId(item.id);
+                          }}
+                          className={`p-2.5 rounded-xl border text-center transition-all text-[11px] font-medium cursor-pointer ${
+                            isSelected
+                              ? 'border-violet-500 bg-violet-600 text-white font-bold shadow-[0_0_15px_rgba(124,58,237,0.3)]'
+                              : 'border-[#1E1B26] bg-[#0E0C13] text-[#F8FAFC] hover:border-violet-500/50 hover:bg-[#14121B]'
+                          }`}
+                        >
+                          <span className="block font-mono font-bold">{item.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                   <input
                     type="text"
                     value={zenofyProductId}
                     onChange={(e) => setZenofyProductId(e.target.value)}
-                    placeholder="Ou digite outro ID da Zenofy: 6a14cb656c431b52f6375dc2"
+                    placeholder="ID do produto na Zenofy (ex: 6aafae3123792dba224d2660)"
                     className="w-full mt-1 bg-[#0F0E14] border border-[#1E1B26] focus:border-violet-500 rounded-xl px-3 py-2 text-[#F8FAFC] font-mono focus:outline-none"
                   />
                 </div>

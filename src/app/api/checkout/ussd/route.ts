@@ -4,6 +4,8 @@ import dbStore from '@/lib/store';
 import { zenofyProvider } from '@/services/payment/zenofy';
 import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@/services/tracking/dispatcher';
 
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -43,7 +45,8 @@ export async function POST(req: Request) {
     const ussdResult = await zenofyProvider.triggerUssdPush(
       zenofyCheckoutId,
       order.customerPhone,
-      (order.transaction?.method as 'MPESA' | 'EMOLA') || 'MPESA'
+      (order.transaction?.method as 'MPESA' | 'EMOLA') || 'MPESA',
+      order.transaction?.zenofyCheckoutUrl
     );
 
     // Check if the USSD push completed and was paid

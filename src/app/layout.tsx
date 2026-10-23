@@ -68,8 +68,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 background-color: #08070C;
                 color: #F8FAFC;
               }
-              html:has(.pay-checkout-root),
-              body:has(.pay-checkout-root),
+              html:has(#pay-checkout-root-container),
+              body:has(#pay-checkout-root-container),
               [data-theme="light"],
               [data-theme="light"] body {
                 background-color: #F5F3FA !important;

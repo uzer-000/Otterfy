@@ -119,13 +119,72 @@ export const zenofyProvider = {
       ? `${publicOrigin}/pay/success?ref=${params.reference}`
       : params.successUrl;
 
+    const cancelRedirectUrl = isLocalhost
+      ? `${publicOrigin}/pay/cancel?ref=${params.reference}`
+      : params.cancelUrl;
+
     const webhookUrl = `${publicOrigin}/api/webhooks/zenofy`;
 
+    const authHeaders = {
+      'Content-Type': 'application/json',
+      'Api-Key': apiKey,
+      'x-api-key': apiKey,
+      Authorization: `Bearer ${apiKey}`,
+    };
+
+    // 1. Try dynamic-amount API Gateway endpoint first (/checkout/order-api-gateway)
+    try {
+      const gwRes = await fetch('https://api.zenofy.io/checkout/order-api-gateway', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          productId: targetProductId,
+          amount: Math.max(1, Math.round(params.amount)),
+          currency: 'MZN',
+          language: 'pt',
+          description: params.description || 'Compra Otterfy',
+          reference: params.reference,
+          customer: {
+            name: customerName,
+            email,
+            phone: toZenofyPhone(params.customer.phone),
+          },
+          payment_methods: ['mpesa', 'emola'],
+          success_url: successRedirectUrl,
+          cancel_url: cancelRedirectUrl,
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (gwRes.ok) {
+        const gwData = await gwRes.json().catch(() => null);
+        const gwId = gwData?.checkout_id || gwData?.orderId;
+        if (gwId && gwData?.success !== false) {
+          const rawUrl =
+            gwData.checkout_url ||
+            gwData.paymentUrl ||
+            `https://pay.zenofy.io/c/${gwId}`;
+          const checkoutUrl = rawUrl.includes('?') ? rawUrl : `${rawUrl}?lang=pt`;
+          return {
+            checkout_id: gwId,
+            checkout_url: checkoutUrl,
+            status: gwData.status || 'PENDING',
+          };
+        }
+      }
+    } catch {
+      // Fallback to fixed-price product endpoint below
+    }
+
+    // 2. Standard fixed-price product endpoint (/checkout/order-from-product)
     const body = {
       productId: targetProductId,
       customerName,
       email,
       phoneNumber: toZenofyPhone(params.customer.phone),
+      currency: 'MZN',
+      language: 'pt',
+      bumpProductIds: [],
       redirectUrl: successRedirectUrl,
       webhookUrl,
     };
@@ -134,10 +193,7 @@ export const zenofyProvider = {
     try {
       response = await fetch('https://api.zenofy.io/checkout/order-from-product', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Api-Key': apiKey,
-        },
+        headers: authHeaders,
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(12000),
       });
@@ -162,7 +218,11 @@ export const zenofyProvider = {
       );
     }
 
-    const checkoutUrl = data.paymentUrl || `https://pay.zenofy.io/o/${data.orderId}`;
+    const rawCheckoutUrl =
+      data.paymentUrl || `https://pay.zenofy.io/o/${data.orderId}`;
+    const checkoutUrl = rawCheckoutUrl.includes('?')
+      ? rawCheckoutUrl
+      : `${rawCheckoutUrl}?lang=pt`;
 
     return {
       checkout_id: data.orderId,
@@ -178,7 +238,8 @@ export const zenofyProvider = {
   async triggerUssdPush(
     checkoutId: string,
     phone: string,
-    method?: 'MPESA' | 'EMOLA'
+    method?: 'MPESA' | 'EMOLA',
+    checkoutUrl?: string | null
   ): Promise<TriggerUssdPushResponse> {
     const cleanPhone = normalizeMozPhone(phone);
     if (!/^8[4567]\d{7}$/.test(cleanPhone)) {
@@ -198,20 +259,37 @@ export const zenofyProvider = {
       : 'https://pay.zenofy.io/checkout/processmpesapayment';
 
     try {
-      const pageUrl = `https://pay.zenofy.io/o/${encodeURIComponent(checkoutId)}`;
-      const pageRes = await fetch(pageUrl, {
-        method: 'GET',
-        headers: {
-          Accept: 'text/html,application/xhtml+xml',
-        },
-        cache: 'no-store',
-        signal: AbortSignal.timeout(10000),
-      });
+      const candidateUrls = [
+        checkoutUrl,
+        `https://pay.zenofy.io/o/${encodeURIComponent(checkoutId)}?lang=pt`,
+        `https://pay.zenofy.io/c/${encodeURIComponent(checkoutId)}?lang=pt`,
+      ].filter((u): u is string => Boolean(u));
 
-      if (!pageRes.ok) {
+      let pageRes: Response | null = null;
+      let resolvedPageUrl = candidateUrls[0];
+
+      for (const url of candidateUrls) {
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: {
+            Accept: 'text/html,application/xhtml+xml',
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(10000),
+        });
+        if (res.ok) {
+          pageRes = res;
+          resolvedPageUrl = url;
+          break;
+        }
+      }
+
+      if (!pageRes || !pageRes.ok) {
         return {
           success: false,
-          message: `Pedido Zenofy não encontrado (${pageRes.status}).`,
+          message: 'Pedido Zenofy não encontrado.',
         };
       }
 
@@ -219,7 +297,7 @@ export const zenofyProvider = {
         typeof pageRes.headers.getSetCookie === 'function'
           ? pageRes.headers.getSetCookie()
           : [pageRes.headers.get('set-cookie')].filter((c): c is string => Boolean(c));
-      const cookieHeader = setCookies.map((c) => c.split(';')[0]).join('; ');
+      const cookieHeader = [...new Set(setCookies.map((c) => c.split(';')[0]))].join('; ');
 
       const html = await pageRes.text();
       const tokenMatch =
@@ -231,10 +309,13 @@ export const zenofyProvider = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
           ...(token ? { RequestVerificationToken: token } : {}),
           ...(cookieHeader ? { Cookie: cookieHeader } : {}),
           Origin: 'https://pay.zenofy.io',
-          Referer: pageUrl,
+          Referer: resolvedPageUrl,
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         },
         body: JSON.stringify({
           orderId: checkoutId,
@@ -260,8 +341,57 @@ export const zenofyProvider = {
 
   async getOrderStatus(
     checkoutId: string,
-    _customKey?: string
+    customKey?: string
   ): Promise<OrderStatusResponse> {
+    const apiKey = getApiKey(customKey);
+
+    // 1. Try official API endpoint first (GET https://api.zenofy.io/checkout/order-status?orderId=...)
+    try {
+      const apiRes = await fetch(
+        `https://api.zenofy.io/checkout/order-status?orderId=${encodeURIComponent(checkoutId)}`,
+        {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            'Api-Key': apiKey,
+          },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(5000),
+        }
+      );
+
+      if (apiRes.ok) {
+        const data = await apiRes.json();
+        const rawStatus = String(data.status || '').toUpperCase();
+        const isPaid =
+          data.isCompleted === true ||
+          rawStatus === 'PAID' ||
+          rawStatus === 'COMPLETED' ||
+          rawStatus === 'APPROVED' ||
+          rawStatus === 'SUCCESS';
+        const isFailed =
+          data.isFailed === true ||
+          rawStatus === 'FAILED' ||
+          rawStatus === 'CANCELLED' ||
+          rawStatus === 'DECLINED' ||
+          rawStatus === 'EXPIRED' ||
+          rawStatus === 'REFUNDED';
+
+        if (isPaid || isFailed) {
+          return {
+            success: Boolean(data.success ?? true),
+            orderId: data.orderId || checkoutId,
+            status: isPaid ? 'PAID' : 'FAILED',
+            totalAmountMzn: data.totalAmount ?? data.totalAmountMzn,
+            customer: data.customer,
+          };
+        }
+      }
+    } catch {
+      // Fallback to pay.zenofy.io check below
+    }
+
+    // 2. Check pay.zenofy.io live order status endpoint
     try {
       const response = await fetch(
         `https://pay.zenofy.io/checkout/checkorderstatus?orderId=${encodeURIComponent(checkoutId)}`,

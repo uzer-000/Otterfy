@@ -3,7 +3,9 @@ import { z } from 'zod';
 import dbStore from '@/lib/store';
 import { dispatchCheckout } from '@/services/payment/gatewayManager';
 import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder } from '@/services/tracking/dispatcher';
-import { getZenofyTierByPrice, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
+import { getZenofyTierByPrice, getClosestZenofyTierByPrice, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
+
+export const maxDuration = 60;
 
 const checkoutSchema = z.object({
   productId: z.string().min(1),
@@ -153,11 +155,12 @@ export async function POST(req: Request) {
     });
 
     const resolvedZenofyProductId =
+      getZenofyTierByPrice(totalAmount)?.id ||
       product.zenofyProductId ||
       product.checkoutSettings?.zenofyProductId ||
       product.checkoutSettings?.customCheckout?.zenofyProductId ||
-      getZenofyTierByPrice(totalAmount)?.id ||
       getZenofyTierByPrice(product.price)?.id ||
+      getClosestZenofyTierByPrice(totalAmount)?.id ||
       DEFAULT_ZENOFY_PRODUCT_ID;
 
     const dispatchResult = await dispatchCheckout({

@@ -135,13 +135,23 @@ export default function DashboardTopNav() {
     const savedTheme = (localStorage.getItem('otterfy-theme') as 'dark' | 'light') || 'light';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
-  }, []);
+    document.documentElement.style.colorScheme = savedTheme;
+    if (document.body) {
+      document.body.style.backgroundColor = '';
+      document.body.style.color = '';
+    }
+  }, [pathname]);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
     localStorage.setItem('otterfy-theme', nextTheme);
     document.documentElement.setAttribute('data-theme', nextTheme);
+    document.documentElement.style.colorScheme = nextTheme;
+    if (document.body) {
+      document.body.style.backgroundColor = '';
+      document.body.style.color = '';
+    }
     window.dispatchEvent(new Event('themechange'));
     window.dispatchEvent(new Event('storage'));
   };

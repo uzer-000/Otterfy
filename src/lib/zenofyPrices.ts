@@ -62,8 +62,18 @@ export function getZenofyTierByPrice(price: number): ZenofyPriceTier | undefined
   return ZENOFY_PRICE_TIERS.find((t) => Math.round(t.price) === Math.round(price));
 }
 
+export function getClosestZenofyTierByPrice(price: number): ZenofyPriceTier {
+  const num = Number(price) || 99;
+  const exact = getZenofyTierByPrice(num);
+  if (exact) return exact;
+  return ZENOFY_PRICE_TIERS.reduce((best, curr) =>
+    Math.abs(curr.price - num) < Math.abs(best.price - num) ? curr : best
+  );
+}
+
 export function getZenofyTierById(id: string): ZenofyPriceTier | undefined {
   return ZENOFY_PRICE_TIERS.find((t) => t.id === id);
 }
 
 export const DEFAULT_ZENOFY_PRODUCT_ID = '6a14cb656c431b52f6375dc2'; // 297 MZN
+

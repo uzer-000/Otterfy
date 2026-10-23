@@ -6,7 +6,7 @@ import Link from 'next/link';
 import ProductConfigModal, { ModalSubview } from '@/components/dashboard/ProductConfigModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { formatMZN } from '@/lib/utils';
-import { ZENOFY_PRICE_TIERS, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
+import { ZENOFY_PRICE_TIERS, DEFAULT_ZENOFY_PRODUCT_ID, getClosestZenofyTierByPrice } from '@/lib/zenofyPrices';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -741,17 +741,42 @@ function EditProductContent({ params }: PageProps) {
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-[#F8FAFC]">
-                      Preço do Produto <span className="text-violet-400">*</span>
+                      Preço do Produto (MZN) <span className="text-violet-400">*</span>
                     </label>
                     <span className="text-[10px] text-violet-400 font-mono bg-violet-600/10 px-2.5 py-1 rounded-full border border-violet-500/20 font-bold">
                       M-Pesa & e-Mola
                     </span>
                   </div>
 
-                  {/* Exclusive Clean Rounded-2xl Price Buttons */}
+                  {/* Custom Price Input */}
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const num = parseFloat(val);
+                        const tier = !isNaN(num) && num > 0 ? getClosestZenofyTierByPrice(num) : undefined;
+                        setFormData({
+                          ...formData,
+                          price: val,
+                          zenofyProductId: tier ? tier.id : formData.zenofyProductId,
+                        });
+                      }}
+                      placeholder="Ex: 297.00"
+                      className="w-full px-4 py-3 pr-16 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-base text-[#F8FAFC] font-mono font-bold placeholder-[#64748B] focus:outline-none focus:border-violet-500 transition-colors"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold font-mono text-violet-400 pointer-events-none">
+                      MZN
+                    </span>
+                  </div>
+
+                  {/* Quick-Select Price Tier Buttons */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
                     {ZENOFY_PRICE_TIERS.map((tier) => {
-                      const isSelected = formData.zenofyProductId === tier.id && Math.round(Number(formData.price)) === tier.price;
+                      const isSelected = Math.round(Number(formData.price)) === tier.price;
                       return (
                         <button
                           key={tier.id}
@@ -763,9 +788,9 @@ function EditProductContent({ params }: PageProps) {
                               zenofyProductId: tier.id,
                             });
                           }}
-                          className={`py-3.5 px-4 rounded-2xl border font-mono font-bold text-center transition-all cursor-pointer flex items-center justify-center text-sm sm:text-base ${
+                          className={`py-3 px-4 rounded-2xl border font-mono font-bold text-center transition-all cursor-pointer flex items-center justify-center text-sm sm:text-base ${
                             isSelected
-                              ? 'border-violet-500 bg-violet-600 text-white shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-[1.03]'
+                              ? 'border-violet-500 bg-violet-600 text-white shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-[1.02]'
                               : 'border-[#1E1B26] bg-[#0F0E14] text-[#F8FAFC] hover:border-violet-500/50 hover:bg-[#14121B]'
                           }`}
                         >

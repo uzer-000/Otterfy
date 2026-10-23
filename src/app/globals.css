@@ -60,7 +60,7 @@ body {
   color: #0F172A !important;
 }
 
-[data-theme="dark"]:not(:has(.pay-checkout-root)) body {
+[data-theme="dark"]:not(:has(#pay-checkout-root-container)) body {
   background-color: #08070C !important;
   color: #F8FAFC !important;
 }
@@ -96,7 +96,8 @@ textarea:focus-visible,
   outline-offset: 2px;
 }
 
-/* Base surface overrides in Light Mode */
+/* Base surface overrides in Light Mode (scoped away from .pay-checkout-root) */
+@scope ([data-theme="light"]) to (.pay-checkout-root) {
 [data-theme="light"] .bg-\[\#08070C\],
 [data-theme="light"] .bg-\[\#09080E\],
 [data-theme="light"] .bg-\[\#0A0810\],
@@ -643,6 +644,7 @@ textarea:focus-visible,
 [data-theme="light"] .recharts-cartesian-grid line,
 [data-theme="light"] .recharts-cartesian-axis-line {
   stroke: #E2E8F0 !important;
+}
 }
 /* ===== AUTO: LIGHT THEME CONTRAST FIXES (end) ===== */
 
@@ -1968,8 +1970,8 @@ svg.otter-sb-icon {
 /* Guarantees that the checkout is ALWAYS white/light, with high-contrast    */
 /* typography, light background (#F5F3FA) and pure white card (#FFFFFF).     */
 /* ========================================================================= */
-html:has(.pay-checkout-root),
-body:has(.pay-checkout-root),
+html:has(#pay-checkout-root-container),
+body:has(#pay-checkout-root-container),
 .pay-checkout-root,
 #pay-checkout-root-container,
 [data-checkout-root="true"] {
@@ -1978,7 +1980,7 @@ body:has(.pay-checkout-root),
   color: #0F172A !important;
 }
 
-html:has(.pay-checkout-root) body {
+html:has(#pay-checkout-root-container) body {
   background-color: #F5F3FA !important;
   color: #0F172A !important;
 }

@@ -7,32 +7,53 @@ export default function PayLayout({
 }: {
   children: React.ReactNode;
 }) {
-  if (typeof document !== 'undefined') {
-    try {
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.documentElement.classList.remove('dark');
-      if (document.body) {
-        document.body.style.backgroundColor = '#F5F3FA';
-        document.body.style.color = '#0F172A';
-      }
-    } catch {}
-  }
-
   useLayoutEffect(() => {
-    try {
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.documentElement.classList.remove('dark');
-      if (document.body) {
-        document.body.style.backgroundColor = '#F5F3FA';
-        document.body.style.color = '#0F172A';
+    const enforceLightOnPay = () => {
+      try {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.classList.remove('dark');
+        document.documentElement.style.colorScheme = 'light';
+        if (document.body) {
+          document.body.style.backgroundColor = '#F5F3FA';
+          document.body.style.color = '#0F172A';
+        }
+      } catch {}
+    };
+
+    enforceLightOnPay();
+
+    const observer = new MutationObserver(() => {
+      if (
+        document.documentElement.getAttribute('data-theme') !== 'light' ||
+        document.documentElement.classList.contains('dark')
+      ) {
+        enforceLightOnPay();
       }
-    } catch {}
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'class'],
+    });
+
+    return () => {
+      observer.disconnect();
+      try {
+        const saved = (localStorage.getItem('otterfy-theme') as 'dark' | 'light') || 'light';
+        document.documentElement.setAttribute('data-theme', saved);
+        document.documentElement.style.colorScheme = saved;
+        if (document.body) {
+          document.body.style.backgroundColor = '';
+          document.body.style.color = '';
+        }
+      } catch {}
+    };
   }, []);
 
   return (
     <div
       id="pay-checkout-root-container"
-      data-theme="light"
+      data-checkout-root="true"
       style={{
         backgroundColor: '#F5F3FA',
         color: '#0F172A',
@@ -47,6 +68,7 @@ export default function PayLayout({
               try {
                 document.documentElement.setAttribute('data-theme', 'light');
                 document.documentElement.classList.remove('dark');
+                document.documentElement.style.colorScheme = 'light';
                 if (document.body) {
                   document.body.style.backgroundColor = '#F5F3FA';
                   document.body.style.color = '#0F172A';

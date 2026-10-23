@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { formatMZN } from '@/lib/utils';
-import { ZENOFY_PRICE_TIERS, DEFAULT_ZENOFY_PRODUCT_ID } from '@/lib/zenofyPrices';
+import { ZENOFY_PRICE_TIERS, DEFAULT_ZENOFY_PRODUCT_ID, getClosestZenofyTierByPrice } from '@/lib/zenofyPrices';
 
 type ProductType = 'ebook' | 'course' | 'saas' | null;
 
@@ -89,7 +89,7 @@ export default function NewProductWizardPage() {
   };
 
   const parsedPrice = parseFloat(price) || 0;
-  const isPriceValid = parsedPrice >= 50;
+  const isPriceValid = parsedPrice >= 1;
 
   // Step 1 Validation
   const validateStep1 = () => {
@@ -97,8 +97,8 @@ export default function NewProductWizardPage() {
       showToast('Por favor preencha o título do produto (mínimo 3 caracteres).', 'error');
       return false;
     }
-    if (!price || parsedPrice < 50) {
-      showToast('Por favor selecione um dos preços oficiais da tabela.', 'error');
+    if (!price || parsedPrice < 1) {
+      showToast('Por favor informe ou selecione o preço do produto.', 'error');
       return false;
     }
     return true;
@@ -199,8 +199,8 @@ export default function NewProductWizardPage() {
 
   // Final Submit
   const handleCreateProduct = async () => {
-    if (!title || parsedPrice < 50) {
-      showToast('Por favor preencha o título e verifique o preço mínimo de 50 MZN.', 'error');
+    if (!title || parsedPrice < 1) {
+      showToast('Por favor preencha o título e o preço do produto.', 'error');
       return;
     }
 
@@ -750,17 +750,41 @@ export default function NewProductWizardPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-[#F8FAFC]">
-                    Preço do Produto <span className="text-violet-400">*</span>
+                    Preço do Produto (MZN) <span className="text-violet-400">*</span>
                   </label>
                   <span className="text-[10px] text-violet-400 font-mono bg-violet-600/10 px-2.5 py-1 rounded-full border border-violet-500/20 font-bold">
                     M-Pesa & e-Mola
                   </span>
                 </div>
 
-                {/* Exclusive Clean Rounded-2xl Price Buttons */}
+                {/* Custom Price Input */}
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setPrice(val);
+                      const num = parseFloat(val);
+                      if (!isNaN(num) && num > 0) {
+                        const tier = getClosestZenofyTierByPrice(num);
+                        if (tier) setZenofyProductId(tier.id);
+                      }
+                    }}
+                    placeholder="Ex: 297.00"
+                    className="w-full px-4 py-3 pr-16 rounded-xl bg-[#0F0E14] border border-[#1E1B26] text-base text-[#F8FAFC] font-mono font-bold placeholder-[#64748B] focus:outline-none focus:border-violet-500 transition-colors"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold font-mono text-violet-400 pointer-events-none">
+                    MZN
+                  </span>
+                </div>
+
+                {/* Quick-Select Price Tier Buttons */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
                   {ZENOFY_PRICE_TIERS.map((tier) => {
-                    const isSelected = zenofyProductId === tier.id && Math.round(Number(price)) === tier.price;
+                    const isSelected = Math.round(Number(price)) === tier.price;
                     return (
                       <button
                         key={tier.id}
@@ -769,9 +793,9 @@ export default function NewProductWizardPage() {
                           setPrice(String(tier.price) + '.00');
                           setZenofyProductId(tier.id);
                         }}
-                        className={`py-3.5 px-4 rounded-2xl border font-mono font-bold text-center transition-all cursor-pointer flex items-center justify-center text-sm sm:text-base ${
+                        className={`py-3 px-4 rounded-2xl border font-mono font-bold text-center transition-all cursor-pointer flex items-center justify-center text-sm sm:text-base ${
                           isSelected
-                            ? 'border-violet-500 bg-violet-600 text-white shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-[1.03]'
+                            ? 'border-violet-500 bg-violet-600 text-white shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-[1.02]'
                             : 'border-[#1E1B26] bg-[#0F0E14] text-[#F8FAFC] hover:border-violet-500/50 hover:bg-[#14121B]'
                         }`}
                       >
@@ -820,8 +844,8 @@ export default function NewProductWizardPage() {
                   showToast('Por favor preencha o título do produto (mínimo 3 caracteres).', 'error');
                   return;
                 }
-                if (!price || parseFloat(price) < 50) {
-                  showToast('Por favor selecione um dos preços da tabela oficial.', 'error');
+                if (!price || parseFloat(price) < 1) {
+                  showToast('Por favor informe ou selecione o preço do produto.', 'error');
                   return;
                 }
                 setCurrentStep(2);

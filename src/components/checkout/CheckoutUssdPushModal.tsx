@@ -11,6 +11,7 @@ interface CheckoutUssdPushModalProps {
   totalAmount: number;
   paymentMethod: 'MPESA' | 'EMOLA';
   upsellUrl?: string;
+  checkoutUrl?: string;
   onClose: () => void;
   onSuccess: (orderId: string, redirectUrl?: string) => void;
 }
@@ -22,6 +23,7 @@ export default function CheckoutUssdPushModal({
   totalAmount,
   paymentMethod,
   upsellUrl,
+  checkoutUrl,
   onClose,
   onSuccess,
 }: CheckoutUssdPushModalProps) {
@@ -188,7 +190,10 @@ export default function CheckoutUssdPushModal({
       aria-modal="true"
       aria-label={`Confirmação de Pagamento ${brandName}`}
     >
-      <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl relative overflow-hidden text-slate-900 animate-in zoom-in-95 duration-200">
+      <div
+        className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl relative overflow-hidden text-slate-900 animate-in zoom-in-95 duration-200"
+        style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}
+      >
         {/* Subtle accent bar at top */}
         <div
           className="absolute top-0 left-0 right-0 h-1.5"
@@ -264,8 +269,8 @@ export default function CheckoutUssdPushModal({
             {/* Ilustração Visual do Smartphone com Notificação Pulsante */}
             <div className="relative p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/60 border border-slate-200/90 flex items-center gap-4">
               {/* Phone graphic with pulsating notification icon */}
-              <div className="relative shrink-0">
-                <div className="w-14 h-20 rounded-2xl bg-slate-900 border-2 border-slate-700 p-1 flex flex-col items-center justify-between shadow-lg">
+              <div className="relative shrink-0 otter-keep-colors">
+                <div className="otter-keep-colors w-14 h-20 rounded-2xl bg-slate-900 border-2 border-slate-700 p-1 flex flex-col items-center justify-between shadow-lg">
                   <div className="w-4 h-1 rounded-full bg-slate-700" />
                   {/* Screen message */}
                   <div className="w-full rounded bg-emerald-950/80 p-1 text-[8px] font-mono text-emerald-400 text-center border border-emerald-500/40 leading-none">
@@ -393,6 +398,16 @@ export default function CheckoutUssdPushModal({
                     </>
                   )}
                 </button>
+              )}
+
+              {checkoutUrl && /^https?:\/\//i.test(checkoutUrl) && (
+                <a
+                  href={checkoutUrl}
+                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[#047857] font-bold text-xs transition-colors flex items-center justify-center gap-1.5 text-center"
+                >
+                  <span>Não recebeu o pop-up no ecrã? Concluir na Página Oficial</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
               )}
 
               <button

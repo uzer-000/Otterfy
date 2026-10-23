@@ -76,7 +76,7 @@ export default function CheckoutForm({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'MPESA' | 'EMOLA'>('MPESA');
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [marketingAllowed, setMarketingAllowed] = useState(false);
 
   // 1-Click Checkout Autofill Memory
@@ -90,6 +90,7 @@ export default function CheckoutForm({
     totalAmount: number;
     paymentMethod: 'MPESA' | 'EMOLA';
     upsellUrl?: string;
+    checkoutUrl?: string;
   } | null>(null);
 
   // Sync marketing consent state from cookie banner
@@ -356,6 +357,7 @@ export default function CheckoutForm({
           totalAmount: totalCalculatedPrice,
           paymentMethod,
           upsellUrl: data.upsellUrl,
+          checkoutUrl: data.checkoutUrl,
         });
         setIsUssdModalOpen(true);
         setStatus('form');
@@ -933,6 +935,7 @@ export default function CheckoutForm({
           totalAmount={ussdModalData.totalAmount}
           paymentMethod={ussdModalData.paymentMethod}
           upsellUrl={ussdModalData.upsellUrl}
+          checkoutUrl={ussdModalData.checkoutUrl}
           onClose={handleUssdClose}
           onSuccess={handleUssdSuccess}
         />
