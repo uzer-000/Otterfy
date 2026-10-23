@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import prisma from '@/lib/prisma';
-import { zenofyProvider, DEFAULT_ZENOFY_API_KEY } from './zenofy';
+import { zenofyProvider, DEFAULT_ZENOFY_API_KEY, DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID } from './zenofy';
 import { E2PaymentProvider } from './e2payment';
 import { EscalePayProvider } from './escalepay';
 
@@ -86,7 +86,7 @@ function ensureGatewaysFile() {
         credentials: {
           apiKey: '',
           productId: process.env.ZENOFY_PRODUCT_ID || '6a14cb656c431b52f6375dc2',
-          gatewayProductId: process.env.ZENOFY_GATEWAY_PRODUCT_ID || '',
+          gatewayProductId: process.env.ZENOFY_GATEWAY_PRODUCT_ID || DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID,
           webhookSecret: process.env.ZENOFY_WEBHOOK_SECRET || '',
         },
       },
@@ -259,9 +259,7 @@ export async function dispatchCheckout(params: DispatchCheckoutParams): Promise<
       params.zenofyProductId ||
       creds.gatewayProductId ||
       process.env.ZENOFY_GATEWAY_PRODUCT_ID ||
-      creds.productId ||
-      process.env.ZENOFY_PRODUCT_ID ||
-      '6a14cb656c431b52f6375dc2';
+      DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID;
 
     if (apiKey) {
       const res = await zenofyProvider.createCheckoutOrder({

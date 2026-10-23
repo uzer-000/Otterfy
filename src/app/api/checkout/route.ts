@@ -4,6 +4,7 @@ import dbStore from '@/lib/store';
 import { dispatchCheckout } from '@/services/payment/gatewayManager';
 import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder, dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
 import { getZenofyTierByPrice, getZenofyTierById } from '@/lib/zenofyPrices';
+import { DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID } from '@/services/payment/zenofy';
 import { clientIp } from '@/lib/security';
 
 export const maxDuration = 60;
@@ -169,7 +170,7 @@ export async function POST(req: Request) {
     const resolvedZenofyProductId =
       process.env.ZENOFY_GATEWAY_PRODUCT_ID ||
       validCustomZenofyId ||
-      getZenofyTierByPrice(totalAmount)?.id;
+      DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID;
 
     const dispatchResult = await dispatchCheckout({
       orderId: order.id,

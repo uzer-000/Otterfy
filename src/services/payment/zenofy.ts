@@ -4,6 +4,9 @@ import { getZenofyTierByPrice, getZenofyTierById } from '@/lib/zenofyPrices';
 export const DEFAULT_ZENOFY_API_KEY =
   '';
 
+export const DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID =
+  '6adbf03b057395e00f878fed';
+
 export interface CreateCheckoutOrderParams {
   productId?: string;
   amount: number;
@@ -146,7 +149,7 @@ export const zenofyProvider = {
     const gatewayProductId =
       process.env.ZENOFY_GATEWAY_PRODUCT_ID ||
       (isParamExactMatch ? params.productId : undefined) ||
-      targetProductId;
+      DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID;
 
     try {
       const gwRes = await fetch('https://api.zenofy.io/checkout/order-api-gateway', {
@@ -154,7 +157,7 @@ export const zenofyProvider = {
         headers: authHeaders,
         body: JSON.stringify({
           productId: gatewayProductId,
-          amount: exactAmount,
+          amount: Math.round(exactAmount * 100), // Zenofy order-api-gateway expects minor units (cents, e.g. 1000 = 10 MT)
           currency: 'MZN',
           language: 'pt',
           description: params.description || 'Compra Otterfy',
