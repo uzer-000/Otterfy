@@ -484,13 +484,13 @@ export default function HourlyCartsLineChart({
       <div key={localAnimKey} className="h-[230px] sm:h-[260px] md:h-[300px] w-full min-w-0 otter-chart-animate">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={activeData} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1E1B26" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#64748B" strokeOpacity={0.15} vertical={false} />
             <XAxis
               dataKey="hour"
               stroke="#64748B"
               fontSize={11}
               tickLine={false}
-              axisLine={{ stroke: '#1E1B26' }}
+              axisLine={{ stroke: '#64748B', strokeOpacity: 0.2 }}
               interval={2}
               padding={{ left: 8, right: 8 }}
             />
