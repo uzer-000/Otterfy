@@ -1,729 +1,561 @@
 'use client';
 
-import React, { useState, useId } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import { signIn } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function HomePage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [simulatedRevenue, setSimulatedRevenue] = useState(100000); // 100K MT
-  const [activeFaq, setActiveFaq] = useState<number | null>(0);
-  const revenueSliderId = useId();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // Calculator estimations
-  const averageTicket = 1500; // 1.500 MT
-  const estimatedSales = Math.round(simulatedRevenue / averageTicket);
-  const orderBumpExtra = Math.round(simulatedRevenue * 0.28); // +28% de faturamento com order bumps
-  const totalWithOtterfy = simulatedRevenue + orderBumpExtra;
+  // Mode: 'login' | 'signup'
+  const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
+  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
 
-  const faqs = [
-    {
-      q: 'Preciso de ter empresa registada ou NUIT comercial para começar a vender?',
-      a: 'Não! Pode começar a vender hoje mesmo como pessoa física ou criador independente. Só precisa de ter um número M-Pesa ou e-Mola ativo em seu nome para receber o valor das suas vendas instantaneamente.',
-    },
-    {
-      q: 'Como é que o cliente paga e como recebo o dinheiro?',
-      a: 'O cliente insere o número de telefone (Vodacom ou Movitel) no seu checkout. Em menos de 3 segundos, o telemóvel dele recebe um pop-up automático (USSD Push) solicitando o PIN. Assim que ele confirma com o PIN, o dinheiro cai imediatamente na sua carteira da Zenofy / Otterfy!',
-    },
-    {
-      q: 'A Otterfy cobra alguma mensalidade fixa?',
-      a: 'Zero! Não cobramos mensalidade, taxa de adesão nem custos de manutenção. Só paga uma pequena taxa percentual quando realiza vendas aprovadas. Se não vender, não paga absolutamente nada.',
-    },
-    {
-      q: 'Como funciona a entrega do produto ao meu comprador?',
-      a: 'A entrega é 100% automatizada! Ao cadastrar o seu produto (e-book, curso, mentoria, ficheiro PDF ou software), define o link ou ficheiro de entrega. Assim que o pagamento é aprovado pelo M-Pesa/e-Mola, o cliente é redirecionado para a página de acesso imediato e recebe a confirmação.',
-    },
-    {
-      q: 'Como funcionam os prémios e placas comemorativas da Otterfy?',
-      a: 'Recompensamos os infoprodutores que alcançam marcas de faturamento na plataforma! Ao atingir 50.000 MT ganha a Pulseira Oficial de Bronze, aos 100.000 MT a Placa Prata, aos 500.000 MT a Placa Ouro, até à Placa Titan de 10 Milhões de Meticais.',
-    },
-  ];
+  // Form states - Login
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
-  const awards = [
-    { level: '50K MT', name: 'Pulseira Bronze', img: '/awards/50k.png', color: 'from-amber-700/30 to-amber-900/10' },
-    { level: '100K MT', name: 'Placa Prata', img: '/awards/100k.png', color: 'from-slate-400/30 to-slate-600/10' },
-    { level: '500K MT', name: 'Placa Ouro', img: '/awards/500k.png', color: 'from-yellow-500/30 to-amber-600/10' },
-    { level: '1M MT', name: 'Placa Diamante', img: '/awards/1m.png', color: 'from-cyan-400/30 to-blue-600/10' },
-    { level: '5M MT', name: 'Placa Black', img: '/awards/5m.png', color: 'from-purple-500/30 to-indigo-900/10' },
-    { level: '10M MT', name: 'Placa Titan', img: '/awards/10m.png', color: 'from-violet-400/30 to-fuchsia-800/10' },
-  ];
+  // Form states - Signup
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(true);
+
+  // Status & Feedback
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  // Floating ping animation simulator
+  const [recentSale, setRecentSale] = useState({ amount: '1.500,00', method: 'M-Pesa', city: 'Maputo' });
+  const [pingVisible, setPingVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPingVisible(false);
+      setTimeout(() => {
+        const amounts = ['1.250,00', '1.500,00', '2.500,00', '850,00', '3.000,00', '500,00'];
+        const methods = ['M-Pesa', 'e-Mola', 'M-Pesa'];
+        const cities = ['Maputo', 'Matola', 'Beira', 'Nampula'];
+        setRecentSale({
+          amount: amounts[Math.floor(Math.random() * amounts.length)],
+          method: methods[Math.floor(Math.random() * methods.length)],
+          city: cities[Math.floor(Math.random() * cities.length)],
+        });
+        setPingVisible(true);
+      }, 600);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle Login submission
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const cleanEmail = loginEmail.trim().toLowerCase();
+      const res = await signIn('credentials', {
+        email: cleanEmail,
+        password: loginPassword.trim(),
+        redirect: false,
+      });
+
+      if (res?.error) {
+        try {
+          const checkRes = await fetch('/api/auth/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanEmail, password: loginPassword.trim() }),
+          });
+          const checkData = await checkRes.json();
+          if (checkData?.status === 'PENDING') {
+            router.push('/auth/pending-approval');
+            return;
+          }
+          if (checkData?.status === 'REJECTED' || checkData?.status === 'BLOCKED') {
+            setError('A sua conta foi recusada ou suspensa pela administração da Otterfy.');
+            return;
+          }
+        } catch {
+          // ignore
+        }
+        setError('Credenciais inválidas. Verifique o seu email e senha.');
+      } else {
+        setSuccessMsg('Login com sucesso! Redirecionando para a dashboard...');
+        router.push('/dashboard');
+        router.refresh();
+      }
+    } catch {
+      setError('Ocorreu um erro ao fazer login. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Signup submission
+  const handleSignupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    if (signupName.trim().length < 2) {
+      setError('O seu nome deve ter pelo menos 2 caracteres.');
+      return;
+    }
+    if (!signupEmail.includes('@')) {
+      setError('Insira um endereço de email válido.');
+      return;
+    }
+    if (signupPassword.length < 8) {
+      setError('A senha deve ter pelo menos 8 caracteres.');
+      return;
+    }
+    if (signupPassword !== signupConfirmPassword) {
+      setError('As senhas não coincidem.');
+      return;
+    }
+    if (!acceptedTerms) {
+      setError('Deve aceitar os Termos e a Política de Privacidade para criar a sua conta.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const cleanEmail = signupEmail.trim().toLowerCase();
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: signupName.trim(),
+          email: cleanEmail,
+          password: signupPassword.trim(),
+          acceptedTerms,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Erro ao criar conta.');
+        return;
+      }
+
+      if (data.status === 'PENDING') {
+        router.push('/auth/pending-approval');
+        return;
+      }
+
+      // Auto sign-in
+      const loginRes = await signIn('credentials', {
+        email: cleanEmail,
+        password: signupPassword.trim(),
+        redirect: false,
+      });
+
+      if (loginRes?.error) {
+        setSuccessMsg('Conta criada com sucesso! Por favor faça login.');
+        setMode('login');
+        setLoginEmail(cleanEmail);
+      } else {
+        setSuccessMsg('Conta criada com sucesso! Acedendo à dashboard...');
+        router.push('/dashboard');
+      }
+    } catch {
+      setError('Erro de conexão ao criar conta. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#08070C] text-[#F8FAFC] selection:bg-violet-600 selection:text-white relative overflow-x-hidden">
-      {/* Background Glow Orbs */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-to-b from-violet-600/20 via-purple-600/10 to-transparent blur-[120px] pointer-events-none -z-10" />
-      <div className="absolute top-[800px] left-0 w-[500px] h-[500px] bg-emerald-500/10 blur-[130px] pointer-events-none -z-10" />
-      <div className="absolute top-[1800px] right-0 w-[600px] h-[600px] bg-violet-600/10 blur-[140px] pointer-events-none -z-10" />
+    <div className="min-h-screen bg-[#08070C] text-[#F8FAFC] flex flex-col justify-between relative overflow-hidden selection:bg-violet-600 selection:text-white">
+      {/* Dynamic Ambient Background Lights */}
+      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[900px] h-[550px] bg-gradient-to-b from-violet-600/25 via-purple-600/15 to-transparent blur-[140px] pointer-events-none -z-10 animate-pulse duration-[6000ms]" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-500/10 blur-[130px] pointer-events-none -z-10" />
+      <div className="absolute top-[40%] right-[-10%] w-[500px] h-[500px] bg-indigo-600/10 blur-[130px] pointer-events-none -z-10" />
 
-      {/* ----------------- TOP NAVBAR ----------------- */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#08070C]/80 border-b border-white/5 transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-purple-500 p-0.5 shadow-lg shadow-violet-600/30 group-hover:scale-105 transition-transform flex items-center justify-center">
-              <div className="w-full h-full bg-[#0E0C15] rounded-[10px] flex items-center justify-center overflow-hidden">
-                <Image
-                  src="/logo-icon.png"
-                  alt="Otterfy Logo"
-                  width={28}
-                  height={28}
-                  className="object-contain"
-                  priority
-                />
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-black tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-                Otterfy
-              </span>
-              <span className="text-[10px] font-bold text-violet-400 tracking-wider uppercase -mt-1 flex items-center gap-1">
-                Moçambique 🇲🇿
-              </span>
-            </div>
-          </Link>
-
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
-            <a href="#recursos" className="hover:text-white transition-colors">
-              Recursos
-            </a>
-            <a href="#pagamentos" className="hover:text-white transition-colors">
-              M-Pesa & e-Mola
-            </a>
-            <a href="#como-funciona" className="hover:text-white transition-colors">
-              Como Funciona
-            </a>
-            <a href="#premiacoes" className="hover:text-white transition-colors">
-              Premiações
-            </a>
-            <a href="#simulador" className="hover:text-white transition-colors">
-              Simulador
-            </a>
-            <a href="#faq" className="hover:text-white transition-colors">
-              FAQ
-            </a>
-          </nav>
-
-          {/* Action Buttons: Entrar & Cadastro */}
-          <div className="hidden sm:flex items-center gap-3">
-            <Link
-              href="/auth/login"
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-200 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all cursor-pointer"
-            >
-              Entrar
-            </Link>
-            <Link
-              href="/auth/signup"
-              className="relative group px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-violet-500 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-600/30 hover:shadow-violet-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
-            >
-              <span>Criar Conta Grátis</span>
-              <span className="ml-1.5 inline-block group-hover:translate-x-0.5 transition-transform">→</span>
-            </Link>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white"
-            aria-label="Abrir Menu"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {mobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+      {/* Floating Animated Sale Ping Badge (Top Right Desktop) */}
+      <div
+        className={`fixed top-6 right-6 z-40 hidden md:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#14121D]/90 border border-violet-500/30 backdrop-blur-md shadow-2xl transition-all duration-500 ${
+          pingVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-2 scale-95'
+        }`}
+      >
+        <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold shrink-0">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping absolute" />
+          <svg className="w-4 h-4 text-emerald-400 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
         </div>
+        <div className="text-left leading-tight">
+          <div className="text-[11px] font-bold text-white flex items-center gap-1.5">
+            <span>Venda Aprovada!</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-violet-600/20 text-violet-300 font-mono">
+              {recentSale.city}
+            </span>
+          </div>
+          <div className="text-[11px] text-slate-300 font-mono mt-0.5">
+            <strong className="text-emerald-400">MT {recentSale.amount}</strong> via {recentSale.method}
+          </div>
+        </div>
+      </div>
 
-        {/* Mobile Dropdown Drawer */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#0D0B14] border-b border-white/10 px-4 pt-3 pb-6 space-y-4 animate-in slide-in-from-top-4 duration-200">
-            <nav className="flex flex-col space-y-3 text-sm font-medium text-slate-300">
-              <a href="#recursos" onClick={() => setMobileMenuOpen(false)} className="py-1">
-                Recursos
-              </a>
-              <a href="#pagamentos" onClick={() => setMobileMenuOpen(false)} className="py-1">
-                M-Pesa & e-Mola
-              </a>
-              <a href="#como-funciona" onClick={() => setMobileMenuOpen(false)} className="py-1">
-                Como Funciona
-              </a>
-              <a href="#premiacoes" onClick={() => setMobileMenuOpen(false)} className="py-1">
-                Premiações
-              </a>
-              <a href="#simulador" onClick={() => setMobileMenuOpen(false)} className="py-1">
-                Simulador
-              </a>
-              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-1">
-                FAQ
-              </a>
-            </nav>
-            <div className="pt-3 border-t border-white/10 flex flex-col gap-2.5">
-              <Link
-                href="/auth/login"
-                className="w-full text-center py-2.5 rounded-xl text-sm font-semibold text-slate-200 bg-white/5 border border-white/10"
-              >
-                Entrar na Conta
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="w-full text-center py-2.5 rounded-xl text-sm font-bold text-white bg-violet-600 shadow-md shadow-violet-600/30"
-              >
-                Criar Conta Grátis
-              </Link>
+      {/* Floating Speed Badge (Bottom Left Desktop) */}
+      <div className="fixed bottom-6 left-6 z-40 hidden lg:flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-[#14121D]/80 border border-white/10 backdrop-blur-md text-[11px] text-slate-300 shadow-xl">
+        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <span>Aprovação instantânea via USSD Push em &lt; 3s</span>
+        <span className="text-violet-400 font-bold">🇲🇿</span>
+      </div>
+
+      {/* ── TOP HEADER / BRAND ── */}
+      <header className="w-full pt-8 sm:pt-10 px-4 text-center">
+        <div className="inline-flex items-center gap-2.5 group">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-500 p-0.5 shadow-lg shadow-violet-600/30 group-hover:scale-105 transition-transform flex items-center justify-center">
+            <div className="w-full h-full bg-[#0E0C15] rounded-[14px] flex items-center justify-center overflow-hidden">
+              <Image
+                src="/logo-icon.png"
+                alt="Otterfy"
+                width={30}
+                height={30}
+                className="object-contain drop-shadow"
+                priority
+              />
             </div>
           </div>
-        )}
+          <div className="text-left">
+            <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent leading-none">
+              Otterfy
+            </h1>
+            <span className="text-[10px] font-bold text-violet-400 tracking-wider uppercase">
+              Checkout Moçambique 🇲🇿
+            </span>
+          </div>
+        </div>
       </header>
 
-      {/* ----------------- HERO SECTION ----------------- */}
-      <section className="pt-12 sm:pt-20 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-4xl mx-auto space-y-6">
-          {/* Announcement pill */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-600/10 border border-violet-500/25 text-violet-300 text-xs sm:text-sm font-semibold shadow-inner">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>A plataforma nº1 de pagamentos digitais em Moçambique</span>
-            <span className="text-violet-400">✨</span>
-          </div>
+      {/* ── MAIN AUTH CARD ── */}
+      <main className="flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
+        <div className="w-full max-w-[440px] relative">
+          {/* Subtle Outer Card Glow */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-purple-600/20 to-emerald-500/10 rounded-3xl blur-xl opacity-75" />
 
-          {/* Main Headline */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-white">
-            Venda produtos digitais e receba em{' '}
-            <span className="bg-gradient-to-r from-violet-400 via-purple-300 to-indigo-300 bg-clip-text text-transparent">
-              Meticais na hora.
-            </span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="text-base sm:text-xl text-slate-300 font-normal max-w-2xl mx-auto leading-relaxed">
-            A infraestrutura completa de checkout de alta conversão para infoprodutores, cursos e negócios digitais em Moçambique.
-            Aceite <strong className="text-white font-semibold">M-Pesa e e-Mola</strong> em menos de 3 segundos, com zero burocracia.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5 sm:gap-4">
-            <Link
-              href="/auth/signup"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl text-base font-extrabold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-violet-500 hover:from-violet-500 hover:to-purple-500 shadow-xl shadow-violet-600/30 hover:shadow-violet-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer"
-            >
-              <span>Começar a Vender Agora</span>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </Link>
-
-            <Link
-              href="/auth/login"
-              className="w-full sm:w-auto px-7 py-4 rounded-2xl text-base font-bold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all flex items-center justify-center cursor-pointer"
-            >
-              Já tenho conta (Entrar)
-            </Link>
-          </div>
-
-          {/* Trust points */}
-          <div className="pt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-400 font-medium">
-            <span className="flex items-center gap-1.5">
-              <span className="text-emerald-400 font-bold">✓</span> Zero taxas de adesão
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-emerald-400 font-bold">✓</span> Push automático de PIN no telemóvel
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-emerald-400 font-bold">✓</span> Ativação imediata da conta
-            </span>
-          </div>
-        </div>
-
-        {/* ----------------- INTERACTIVE HERO SHOWCASE ----------------- */}
-        <div className="mt-14 sm:mt-20 relative max-w-5xl mx-auto">
-          {/* Outer glow frame */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-violet-600/40 via-purple-600/30 to-emerald-500/30 rounded-3xl blur-xl opacity-75" />
-
-          <div className="relative rounded-3xl bg-[#100E17] border border-white/10 p-4 sm:p-8 shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-            {/* Left Mockup: Dashboard Metrics Feed (7 cols) */}
-            <div className="lg:col-span-7 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                    Visão Geral das Vendas (Hoje)
-                  </span>
-                </div>
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-violet-600/20 text-violet-300 border border-violet-500/30">
-                  Moçambique • Tempo Real
-                </span>
-              </div>
-
-              {/* KPI Cards inside mock */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3.5 rounded-2xl bg-[#171422] border border-white/5 space-y-1">
-                  <span className="text-[11px] text-slate-400 font-medium">Faturamento Total</span>
-                  <div className="text-xl sm:text-2xl font-black text-white">148.500,00 MT</div>
-                  <span className="text-[10px] text-emerald-400 font-bold">↑ +34.2% esta semana</span>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-[#171422] border border-white/5 space-y-1">
-                  <span className="text-[11px] text-slate-400 font-medium">Taxa de Conversão</span>
-                  <div className="text-xl sm:text-2xl font-black text-emerald-400">89.4%</div>
-                  <span className="text-[10px] text-slate-400 font-bold">M-Pesa & e-Mola</span>
-                </div>
-              </div>
-
-              {/* Dynamic Notification Simulation Card */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-950/40 to-purple-950/30 border border-violet-500/30 flex items-center justify-between gap-3 shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>Venda Aprovada - Otterfy</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    </div>
-                    <div className="text-xs text-slate-300 font-mono font-bold mt-0.5">
-                      Valor : MT 1.500,00 • <span className="text-emerald-400">M-Pesa Confirmado</span>
-                    </div>
-                  </div>
-                </div>
-                <span className="text-[11px] font-mono text-slate-400 shrink-0">Agora</span>
-              </div>
+          <div className="relative rounded-3xl bg-[#121017]/95 border border-white/10 backdrop-blur-xl p-6 sm:p-9 shadow-2xl space-y-6">
+            {/* Header info */}
+            <div className="text-center space-y-1.5">
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                {mode === 'login' ? 'Bem-vindo de volta' : 'Crie a sua conta grátis'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400">
+                {mode === 'login'
+                  ? 'Aceda ao seu painel e acompanhe as suas vendas'
+                  : 'Comece a vender e receba com M-Pesa e e-Mola hoje'}
+              </p>
             </div>
 
-            {/* Right Mockup: 1-Click Mobile Checkout Simulation (5 cols) */}
-            <div className="lg:col-span-5 rounded-2xl bg-[#161322] border border-white/10 p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white">Checkout Otterfy</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
-                  Seguro SSL
-                </span>
-              </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between text-slate-300">
-                  <span>Mentoria Tráfego Pro</span>
-                  <span className="font-bold text-white">1.500 MT</span>
-                </div>
-
-                {/* Simulated Order Bump */}
-                <div className="p-2.5 rounded-xl bg-violet-600/10 border border-violet-500/30 flex items-start gap-2">
-                  <input type="checkbox" checked readOnly className="mt-0.5 accent-violet-600 rounded" />
-                  <div className="text-[11px] leading-tight">
-                    <span className="font-bold text-violet-300">+ Modelos de Anúncios Prontos</span>
-                    <div className="text-slate-400 font-bold">+ 350 MT</div>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-white/10 flex justify-between font-bold text-sm">
-                  <span>Total a Pagar</span>
-                  <span className="text-emerald-400 font-mono">1.850,00 MT</span>
-                </div>
-              </div>
-
-              {/* Simulated Mobile Number input & Pay button */}
-              <div className="space-y-2">
-                <div className="p-2.5 rounded-xl bg-[#0F0D17] border border-white/10 text-xs text-slate-300 flex items-center justify-between font-mono">
-                  <span>🇲🇿 +258 84 123 4567</span>
-                  <span className="text-[10px] text-emerald-400 font-bold">M-Pesa</span>
-                </div>
-
-                <div className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs text-center shadow-md shadow-emerald-500/20">
-                  Pagar Agora com M-Pesa (PIN Automático)
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ----------------- PAYMENT GATEWAYS BAR ----------------- */}
-      <section id="pagamentos" className="py-12 border-y border-white/5 bg-[#0C0B12]/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-xs font-bold uppercase tracking-widest text-slate-400 mb-8">
-            Pagamentos móveis integrados diretamente com as maiores operadoras de Moçambique
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-16 opacity-90 grayscale-0">
-            {/* M-Pesa */}
-            <div className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 hover:border-red-500/40 transition-colors">
-              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-white p-1">
-                <Image src="/gateways/mpesa.png" alt="M-Pesa" width={32} height={32} className="object-contain" />
-              </div>
-              <div className="text-left">
-                <div className="text-sm font-bold text-white">M-Pesa</div>
-                <div className="text-[10px] text-slate-400">Vodacom Moçambique</div>
-              </div>
-            </div>
-
-            {/* e-Mola */}
-            <div className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 hover:border-orange-500/40 transition-colors">
-              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-white p-1">
-                <Image src="/gateways/emola.png" alt="e-Mola" width={32} height={32} className="object-contain" />
-              </div>
-              <div className="text-left">
-                <div className="text-sm font-bold text-white">e-Mola</div>
-                <div className="text-[10px] text-slate-400">Movitel Moçambique</div>
-              </div>
-            </div>
-
-            {/* Zenofy APIs Gateway */}
-            <div className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 hover:border-violet-500/40 transition-colors">
-              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-violet-600/30 p-1">
-                <Image src="/gateways/zenofy.png" alt="Zenofy" width={32} height={32} className="object-contain" />
-              </div>
-              <div className="text-left">
-                <div className="text-sm font-bold text-white">Zenofy Engine</div>
-                <div className="text-[10px] text-slate-400">Liquidação Instantânea</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ----------------- SUPERPOWERS / BENTO GRID ----------------- */}
-      <section id="recursos" className="py-20 sm:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-          <h2 className="text-xs sm:text-sm font-bold uppercase tracking-widest text-violet-400">
-            Tudo o que precisa para escalar
-          </h2>
-          <h3 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-            Criado sob medida para o mercado digital moçambicano
-          </h3>
-          <p className="text-slate-400 text-base sm:text-lg">
-            Abandone os comprovativos manuais de WhatsApp e as planilhas confusas. A Otterfy automatiza todo o funil.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Card 1 */}
-          <div className="p-7 rounded-3xl bg-[#121018] border border-white/10 hover:border-violet-500/40 transition-all hover:-translate-y-1 group">
-            <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 mb-5 text-xl group-hover:scale-110 transition-transform">
-              ⚡
-            </div>
-            <h4 className="text-xl font-bold text-white mb-2">Checkout de 1 Passo Ultra-Rápido</h4>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Otimizado para telemóveis. Formulário simplificado que elimina toda a fricção e converte até 3x mais que checkouts comuns.
-            </p>
-          </div>
-
-          {/* Card 2 */}
-          <div className="p-7 rounded-3xl bg-[#121018] border border-white/10 hover:border-emerald-500/40 transition-all hover:-translate-y-1 group">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-5 text-xl group-hover:scale-110 transition-transform">
-              📲
-            </div>
-            <h4 className="text-xl font-bold text-white mb-2">USSD Push Direto no Telemóvel</h4>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              O comprador digita o número e o ecrã do telemóvel acende imediatamente pedindo o PIN do M-Pesa ou e-Mola. Confirmação em 3 segundos.
-            </p>
-          </div>
-
-          {/* Card 3 */}
-          <div className="p-7 rounded-3xl bg-[#121018] border border-white/10 hover:border-purple-500/40 transition-all hover:-translate-y-1 group">
-            <div className="w-12 h-12 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-5 text-xl group-hover:scale-110 transition-transform">
-              🛍️
-            </div>
-            <h4 className="text-xl font-bold text-white mb-2">Order Bumps & Upsells em 1 Clique</h4>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Aumente o valor médio de cada venda oferecendo produtos complementares com uma única caixinha de seleção no checkout.
-            </p>
-          </div>
-
-          {/* Card 4 */}
-          <div className="p-7 rounded-3xl bg-[#121018] border border-white/10 hover:border-yellow-500/40 transition-all hover:-translate-y-1 group">
-            <div className="w-12 h-12 rounded-2xl bg-yellow-600/20 border border-yellow-500/30 flex items-center justify-center text-yellow-400 mb-5 text-xl group-hover:scale-110 transition-transform">
-              🔔
-            </div>
-            <h4 className="text-xl font-bold text-white mb-2">Notificações Push com Som de Venda</h4>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Receba o som icónico e notificações instantâneas no seu telemóvel e computador a cada venda aprovada, mesmo com a aba fechada.
-            </p>
-          </div>
-
-          {/* Card 5 */}
-          <div className="p-7 rounded-3xl bg-[#121018] border border-white/10 hover:border-blue-500/40 transition-all hover:-translate-y-1 group">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-5 text-xl group-hover:scale-110 transition-transform">
-              🎯
-            </div>
-            <h4 className="text-xl font-bold text-white mb-2">Rastreamento com Meta Pixel & CAPI</h4>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Integração nativa de alta precisão com Meta Conversions API (CAPI server-side), TikTok Pixel, Google Ads e Utmify.
-            </p>
-          </div>
-
-          {/* Card 6 */}
-          <div className="p-7 rounded-3xl bg-[#121018] border border-white/10 hover:border-pink-500/40 transition-all hover:-translate-y-1 group">
-            <div className="w-12 h-12 rounded-2xl bg-pink-600/20 border border-pink-500/30 flex items-center justify-center text-pink-400 mb-5 text-xl group-hover:scale-110 transition-transform">
-              🔒
-            </div>
-            <h4 className="text-xl font-bold text-white mb-2">Entrega Automática & Área de Membros</h4>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              O seu e-book, curso, comunidade ou mentoria é entregue imediatamente após a confirmação. Segurança total contra pirataria.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ----------------- AWARDS / GAMIFICATION SHOWCASE ----------------- */}
-      <section id="premiacoes" className="py-20 sm:py-28 bg-gradient-to-b from-[#0C0B12] via-[#100E17] to-[#08070C] border-y border-white/5 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-bold uppercase tracking-wider">
-              🏆 Gamificação Oficial
-            </div>
-            <h3 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-              Os seus marcos celebrados com placas físicas exclusivas
-            </h3>
-            <p className="text-slate-400 text-base sm:text-lg">
-              À medida que escala as suas vendas, a Otterfy envia para si os prémios físicos oficiais comemorativos do seu sucesso.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
-            {awards.map((award, i) => (
-              <div
-                key={i}
-                className="p-4 rounded-2xl bg-[#161320] border border-white/10 hover:border-yellow-500/40 transition-all flex flex-col items-center text-center group"
+            {/* Segmented Switcher Toggle: [ Entrar ] | [ Criar Conta ] */}
+            <div className="p-1 rounded-2xl bg-[#0B0910] border border-white/10 grid grid-cols-2 gap-1 relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setError('');
+                  setSuccessMsg('');
+                }}
+                className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                  mode === 'login'
+                    ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
               >
-                <div className="w-24 h-24 sm:w-28 sm:h-28 relative mb-3 group-hover:scale-105 transition-transform">
-                  <Image
-                    src={award.img}
-                    alt={award.name}
-                    fill
-                    className="object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]"
+                Entrar na Conta
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signup');
+                  setError('');
+                  setSuccessMsg('');
+                }}
+                className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                  mode === 'signup'
+                    ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Criar Nova Conta
+              </button>
+            </div>
+
+            {/* Error Message Alert */}
+            {error && (
+              <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-start gap-2.5 animate-in fade-in zoom-in-95 duration-150">
+                <svg className="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Success Message Alert */}
+            {successMsg && (
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5 animate-in fade-in duration-150">
+                <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{successMsg}</span>
+              </div>
+            )}
+
+            {/* ── LOGIN FORM ── */}
+            {mode === 'login' ? (
+              <form onSubmit={handleLoginSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Email de Acesso
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="exemplo@gmail.com"
+                    autoComplete="email"
+                    className="w-full px-4 py-3 rounded-2xl bg-[#09080E] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
                   />
                 </div>
-                <span className="text-xs font-extrabold text-yellow-400 font-mono tracking-wide">
-                  {award.level}
-                </span>
-                <span className="text-xs font-bold text-white mt-0.5">{award.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* ----------------- INTERACTIVE CALCULATOR ----------------- */}
-      <section id="simulador" className="py-20 sm:py-28 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="p-8 sm:p-12 rounded-3xl bg-[#121019] border border-white/10 shadow-2xl relative overflow-hidden">
-          <div className="text-center max-w-2xl mx-auto space-y-3 mb-10">
-            <span className="text-xs font-bold uppercase tracking-wider text-violet-400">
-              Simulador de Faturamento
-            </span>
-            <h3 className="text-2xl sm:text-4xl font-black text-white">
-              Quanto pode faturar vendendo na Otterfy?
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-400">
-              Arraste a barra para ver o impacto dos Order Bumps e a automação de checkout no seu negócio.
-            </p>
-          </div>
-
-          {/* Slider */}
-          <div className="space-y-4 max-w-xl mx-auto">
-            <div className="flex justify-between items-center">
-              <label htmlFor={revenueSliderId} className="text-xs text-slate-400 font-medium cursor-pointer">
-                Faturamento Mensal Estimado:
-              </label>
-              <span className="text-2xl sm:text-3xl font-black text-violet-400 font-mono">
-                {simulatedRevenue.toLocaleString('pt-MZ')} MT
-              </span>
-            </div>
-
-            <input
-              id={revenueSliderId}
-              type="range"
-              min={10000}
-              max={1000000}
-              step={10000}
-              value={simulatedRevenue}
-              onChange={(e) => setSimulatedRevenue(Number(e.target.value))}
-              className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-violet-600"
-              aria-label="Faturamento Mensal Estimado"
-            />
-
-            <div className="flex justify-between text-[11px] text-slate-500 font-mono">
-              <span>10.000 MT</span>
-              <span>500.000 MT</span>
-              <span>1.000.000 MT+</span>
-            </div>
-          </div>
-
-          {/* Result Cards */}
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-white/10">
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 text-center">
-              <span className="text-xs text-slate-400">Vendas Estimadas</span>
-              <div className="text-2xl font-black text-white mt-1 font-mono">~{estimatedSales}</div>
-              <span className="text-[10px] text-slate-500">com ticket de 1.500 MT</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-              <span className="text-xs text-emerald-400 font-medium">Extra com Order Bumps (+28%)</span>
-              <div className="text-2xl font-black text-emerald-400 mt-1 font-mono">
-                +{orderBumpExtra.toLocaleString('pt-MZ')} MT
-              </div>
-              <span className="text-[10px] text-slate-400">lucro adicional automático</span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-violet-600/15 border border-violet-500/30 text-center">
-              <span className="text-xs text-violet-300 font-medium">Total Potencial com Otterfy</span>
-              <div className="text-2xl font-black text-white mt-1 font-mono">
-                {totalWithOtterfy.toLocaleString('pt-MZ')} MT
-              </div>
-              <span className="text-[10px] text-violet-300">sem custos fixos</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ----------------- COMPARISON TABLE ----------------- */}
-      <section className="py-16 sm:py-24 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
-          <h3 className="text-2xl sm:text-4xl font-black text-white">
-            Por que trocar o método manual pela Otterfy?
-          </h3>
-        </div>
-
-        <div className="rounded-3xl bg-[#100E17] border border-white/10 overflow-hidden shadow-xl">
-          <div className="grid grid-cols-12 bg-white/5 p-4 text-xs font-bold text-slate-300 uppercase tracking-wider border-b border-white/10">
-            <div className="col-span-6 sm:col-span-5">Critério</div>
-            <div className="col-span-3 sm:col-span-3 text-red-400">Método Manual (WhatsApp)</div>
-            <div className="col-span-3 sm:col-span-4 text-emerald-400">Com a Otterfy</div>
-          </div>
-
-          <div className="divide-y divide-white/5 text-xs sm:text-sm">
-            <div className="grid grid-cols-12 p-4 items-center">
-              <div className="col-span-6 sm:col-span-5 font-medium text-slate-300">Confirmação de Pagamento</div>
-              <div className="col-span-3 sm:col-span-3 text-slate-400">Manual (conferir extrato)</div>
-              <div className="col-span-3 sm:col-span-4 text-emerald-400 font-bold">Automática em 3 segundos</div>
-            </div>
-
-            <div className="grid grid-cols-12 p-4 items-center">
-              <div className="col-span-6 sm:col-span-5 font-medium text-slate-300">Entrega do Produto</div>
-              <div className="col-span-3 sm:col-span-3 text-slate-400">Enviar link no privado</div>
-              <div className="col-span-3 sm:col-span-4 text-emerald-400 font-bold">Imediata e Protegida</div>
-            </div>
-
-            <div className="grid grid-cols-12 p-4 items-center">
-              <div className="col-span-6 sm:col-span-5 font-medium text-slate-300">Vendas na Madrugada</div>
-              <div className="col-span-3 sm:col-span-3 text-slate-400">Perdidas enquanto dorme</div>
-              <div className="col-span-3 sm:col-span-4 text-emerald-400 font-bold">Vende 24h/7 dias</div>
-            </div>
-
-            <div className="grid grid-cols-12 p-4 items-center">
-              <div className="col-span-6 sm:col-span-5 font-medium text-slate-300">Order Bumps & Upsells</div>
-              <div className="col-span-3 sm:col-span-3 text-slate-400">Inexistente</div>
-              <div className="col-span-3 sm:col-span-4 text-emerald-400 font-bold">+28% faturamento médio</div>
-            </div>
-
-            <div className="grid grid-cols-12 p-4 items-center">
-              <div className="col-span-6 sm:col-span-5 font-medium text-slate-300">Notificação no Telemóvel</div>
-              <div className="col-span-3 sm:col-span-3 text-slate-400">Mensagens desorganizadas</div>
-              <div className="col-span-3 sm:col-span-4 text-emerald-400 font-bold">Push com som oficial</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ----------------- FAQ SECTION ----------------- */}
-      <section id="faq" className="py-20 sm:py-28 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-3 mb-12">
-          <span className="text-xs font-bold uppercase tracking-wider text-violet-400">Dúvidas Frequentes</span>
-          <h3 className="text-3xl sm:text-4xl font-black text-white">Tudo o que precisa de saber</h3>
-        </div>
-
-        <div className="space-y-3">
-          {faqs.map((faq, idx) => {
-            const isOpen = activeFaq === idx;
-            return (
-              <div
-                key={idx}
-                className="rounded-2xl bg-[#121018] border border-white/10 overflow-hidden transition-colors"
-              >
-                <button
-                  type="button"
-                  onClick={() => setActiveFaq(isOpen ? null : idx)}
-                  className="w-full p-5 text-left font-bold text-sm sm:text-base text-white flex items-center justify-between gap-4 cursor-pointer"
-                >
-                  <span>{faq.q}</span>
-                  <span className={`text-violet-400 text-xl transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
-                    +
-                  </span>
-                </button>
-                {isOpen && (
-                  <div className="px-5 pb-5 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-white/5 pt-3 animate-in fade-in duration-150">
-                    {faq.a}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold text-slate-300">
+                      Senha
+                    </label>
+                    <span className="text-[11px] text-violet-400 hover:underline cursor-pointer" title="Contacte o suporte oficial para recuperação">
+                      Esqueceu a senha?
+                    </span>
                   </div>
-                )}
+                  <div className="relative">
+                    <input
+                      type={showLoginPassword ? 'text' : 'password'}
+                      required
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      autoComplete="current-password"
+                      className="w-full px-4 py-3 pr-11 rounded-2xl bg-[#09080E] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      {showLoginPassword ? (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-2xl text-sm font-extrabold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-violet-500 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 pt-3"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      <span>Entrando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Entrar no Painel</span>
+                      <span>→</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* ── SIGNUP FORM ── */
+              <form onSubmit={handleSignupSubmit} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Nome Completo
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={signupName}
+                    onChange={(e) => setSignupName(e.target.value)}
+                    placeholder="Seu Nome ou Nome do Negócio"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-[#09080E] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    placeholder="seuemail@gmail.com"
+                    autoComplete="email"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-[#09080E] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Criar Senha (mínimo 8 caracteres)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showSignupPassword ? 'text' : 'password'}
+                      required
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full px-4 py-2.5 pr-11 rounded-2xl bg-[#09080E] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignupPassword(!showSignupPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      {showSignupPassword ? (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Confirmar Senha
+                  </label>
+                  <input
+                    type={showSignupPassword ? 'text' : 'password'}
+                    required
+                    value={signupConfirmPassword}
+                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-[#09080E] border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all font-mono"
+                  />
+                </div>
+
+                <div className="flex items-start gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-0.5 accent-violet-600 rounded cursor-pointer"
+                  />
+                  <label htmlFor="terms" className="text-[11px] text-slate-400 leading-tight cursor-pointer">
+                    Concordo com os{' '}
+                    <Link href="/termos" target="_blank" className="text-violet-400 hover:underline">
+                      Termos de Uso
+                    </Link>{' '}
+                    e a{' '}
+                    <Link href="/privacidade" target="_blank" className="text-violet-400 hover:underline">
+                      Política de Privacidade
+                    </Link>.
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-2xl text-sm font-extrabold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-violet-500 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 pt-3"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      <span>Criando conta...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Criar Conta Grátis</span>
+                      <span>→</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* ── GATEWAYS TRUST FOOTER ── */}
+            <div className="pt-4 border-t border-white/5 space-y-2.5 text-center">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                Pagamentos Móveis Integrados
+              </span>
+              <div className="flex items-center justify-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
+                  <div className="w-5 h-5 rounded-md bg-white p-0.5 flex items-center justify-center">
+                    <Image src="/gateways/mpesa.png" alt="M-Pesa" width={20} height={20} className="object-contain" />
+                  </div>
+                  <span className="text-xs font-bold text-white">M-Pesa</span>
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
+                  <div className="w-5 h-5 rounded-md bg-white p-0.5 flex items-center justify-center">
+                    <Image src="/gateways/emola.png" alt="e-Mola" width={20} height={20} className="object-contain" />
+                  </div>
+                  <span className="text-xs font-bold text-white">e-Mola</span>
+                </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ----------------- FINAL CTA BANNER ----------------- */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-        <div className="rounded-3xl bg-gradient-to-r from-violet-900/60 via-purple-900/40 to-slate-900 border border-violet-500/30 p-8 sm:p-14 text-center relative overflow-hidden shadow-2xl space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-violet-600/30 border border-violet-500/40 mx-auto flex items-center justify-center text-3xl shadow-lg">
-            🚀
-          </div>
-
-          <h3 className="text-3xl sm:text-5xl font-black text-white tracking-tight max-w-2xl mx-auto">
-            Pronto para transformar o seu conhecimento em vendas diárias?
-          </h3>
-
-          <p className="text-slate-300 text-sm sm:text-base max-w-xl mx-auto">
-            Crie a sua conta gratuita em menos de 2 minutos e comece a receber pagamentos automáticos com M-Pesa e e-Mola hoje mesmo.
-          </p>
-
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/auth/signup"
-              className="w-full sm:w-auto px-9 py-4 rounded-2xl text-base font-extrabold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-violet-500 hover:from-violet-500 hover:to-purple-500 shadow-xl shadow-violet-600/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
-            >
-              Criar Conta Grátis na Otterfy →
-            </Link>
-
-            <Link
-              href="/auth/login"
-              className="w-full sm:w-auto px-7 py-4 rounded-2xl text-base font-bold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
-            >
-              Aceder ao Painel
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ----------------- FOOTER ----------------- */}
-      <footer className="border-t border-white/10 bg-[#06050A] py-12 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-violet-600/30 flex items-center justify-center p-1">
-              <Image src="/logo-icon.png" alt="Otterfy" width={20} height={20} className="object-contain" />
             </div>
-            <span className="font-bold text-slate-300 text-sm">Otterfy Moçambique</span>
-            <span className="text-[10px] text-slate-500">© {new Date().getFullYear()} Todos os direitos reservados.</span>
-          </div>
-
-          <div className="flex items-center flex-wrap justify-center gap-6 text-slate-400">
-            <Link href="/termos" className="hover:text-white transition-colors">
-              Termos de Uso
-            </Link>
-            <Link href="/privacidade" className="hover:text-white transition-colors">
-              Privacidade
-            </Link>
-            <Link href="/reembolso" className="hover:text-white transition-colors">
-              Política de Reembolso
-            </Link>
-            <Link href="/auth/login" className="hover:text-white transition-colors">
-              Login
-            </Link>
-            <Link href="/auth/signup" className="hover:text-white transition-colors">
-              Cadastro
-            </Link>
           </div>
         </div>
+      </main>
+
+      {/* ── FOOTER ── */}
+      <footer className="w-full py-6 text-center text-xs text-slate-400 space-y-2">
+        <div className="flex items-center justify-center gap-4 text-[11px]">
+          <Link href="/termos" className="hover:text-white transition-colors">
+            Termos de Uso
+          </Link>
+          <span>•</span>
+          <Link href="/privacidade" className="hover:text-white transition-colors">
+            Privacidade
+          </Link>
+          <span>•</span>
+          <Link href="/reembolso" className="hover:text-white transition-colors">
+            Reembolso
+          </Link>
+        </div>
+        <p className="text-[10px] text-slate-400">
+          Otterfy © {new Date().getFullYear()} • A infraestrutura de pagamentos digitais para Moçambique 🇲🇿
+        </p>
       </footer>
     </div>
   );
