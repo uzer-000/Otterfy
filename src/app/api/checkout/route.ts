@@ -5,7 +5,7 @@ import { dispatchCheckout } from '@/services/payment/gatewayManager';
 import { dispatchProductWebhook, dispatchMetaCapi, dispatchUtmifyOrder, dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
 import { getZenofyTierByPrice, getZenofyTierById } from '@/lib/zenofyPrices';
 import { DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID } from '@/services/payment/zenofy';
-import { clientIp } from '@/lib/security';
+import { clientIp, enforceRateLimit, rateLimitResponse } from '@/lib/security';
 
 export const maxDuration = 60;
 
@@ -35,6 +35,12 @@ const checkoutSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const ip = clientIp(req);
+    const rl = await enforceRateLimit(`checkout:${ip}`, { limit: 15, windowMs: 60_000 });
+    if (!rl.success) {
+      return rateLimitResponse(rl.reset);
+    }
+
     const body = await req.json();
     const result = checkoutSchema.safeParse(body);
 
@@ -127,8 +133,6 @@ export async function POST(req: Request) {
       if (coupon && Number.isFinite(Number(coupon.discountPercent))) {
         discountPercent = Math.min(100, Math.max(0, Number(coupon.discountPercent)));
       }
-    } else if (clientDiscountPercent && clientDiscountPercent > 0 && clientDiscountPercent <= 95) {
-      discountPercent = clientDiscountPercent;
     }
 
     const subtotal = product.price + resolvedBumpAmount;
