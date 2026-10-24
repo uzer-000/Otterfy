@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import prisma from './prisma';
+import { getMozambiqueDate, createMozambiqueDateUtc } from './utils';
 
 export interface ProductItem {
   id: string;
@@ -783,16 +784,21 @@ export const dbStore = {
     const orders = cachedOrders || (await this.getOrders());
     const approvedOrders = orders.filter(o => o.status === 'APPROVED');
 
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const mozNow = getMozambiqueDate();
+    const startOfToday = createMozambiqueDateUtc(mozNow.getUTCFullYear(), mozNow.getUTCMonth(), mozNow.getUTCDate(), 0, 0, 0, 0);
 
-    // Current calendar week (Segunda-feira às 00:00:00)
-    const currentJsDay = now.getDay();
-    const diffToMonday = currentJsDay === 0 ? 6 : currentJsDay - 1;
-    const startOfThisWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
+    // Current calendar week in Mozambique (Segunda-feira às 00:00:00 CAT)
+    const mozDayOfWeek = mozNow.getUTCDay();
+    const diffToMonday = mozDayOfWeek === 0 ? 6 : mozDayOfWeek - 1;
+    const startOfThisWeek = createMozambiqueDateUtc(
+      mozNow.getUTCFullYear(),
+      mozNow.getUTCMonth(),
+      mozNow.getUTCDate() - diffToMonday,
+      0, 0, 0, 0
+    );
 
-    // Current calendar month (Dia 1 às 00:00:00)
-    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    // Current calendar month in Mozambique (Dia 1 às 00:00:00 CAT)
+    const startOfThisMonth = createMozambiqueDateUtc(mozNow.getUTCFullYear(), mozNow.getUTCMonth(), 1, 0, 0, 0, 0);
 
     const todayOrders = approvedOrders.filter(o => new Date(o.createdAt) >= startOfToday);
     const weekOrders = approvedOrders.filter(o => new Date(o.createdAt) >= startOfThisWeek);

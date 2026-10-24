@@ -9,7 +9,7 @@ import HourlyCartsLineChart from './HourlyCartsLineChart';
 import ConversionAndMethods from './ConversionAndMethods';
 import CensoredTransactionsTable from './CensoredTransactionsTable';
 import AwardsModal from './AwardsModal';
-import { formatMZN } from '@/lib/utils';
+import { formatMZN, getMozambiqueDate, getMozambiqueDateString } from '@/lib/utils';
 
 export interface DashboardBlock {
   id: string;
@@ -156,11 +156,9 @@ export default function CustomizableWidgets({
 
     const syncLive24hFlow = async () => {
       try {
-        const now = new Date();
-        const yDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-        const yMonth = String(yDate.getMonth() + 1).padStart(2, '0');
-        const yDay = String(yDate.getDate()).padStart(2, '0');
-        const yesterdayIso = `${yDate.getFullYear()}-${yMonth}-${yDay}`;
+        const mozNow = getMozambiqueDate();
+        const yDate = new Date(mozNow.getTime() - 86400000);
+        const yesterdayIso = getMozambiqueDateString(yDate);
 
         const [resToday, resYesterday] = await Promise.all([
           fetch('/api/analytics/hourly', { cache: 'no-store' }),

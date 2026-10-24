@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
+import { getMozambiqueDate, getMozambiqueDateString } from '@/lib/utils';
 
 export interface HourlyDataPoint {
   hour: string;
@@ -41,12 +42,7 @@ const MONTH_NAMES = [
 
 const WEEK_DAYS_SHORT = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
-const toDateInputString = (d: Date) => {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+const toDateInputString = (d: Date) => getMozambiqueDateString(d);
 
 interface HourlyCartsLineChartProps {
   data?: HourlyDataPoint[];
@@ -66,13 +62,15 @@ export default function HourlyCartsLineChart({
   const [showIniciados, setShowIniciados] = useState(true);
   const [showAprovados, setShowAprovados] = useState(true);
 
-  // Calendar & Date Selection State
-  const now = useMemo(() => new Date(), []);
-  const todayStr = useMemo(() => toDateInputString(now), [now]);
+  // Calendar & Date Selection State (Calibrated for Mozambique Africa/Maputo, CAT = UTC+2)
+  const now = useMemo(() => getMozambiqueDate(), []);
+  const todayStr = useMemo(() => getMozambiqueDateString(), []);
 
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(now.getFullYear(), now.getMonth(), 1));
+  const [calendarMonth, setCalendarMonth] = useState<Date>(
+    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+  );
   const [monthActivity, setMonthActivity] = useState<Record<number, { total: number; approved: number }>>({});
 
   // Active dataset & metadata
@@ -270,45 +268,47 @@ export default function HourlyCartsLineChart({
                     boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.5), 0 0 25px -5px rgba(139, 92, 246, 0.15)',
                   }}
                 >
-                  {/* Quick Shortcuts */}
-                  <div className="flex items-center gap-1.5 pb-3 border-b border-slate-100 dark:border-white/10 mb-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        loadDateData(todayStr);
-                        setCalendarMonth(new Date(now.getFullYear(), now.getMonth(), 1));
-                      }}
-                      className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center ${
-                        selectedDate === todayStr
-                          ? 'bg-violet-600 text-white shadow-xs'
-                          : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      Hoje
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-                        loadDateData(toDateInputString(y));
-                        setCalendarMonth(new Date(y.getFullYear(), y.getMonth(), 1));
-                      }}
-                      className="flex-1 py-1 px-2 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-all cursor-pointer text-center"
-                    >
-                      Ontem
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
-                        loadDateData(toDateInputString(d));
-                        setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1));
-                      }}
-                      className="flex-1 py-1 px-2 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-all cursor-pointer text-center"
-                    >
-                      Anteontem
-                    </button>
-                  </div>
+                    {/* Quick Shortcuts */}
+                    <div className="flex items-center gap-1.5 pb-3 border-b border-slate-100 dark:border-white/10 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          loadDateData(todayStr);
+                          setCalendarMonth(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)));
+                        }}
+                        className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center ${
+                          selectedDate === todayStr
+                            ? 'bg-violet-600 text-white shadow-xs'
+                            : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        Hoje
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const y = new Date(now.getTime() - 86400000);
+                          const yStr = getMozambiqueDateString(y);
+                          loadDateData(yStr);
+                          setCalendarMonth(new Date(Date.UTC(y.getUTCFullYear(), y.getUTCMonth(), 1)));
+                        }}
+                        className="flex-1 py-1 px-2 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-all cursor-pointer text-center"
+                      >
+                        Ontem
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date(now.getTime() - 2 * 86400000);
+                          const dStr = getMozambiqueDateString(d);
+                          loadDateData(dStr);
+                          setCalendarMonth(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)));
+                        }}
+                        className="flex-1 py-1 px-2 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-all cursor-pointer text-center"
+                      >
+                        Anteontem
+                      </button>
+                    </div>
 
                   {/* Month Navigation / Slider Bar */}
                   <div className="flex items-center justify-between gap-2 mb-3">
@@ -483,7 +483,7 @@ export default function HourlyCartsLineChart({
       {/* Long Chart Container */}
       <div key={localAnimKey} className="h-[230px] sm:h-[260px] md:h-[300px] w-full min-w-0 otter-chart-animate">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={activeData} margin={{ top: 10, right: 8, left: -24, bottom: 0 }}>
+          <LineChart data={activeData} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1E1B26" vertical={false} />
             <XAxis
               dataKey="hour"
@@ -491,7 +491,8 @@ export default function HourlyCartsLineChart({
               fontSize={11}
               tickLine={false}
               axisLine={{ stroke: '#1E1B26' }}
-              interval="preserveStartEnd"
+              interval={2}
+              padding={{ left: 8, right: 8 }}
             />
             <YAxis
               stroke="#64748B"
@@ -499,6 +500,9 @@ export default function HourlyCartsLineChart({
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
+              width={28}
+              domain={[0, (dataMax: number) => Math.max(dataMax, 4)]}
+              allowDataOverflow={false}
             />
             <Tooltip
               content={({ active, payload, label }) => {
@@ -509,7 +513,7 @@ export default function HourlyCartsLineChart({
                     : '0';
 
                   return (
-                    <div className="bg-white dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] p-3.5 rounded-2xl shadow-xl text-xs space-y-2 min-w-[180px]">
+                    <div className="bg-white dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] p-3.5 rounded-2xl shadow-xl text-xs space-y-2 min-w-[190px]">
                       <div className="flex items-center justify-between pb-1.5 border-b border-slate-200 dark:border-[#1E1B26] gap-2">
                         <span className="font-bold text-slate-900 dark:text-[#F8FAFC]">Horário: {label}</span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-600/10 text-violet-600 dark:text-violet-400 font-mono font-bold">
@@ -541,12 +545,21 @@ export default function HourlyCartsLineChart({
             {showIniciados && (
               <Line
                 key={`iniciados-${localAnimKey}`}
-                type="monotone"
+                type="linear"
                 name="Carrinhos Iniciados"
                 dataKey="iniciados"
                 stroke="#8B5CF6"
                 strokeWidth={2.5}
-                dot={false}
+                dot={(props: any) => {
+                  const { cx, cy, value, key } = props;
+                  if (!value || value <= 0) return <React.Fragment key={key} />;
+                  return (
+                    <g key={key}>
+                      <circle cx={cx} cy={cy} r={4.5} fill="#8B5CF6" stroke="var(--bg-surface, #FFFFFF)" strokeWidth={2} />
+                      <circle cx={cx} cy={cy} r={7.5} fill="#8B5CF6" fillOpacity={0.25} />
+                    </g>
+                  );
+                }}
                 isAnimationActive={true}
                 animationDuration={620}
                 animationEasing="ease-out"
@@ -557,16 +570,25 @@ export default function HourlyCartsLineChart({
             {showAprovados && (
               <Line
                 key={`aprovados-${localAnimKey}`}
-                type="monotone"
+                type="linear"
                 name="Vendas Aprovadas"
                 dataKey="aprovados"
                 stroke="#10B981"
                 strokeWidth={2.5}
-                dot={false}
+                dot={(props: any) => {
+                  const { cx, cy, value, key } = props;
+                  if (!value || value <= 0) return <React.Fragment key={key} />;
+                  return (
+                    <g key={key}>
+                      <circle cx={cx} cy={cy} r={5} fill="#10B981" stroke="var(--bg-surface, #FFFFFF)" strokeWidth={2} />
+                      <circle cx={cx} cy={cy} r={8.5} fill="#10B981" fillOpacity={0.3} />
+                    </g>
+                  );
+                }}
                 isAnimationActive={true}
                 animationDuration={680}
                 animationEasing="ease-out"
-                activeDot={{ r: 5, fill: '#10B981', stroke: 'var(--bg-surface, #FFFFFF)', strokeWidth: 2 }}
+                activeDot={{ r: 5.5, fill: '#10B981', stroke: 'var(--bg-surface, #FFFFFF)', strokeWidth: 2 }}
               />
             )}
           </LineChart>

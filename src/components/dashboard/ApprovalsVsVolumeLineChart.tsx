@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
-import { formatMZN } from '@/lib/utils';
+import { formatMZN, getMozambiqueDate, createMozambiqueDateUtc } from '@/lib/utils';
 
 interface ApprovalsVsVolumeLineChartProps {
   data?: {
@@ -31,15 +31,19 @@ const generate7DayData = () => {
   const weekDayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
   const weekDayShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
-  const now = new Date();
-  const currentJsDay = now.getDay();
-  const diffToMonday = currentJsDay === 0 ? 6 : currentJsDay - 1;
-  const startOfThisWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
+  const mozNow = getMozambiqueDate();
+  const dayOfWeek = mozNow.getUTCDay();
+  const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
   for (let i = 0; i < 7; i++) {
-    const d = new Date(startOfThisWeek);
-    d.setDate(startOfThisWeek.getDate() + i);
-    const dateLabel = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+    const dUtc = createMozambiqueDateUtc(
+      mozNow.getUTCFullYear(),
+      mozNow.getUTCMonth(),
+      mozNow.getUTCDate() - diffToMonday + i,
+      0, 0, 0, 0
+    );
+    const mozD = getMozambiqueDate(dUtc);
+    const dateLabel = `${mozD.getUTCDate().toString().padStart(2, '0')}/${(mozD.getUTCMonth() + 1).toString().padStart(2, '0')}`;
     result.push({
       date: weekDayShort[i],
       dayName: weekDayNames[i],
@@ -114,7 +118,7 @@ export default function ApprovalsVsVolumeLineChart({
       {/* Chart */}
       <div key={animationKey} className="h-[210px] sm:h-[250px] md:h-[280px] w-full min-w-0 otter-chart-animate">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 8, left: -14, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1E1B26" vertical={false} />
             <XAxis
               dataKey="date"
@@ -123,12 +127,16 @@ export default function ApprovalsVsVolumeLineChart({
               tickLine={false}
               axisLine={{ stroke: '#1E1B26' }}
               interval="preserveStartEnd"
+              padding={{ left: 8, right: 8 }}
             />
             <YAxis
               stroke="#64748B"
               fontSize={11}
               tickLine={false}
               axisLine={false}
+              width={48}
+              domain={[0, (dataMax: number) => (dataMax <= 0 ? 100 : 'auto')]}
+              allowDataOverflow={false}
               tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`)}
             />
             <Tooltip
@@ -142,7 +150,7 @@ export default function ApprovalsVsVolumeLineChart({
                     : `${label}`;
 
                   return (
-                    <div className="bg-white dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] p-3 rounded-xl shadow-xl text-xs space-y-1.5">
+                    <div className="bg-white dark:bg-[#0F0E14] border border-slate-200 dark:border-[#1E1B26] p-3 rounded-xl shadow-xl text-xs space-y-1.5 min-w-[190px]">
                       <p className="font-semibold text-slate-900 dark:text-[#F8FAFC] pb-1 border-b border-slate-200 dark:border-[#1E1B26]">
                         {titleLabel}
                       </p>
@@ -155,7 +163,7 @@ export default function ApprovalsVsVolumeLineChart({
                             />
                             {entry.name}:
                           </span>
-                          <span className="font-bold text-slate-900 dark:text-[#F8FAFC]">
+                          <span className="font-bold text-slate-900 dark:text-[#F8FAFC] font-mono">
                             {formatMZN(Number(entry.value))}
                           </span>
                         </div>
@@ -169,12 +177,21 @@ export default function ApprovalsVsVolumeLineChart({
             {showAprovados && (
               <Line
                 key={`aprovados-vol-${animationKey}`}
-                type="monotone"
+                type="linear"
                 name="Carrinhos Aprovados"
                 dataKey="aprovados"
                 stroke="#8B5CF6"
                 strokeWidth={2.5}
-                dot={false}
+                dot={(props: any) => {
+                  const { cx, cy, value, key } = props;
+                  if (!value || value <= 0) return <React.Fragment key={key} />;
+                  return (
+                    <g key={key}>
+                      <circle cx={cx} cy={cy} r={4.5} fill="#8B5CF6" stroke="#FFFFFF" strokeWidth={2} />
+                      <circle cx={cx} cy={cy} r={7.5} fill="#8B5CF6" fillOpacity={0.25} />
+                    </g>
+                  );
+                }}
                 isAnimationActive={true}
                 animationDuration={620}
                 animationEasing="ease-out"
@@ -184,14 +201,22 @@ export default function ApprovalsVsVolumeLineChart({
             {showVolume && (
               <Line
                 key={`total-vol-${animationKey}`}
-                type="monotone"
+                type="linear"
                 name="Total de Carrinhos"
                 dataKey="volume"
                 stroke="#A78BFA"
                 strokeWidth={2}
                 strokeDasharray="4 4"
                 strokeOpacity={0.75}
-                dot={false}
+                dot={(props: any) => {
+                  const { cx, cy, value, key } = props;
+                  if (!value || value <= 0) return <React.Fragment key={key} />;
+                  return (
+                    <g key={key}>
+                      <circle cx={cx} cy={cy} r={4} fill="#A78BFA" stroke="#FFFFFF" strokeWidth={1.5} />
+                    </g>
+                  );
+                }}
                 isAnimationActive={true}
                 animationDuration={680}
                 animationEasing="ease-out"

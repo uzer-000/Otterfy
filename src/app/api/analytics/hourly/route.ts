@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 import dbStore from '@/lib/store';
+import {
+  getMozambiqueDate,
+  getMozambiqueHour,
+  getMozambiqueDay,
+  getMozambiqueDateString,
+  createMozambiqueDateUtc,
+} from '@/lib/utils';
 
 const HOURS_LIST = [
   '00:00', '01:00', '02:00', '03:00', '04:00', '05:00',
@@ -14,12 +21,12 @@ export async function GET(req: Request) {
     const dateParam = searchParams.get('date'); // YYYY-MM-DD
     const monthParam = searchParams.get('month'); // YYYY-MM
 
-    const now = new Date();
-    
-    // Parse target date (defaults to today)
-    let targetYear = now.getFullYear();
-    let targetMonth = now.getMonth(); // 0-indexed
-    let targetDay = now.getDate();
+    const mozNow = getMozambiqueDate();
+
+    // Parse target date (defaults to today in Mozambique)
+    let targetYear = mozNow.getUTCFullYear();
+    let targetMonth = mozNow.getUTCMonth(); // 0-indexed
+    let targetDay = mozNow.getUTCDate();
 
     if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
       const parts = dateParam.split('-').map(Number);
@@ -28,8 +35,8 @@ export async function GET(req: Request) {
       targetDay = parts[2];
     }
 
-    const startOfDay = new Date(targetYear, targetMonth, targetDay, 0, 0, 0, 0);
-    const endOfDay = new Date(targetYear, targetMonth, targetDay, 23, 59, 59, 999);
+    const startOfDay = createMozambiqueDateUtc(targetYear, targetMonth, targetDay, 0, 0, 0, 0);
+    const endOfDay = createMozambiqueDateUtc(targetYear, targetMonth, targetDay, 23, 59, 59, 999);
 
     // Also determine month window for calendar activity dots
     let queryMonthYear = targetYear;
@@ -40,8 +47,9 @@ export async function GET(req: Request) {
       queryMonth = parts[1] - 1;
     }
 
-    const startOfMonth = new Date(queryMonthYear, queryMonth, 1, 0, 0, 0, 0);
-    const endOfMonth = new Date(queryMonthYear, queryMonth + 1, 0, 23, 59, 59, 999);
+    const startOfMonth = createMozambiqueDateUtc(queryMonthYear, queryMonth, 1, 0, 0, 0, 0);
+    const daysInMonth = new Date(queryMonthYear, queryMonth + 1, 0).getDate();
+    const endOfMonth = createMozambiqueDateUtc(queryMonthYear, queryMonth, daysInMonth, 23, 59, 59, 999);
 
     // Fetch orders for the target day and the month in parallel
     const [dayOrders, monthOrders] = await Promise.all([
@@ -55,11 +63,10 @@ export async function GET(req: Request) {
       }),
     ]);
 
-    // Build 24-hour buckets
+    // Build 24-hour buckets using Mozambique local hour
     const hourlyData = HOURS_LIST.map((hour, idx) => {
       const ordersInHour = dayOrders.filter((o) => {
-        const d = new Date(o.createdAt);
-        return d.getHours() === idx;
+        return getMozambiqueHour(o.createdAt) === idx;
       });
 
       return {
@@ -92,7 +99,7 @@ export async function GET(req: Request) {
     // Monthly activity map for calendar day badges: { [dayNumber]: { total, approved } }
     const monthActivity: Record<number, { total: number; approved: number }> = {};
     monthOrders.forEach((o) => {
-      const dayNum = new Date(o.createdAt).getDate();
+      const dayNum = getMozambiqueDay(o.createdAt);
       if (!monthActivity[dayNum]) {
         monthActivity[dayNum] = { total: 0, approved: 0 };
       }
@@ -102,13 +109,16 @@ export async function GET(req: Request) {
       }
     });
 
-    // Determine if target day is today or yesterday
-    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
-    const isToday = startOfDay.getTime() === todayMidnight;
-    const isYesterday = startOfDay.getTime() === todayMidnight - 86400000;
+    // Determine if target day is today or yesterday in Mozambique
+    const todayStr = getMozambiqueDateString();
+    const yesterdayDate = new Date(mozNow.getTime() - 86400000);
+    const yesterdayStr = `${yesterdayDate.getUTCFullYear()}-${String(yesterdayDate.getUTCMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getUTCDate()).padStart(2, '0')}`;
+
+    const dateIso = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
+    const isToday = dateIso === todayStr;
+    const isYesterday = dateIso === yesterdayStr;
 
     // Format localized date
-    const dateIso = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
     const monthNames = [
       'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
@@ -117,7 +127,8 @@ export async function GET(req: Request) {
       'Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira',
       'Quinta-feira', 'Sexta-feira', 'Sábado'
     ];
-    const fullDateText = `${weekDayNames[startOfDay.getDay()]}, ${targetDay} de ${monthNames[targetMonth]} de ${targetYear}`;
+    const targetMozDate = new Date(Date.UTC(targetYear, targetMonth, targetDay));
+    const fullDateText = `${weekDayNames[targetMozDate.getUTCDay()]}, ${targetDay} de ${monthNames[targetMonth]} de ${targetYear}`;
     const shortDateText = `${String(targetDay).padStart(2, '0')}/${String(targetMonth + 1).padStart(2, '0')}/${targetYear}`;
 
     let badgeLabel = `${shortDateText} (24 Horas)`;

@@ -50,7 +50,7 @@ export default function WeeklySalesBarChart({
 
       <div key={animationKey} className="h-[210px] sm:h-[250px] md:h-[280px] w-full min-w-0 otter-chart-animate">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 6, left: -24, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
             <defs>
               <linearGradient id="barPurpleGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#8B5CF6" stopOpacity={1} />
@@ -64,6 +64,7 @@ export default function WeeklySalesBarChart({
               fontSize={11}
               tickLine={false}
               axisLine={{ stroke: '#1E1B26' }}
+              padding={{ left: 8, right: 8 }}
               tickFormatter={(val: string) =>
                 val && val.length > 5 && !val.includes(' ') ? val.substring(0, 3) : val
               }
@@ -74,6 +75,9 @@ export default function WeeklySalesBarChart({
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
+              width={28}
+              domain={[0, (dataMax: number) => Math.max(dataMax, 4)]}
+              allowDataOverflow={false}
             />
             <Tooltip
               cursor={{ fill: 'rgba(124, 58, 237, 0.08)' }}
