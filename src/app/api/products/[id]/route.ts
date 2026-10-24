@@ -146,13 +146,13 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const updated = await dbStore.updateProduct(id, { status: 'INACTIVE' });
+    const deleted = await dbStore.deleteProduct(id);
 
-    if (!updated) {
+    if (!deleted) {
       return NextResponse.json({ error: 'Produto não encontrado.' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: 'Produto eliminado com sucesso.' });
   } catch (error) {
     console.error('Erro ao eliminar produto:', error);
     return NextResponse.json({ error: 'Erro interno do servidor.' }, { status: 500 });

@@ -240,6 +240,26 @@ function EditProductContent({ params }: PageProps) {
     }
   };
 
+  const handleDelete = async () => {
+    const confirmed = window.confirm(`Tem certeza que deseja apagar o produto "${fullProduct?.name || 'este produto'}" permanentemente?\nEsta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/products/${resolvedParams.id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        router.push('/dashboard/products');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao eliminar o produto.');
+      }
+    } catch (e) {
+      console.error('Erro ao eliminar produto:', e);
+      alert('Erro de conexão ao eliminar produto.');
+    }
+  };
+
   if (fetching) {
     return (
       <div className="max-w-5xl mx-auto py-24 text-center text-[#94A3B8] animate-fadeIn">
@@ -323,6 +343,18 @@ function EditProductContent({ params }: PageProps) {
             </svg>
             <span>Ver Checkout</span>
           </a>
+
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="px-3.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 font-semibold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            title="Eliminar produto permanentemente"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span>Eliminar</span>
+          </button>
 
           {/* Quick tab switcher pill */}
           <div className="flex bg-[#121016] border border-[#1E1B26] rounded-xl p-1">

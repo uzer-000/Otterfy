@@ -471,6 +471,41 @@ export const dbStore = {
     return updatedItem;
   },
 
+  async deleteProduct(id: string): Promise<boolean> {
+    const cleanId = (id || '').trim();
+    if (!cleanId) return false;
+
+    // 1. Delete from Prisma database if connected
+    try {
+      // First delete transactions linked to orders of this product
+      await prisma.transaction.deleteMany({
+        where: { order: { productId: cleanId } },
+      });
+      // Delete orders of this product
+      await prisma.order.deleteMany({
+        where: { productId: cleanId },
+      });
+      // Delete the product
+      await prisma.product.delete({
+        where: { id: cleanId },
+      });
+    } catch (err: any) {
+      console.error('[dbStore.deleteProduct] Prisma delete error:', err?.message || err);
+    }
+
+    // 2. Delete from local JSON store
+    try {
+      const store = readLocalStore();
+      store.products = store.products.filter(p => p.id !== cleanId);
+      store.orders = store.orders.filter(o => o.productId !== cleanId);
+      writeLocalStore(store);
+    } catch (err) {
+      console.error('[dbStore.deleteProduct] Local store delete error:', err);
+    }
+
+    return true;
+  },
+
   // ORDERS & PAYMENTS
   async getOrders(filters?: { status?: string; startDate?: string; endDate?: string }): Promise<OrderItem[]> {
     try {

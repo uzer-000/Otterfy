@@ -51,6 +51,28 @@ export default function ProductsPage() {
     setTimeout(() => setCopyToast(null), 3500);
   };
 
+  const handleDeleteProduct = async (id: string, name: string) => {
+    const confirmed = window.confirm(`Tem certeza que deseja apagar o produto "${name}" permanentemente?\nEsta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setProducts(prev => prev.filter(p => p.id !== id));
+        setCopyToast(`Produto "${name}" eliminado com sucesso!`);
+        setTimeout(() => setCopyToast(null), 3500);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao eliminar o produto.');
+      }
+    } catch (e) {
+      console.error('Erro ao eliminar produto:', e);
+      alert('Erro de conexão ao eliminar produto.');
+    }
+  };
+
   const handleProductConfigSaved = (updated: any) => {
     setProducts(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
   };
@@ -100,6 +122,7 @@ export default function ProductsPage() {
             onToggleStatus={handleToggleStatus} 
             onCopyLink={handleCopyLink} 
             onOpenConfig={(p) => setConfiguringProduct(p)}
+            onDeleteProduct={handleDeleteProduct}
           />
         ) : (
           <div className="p-16 text-center flex flex-col items-center justify-center">
