@@ -220,6 +220,17 @@ export function getActiveGateway(): StoredGatewayConfig | null {
   );
 }
 
+export async function getActiveGatewayAsync(): Promise<StoredGatewayConfig | null> {
+  const all = await getAllGatewaysAsync();
+  const realIds = ['zenofy', 'e2payment', 'escalepay'];
+  return (
+    all.find((g) => realIds.includes(g.id) && g.status === 'Ativo') ||
+    all.find((g) => g.status === 'Ativo') ||
+    all[0] ||
+    null
+  );
+}
+
 export interface DispatchCheckoutParams {
   orderId: string;
   amount: number;
@@ -246,7 +257,7 @@ export interface DispatchCheckoutResult {
 }
 
 export async function dispatchCheckout(params: DispatchCheckoutParams): Promise<DispatchCheckoutResult> {
-  const activeGateway = getActiveGateway();
+  const activeGateway = await getActiveGatewayAsync();
   const description = params.hasOrderBump
     ? `${params.productName} + ${params.orderBumpTitle || 'Order Bump'}`
     : params.productName;

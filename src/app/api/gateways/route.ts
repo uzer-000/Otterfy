@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getAllGateways, saveGatewayConfig } from '@/services/payment/gatewayManager';
+import { getAllGatewaysAsync, saveGatewayConfig } from '@/services/payment/gatewayManager';
 
 export async function GET() {
   try {
-    const list = getAllGateways();
+    const list = await getAllGatewaysAsync();
     return NextResponse.json({ gateways: list });
   } catch (err: unknown) {
     console.error('Error fetching gateways:', err);

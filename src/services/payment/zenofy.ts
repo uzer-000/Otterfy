@@ -89,6 +89,11 @@ export const zenofyProvider = {
     params: CreateCheckoutOrderParams
   ): Promise<CreateCheckoutOrderResponse> {
     const apiKey = getApiKey(params.apiKey);
+    if (!apiKey) {
+      throw new Error(
+        'A chave de API Zenofy não está configurada no servidor (ZENOFY_API_KEY). Adicione ZENOFY_API_KEY nas Environment Variables da Vercel.'
+      );
+    }
     const exactAmount = Math.max(1, Math.round(params.amount));
 
     const exactTierMatch = getZenofyTierByPrice(exactAmount);
