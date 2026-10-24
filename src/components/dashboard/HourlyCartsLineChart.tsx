@@ -167,6 +167,33 @@ export default function HourlyCartsLineChart({
   const totalAprovados = activeData.reduce((acc, curr) => acc + curr.aprovados, 0);
   const taxaMedia = totalIniciados > 0 ? ((totalAprovados / totalIniciados) * 100).toFixed(1) : '0';
 
+  // Dynamic peak calculation for wave dots
+  const peakIniciados = useMemo(() => {
+    let maxVal = 0;
+    let maxIdx = -1;
+    activeData.forEach((d, i) => {
+      const v = Number(d.iniciados) || 0;
+      if (v > maxVal) {
+        maxVal = v;
+        maxIdx = i;
+      }
+    });
+    return { val: maxVal, idx: maxIdx };
+  }, [activeData]);
+
+  const peakAprovados = useMemo(() => {
+    let maxVal = 0;
+    let maxIdx = -1;
+    activeData.forEach((d, i) => {
+      const v = Number(d.aprovados) || 0;
+      if (v > maxVal) {
+        maxVal = v;
+        maxIdx = i;
+      }
+    });
+    return { val: maxVal, idx: maxIdx };
+  }, [activeData]);
+
   // Dynamic peak hour calculation
   const peakEntry = activeData.reduce(
     (best, curr, idx) => {
@@ -483,7 +510,7 @@ export default function HourlyCartsLineChart({
       {/* Long Chart Container */}
       <div key={localAnimKey} className="h-[230px] sm:h-[260px] md:h-[300px] w-full min-w-0 otter-chart-animate">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={activeData} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
+          <LineChart data={activeData} margin={{ top: 20, right: 12, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#64748B" strokeOpacity={0.15} vertical={false} />
             <XAxis
               dataKey="hour"
@@ -501,7 +528,7 @@ export default function HourlyCartsLineChart({
               axisLine={false}
               allowDecimals={false}
               width={28}
-              domain={[0, (dataMax: number) => Math.max(dataMax, 4)]}
+              domain={[0, (dataMax: number) => Math.max(Math.ceil(dataMax * 1.25), 4)]}
               allowDataOverflow={false}
             />
             <Tooltip
@@ -545,20 +572,30 @@ export default function HourlyCartsLineChart({
             {showIniciados && (
               <Line
                 key={`iniciados-${localAnimKey}`}
-                type="linear"
+                type="monotone"
                 name="Carrinhos Iniciados"
                 dataKey="iniciados"
                 stroke="#8B5CF6"
-                strokeWidth={2.5}
+                strokeWidth={2.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 dot={(props: any) => {
-                  const { cx, cy, value, key } = props;
-                  if (!value || value <= 0) return <React.Fragment key={key} />;
-                  return (
-                    <g key={key}>
-                      <circle cx={cx} cy={cy} r={4.5} fill="#8B5CF6" stroke="var(--bg-surface, #FFFFFF)" strokeWidth={2} />
-                      <circle cx={cx} cy={cy} r={7.5} fill="#8B5CF6" fillOpacity={0.25} />
-                    </g>
-                  );
+                  const { cx, cy, index, key } = props;
+                  if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
+                    return <React.Fragment key={key} />;
+                  }
+                  // Pontinho destacado no pico da onda
+                  if (peakIniciados.val > 0 && index === peakIniciados.idx) {
+                    return (
+                      <g key={key} className="pointer-events-none">
+                        <circle cx={cx} cy={cy} r={10} fill="#8B5CF6" fillOpacity={0.16} />
+                        <circle cx={cx} cy={cy} r={7} fill="#8B5CF6" fillOpacity={0.32} />
+                        <circle cx={cx} cy={cy} r={4.5} fill="#8B5CF6" stroke="#FFFFFF" strokeWidth={2.5} />
+                        <circle cx={cx} cy={cy} r={1.5} fill="#FFFFFF" />
+                      </g>
+                    );
+                  }
+                  return <React.Fragment key={key} />;
                 }}
                 isAnimationActive={true}
                 animationDuration={620}
@@ -570,20 +607,30 @@ export default function HourlyCartsLineChart({
             {showAprovados && (
               <Line
                 key={`aprovados-${localAnimKey}`}
-                type="linear"
+                type="monotone"
                 name="Vendas Aprovadas"
                 dataKey="aprovados"
                 stroke="#10B981"
-                strokeWidth={2.5}
+                strokeWidth={2.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 dot={(props: any) => {
-                  const { cx, cy, value, key } = props;
-                  if (!value || value <= 0) return <React.Fragment key={key} />;
-                  return (
-                    <g key={key}>
-                      <circle cx={cx} cy={cy} r={5} fill="#10B981" stroke="var(--bg-surface, #FFFFFF)" strokeWidth={2} />
-                      <circle cx={cx} cy={cy} r={8.5} fill="#10B981" fillOpacity={0.3} />
-                    </g>
-                  );
+                  const { cx, cy, index, key } = props;
+                  if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
+                    return <React.Fragment key={key} />;
+                  }
+                  // Pontinho destacado no pico da onda
+                  if (peakAprovados.val > 0 && index === peakAprovados.idx) {
+                    return (
+                      <g key={key} className="pointer-events-none">
+                        <circle cx={cx} cy={cy} r={10} fill="#10B981" fillOpacity={0.16} />
+                        <circle cx={cx} cy={cy} r={7} fill="#10B981" fillOpacity={0.32} />
+                        <circle cx={cx} cy={cy} r={4.5} fill="#10B981" stroke="#FFFFFF" strokeWidth={2.5} />
+                        <circle cx={cx} cy={cy} r={1.5} fill="#FFFFFF" />
+                      </g>
+                    );
+                  }
+                  return <React.Fragment key={key} />;
                 }}
                 isAnimationActive={true}
                 animationDuration={680}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -78,6 +78,33 @@ export default function ApprovalsVsVolumeLineChart({
   const totalAprovados = chartData.reduce((acc, d) => acc + (Number(d.aprovados) || 0), 0);
   const totalVolume = chartData.reduce((acc, d) => acc + (Number(d.volume) || 0), 0);
   const financialConvRate = totalVolume > 0 ? ((totalAprovados / totalVolume) * 100).toFixed(1) : '0.0';
+
+  // Dynamic peak calculation for wave dots
+  const peakAprovados = useMemo(() => {
+    let maxVal = 0;
+    let maxIdx = -1;
+    chartData.forEach((d, i) => {
+      const v = Number(d.aprovados) || 0;
+      if (v > maxVal) {
+        maxVal = v;
+        maxIdx = i;
+      }
+    });
+    return { val: maxVal, idx: maxIdx };
+  }, [chartData]);
+
+  const peakVolume = useMemo(() => {
+    let maxVal = 0;
+    let maxIdx = -1;
+    chartData.forEach((d, i) => {
+      const v = Number(d.volume) || 0;
+      if (v > maxVal) {
+        maxVal = v;
+        maxIdx = i;
+      }
+    });
+    return { val: maxVal, idx: maxIdx };
+  }, [chartData]);
   const hasActivity = maxDataVal > 0;
 
   // Clean numerical domain max with 18% headroom and 100 MT minimum baseline
@@ -230,23 +257,30 @@ export default function ApprovalsVsVolumeLineChart({
             {showAprovados && (
               <Line
                 key={`aprovados-vol-${animationKey}`}
-                type="linear"
+                type="monotone"
                 name="Carrinhos Aprovados"
                 dataKey="aprovados"
                 stroke="#8B5CF6"
-                strokeWidth={2.5}
+                strokeWidth={2.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 dot={(props: any) => {
-                  const { cx, cy, value, key } = props;
+                  const { cx, cy, index, key } = props;
                   if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
                     return <React.Fragment key={key} />;
                   }
-                  if (!value || value <= 0) return <React.Fragment key={key} />;
-                  return (
-                    <g key={key}>
-                      <circle cx={cx} cy={cy} r={4.5} fill="#8B5CF6" stroke="#FFFFFF" strokeWidth={2} />
-                      <circle cx={cx} cy={cy} r={7.5} fill="#8B5CF6" fillOpacity={0.25} />
-                    </g>
-                  );
+                  // Pontinho destacado no pico da onda
+                  if (peakAprovados.val > 0 && index === peakAprovados.idx) {
+                    return (
+                      <g key={key} className="pointer-events-none">
+                        <circle cx={cx} cy={cy} r={10} fill="#8B5CF6" fillOpacity={0.16} />
+                        <circle cx={cx} cy={cy} r={7} fill="#8B5CF6" fillOpacity={0.32} />
+                        <circle cx={cx} cy={cy} r={4.5} fill="#8B5CF6" stroke="#FFFFFF" strokeWidth={2.5} />
+                        <circle cx={cx} cy={cy} r={1.5} fill="#FFFFFF" />
+                      </g>
+                    );
+                  }
+                  return <React.Fragment key={key} />;
                 }}
                 isAnimationActive={true}
                 animationDuration={620}
@@ -257,24 +291,32 @@ export default function ApprovalsVsVolumeLineChart({
             {showVolume && (
               <Line
                 key={`total-vol-${animationKey}`}
-                type="linear"
+                type="monotone"
                 name="Total de Carrinhos"
                 dataKey="volume"
                 stroke="#6366F1"
-                strokeWidth={2}
+                strokeWidth={2.2}
                 strokeDasharray="4 4"
                 strokeOpacity={0.85}
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 dot={(props: any) => {
-                  const { cx, cy, value, key } = props;
+                  const { cx, cy, index, key } = props;
                   if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
                     return <React.Fragment key={key} />;
                   }
-                  if (!value || value <= 0) return <React.Fragment key={key} />;
-                  return (
-                    <g key={key}>
-                      <circle cx={cx} cy={cy} r={4} fill="#6366F1" stroke="#FFFFFF" strokeWidth={1.5} />
-                    </g>
-                  );
+                  // Pontinho destacado no pico da onda
+                  if (peakVolume.val > 0 && index === peakVolume.idx) {
+                    return (
+                      <g key={key} className="pointer-events-none">
+                        <circle cx={cx} cy={cy} r={9} fill="#6366F1" fillOpacity={0.16} />
+                        <circle cx={cx} cy={cy} r={6.5} fill="#6366F1" fillOpacity={0.32} />
+                        <circle cx={cx} cy={cy} r={4} fill="#6366F1" stroke="#FFFFFF" strokeWidth={2} />
+                        <circle cx={cx} cy={cy} r={1.5} fill="#FFFFFF" />
+                      </g>
+                    );
+                  }
+                  return <React.Fragment key={key} />;
                 }}
                 isAnimationActive={true}
                 animationDuration={680}
