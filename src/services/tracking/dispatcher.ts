@@ -10,7 +10,8 @@ import {
 
 export const VAPID_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  'BKzVwF1vwtLCjElp3c-x9-_rJ7BDV7lXHiqAqiz9NglgP867pU82R0RGRUKW14TLnwvAXraItEf3neQbSV2c8HY';
+  process.env.VAPID_PUBLIC_KEY ||
+  '';
 
 const VAPID_PRIVATE_KEY =
   process.env.VAPID_PRIVATE_KEY ||
@@ -22,6 +23,10 @@ const VAPID_SUBJECT =
 let vapidConfigured = false;
 function ensureVapidConfigured() {
   if (vapidConfigured) return;
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    console.warn('[WebPush VAPID Warning]: Chaves VAPID não configuradas nas variáveis de ambiente.');
+    return;
+  }
   try {
     webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
     vapidConfigured = true;

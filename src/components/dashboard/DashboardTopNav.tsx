@@ -7,10 +7,6 @@ import AwardsModal from './AwardsModal';
 import NotificationStack from './NotificationStack';
 import { formatMZN, formatSaleNotificationMessage, SALE_NOTIFICATION_TITLE } from '@/lib/utils';
 
-const DEFAULT_VAPID_PUBLIC_KEY =
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  'BKzVwF1vwtLCjElp3c-x9-_rJ7BDV7lXHiqAqiz9NglgP867pU82R0RGRUKW14TLnwvAXraItEf3neQbSV2c8HY';
-
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -206,9 +202,24 @@ export default function DashboardTopNav() {
         return;
       }
 
+      let pubKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+      if (!pubKey) {
+        try {
+          const res = await fetch('/api/push/subscribe', { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            pubKey = data.publicKey || '';
+          }
+        } catch {}
+      }
+
+      if (!pubKey) {
+        return;
+      }
+
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
-        const applicationServerKey = urlBase64ToUint8Array(DEFAULT_VAPID_PUBLIC_KEY);
+        const applicationServerKey = urlBase64ToUint8Array(pubKey);
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
