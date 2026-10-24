@@ -1,11 +1,10 @@
 import crypto from 'crypto';
 import { getZenofyTierByPrice, getZenofyTierById } from '@/lib/zenofyPrices';
 
-export const DEFAULT_ZENOFY_API_KEY =
-  '';
+export const DEFAULT_ZENOFY_API_KEY = (process.env.ZENOFY_API_KEY || '').trim();
 
 export const DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID =
-  '6adbf03b057395e00f878fed';
+  process.env.ZENOFY_GATEWAY_PRODUCT_ID || '6adbf03b057395e00f878fed';
 
 export interface CreateCheckoutOrderParams {
   productId?: string;
@@ -48,11 +47,11 @@ export interface TriggerUssdPushResponse {
 
 function getApiKey(customKey?: string): string {
   const envKey = (process.env.ZENOFY_API_KEY || '').trim();
-  if (envKey && !envKey.startsWith('pco_ck_Slm1Z')) {
+  if (envKey) {
     return envKey;
   }
   const cleanCustom = (customKey || '').trim();
-  if (cleanCustom && !cleanCustom.startsWith('pco_ck_Slm1Z')) {
+  if (cleanCustom) {
     return cleanCustom;
   }
   return DEFAULT_ZENOFY_API_KEY;
