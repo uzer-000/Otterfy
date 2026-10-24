@@ -198,7 +198,8 @@ export const dbStore = {
           updatedAt: p.updatedAt.toISOString(),
         };
       });
-    } catch {
+    } catch (err: any) {
+      console.error('[dbStore.getProducts] Database query failed, falling back to local store:', err?.message || err);
       // Fallback to local store
       const store = readLocalStore();
       return store.products
@@ -529,7 +530,8 @@ export const dbStore = {
           zenofyTransactionId: o.transaction.zenofyTransactionId,
         } : null,
       }));
-    } catch {
+    } catch (err: any) {
+      console.error('[dbStore.getOrders] Database query failed, falling back to local store:', err?.message || err);
       // Fallback
       const store = readLocalStore();
       let orders = store.orders.map(o => {
