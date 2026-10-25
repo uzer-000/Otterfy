@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import AwardsModal from './AwardsModal';
 import NotificationStack from './NotificationStack';
 import { formatMZN, formatSaleNotificationMessage, SALE_NOTIFICATION_TITLE } from '@/lib/utils';
+import { playSalePingSound } from '@/lib/sound';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -217,12 +218,34 @@ export default function DashboardTopNav() {
         return;
       }
 
+      const currentKeyBytes = urlBase64ToUint8Array(pubKey);
       let sub = await reg.pushManager.getSubscription();
+
+      // Check if existing subscription was created with a different/obsolete VAPID key
+      if (sub && sub.options && sub.options.applicationServerKey) {
+        const existingBytes = new Uint8Array(sub.options.applicationServerKey);
+        let matches = existingBytes.length === currentKeyBytes.length;
+        if (matches) {
+          for (let i = 0; i < existingBytes.length; i++) {
+            if (existingBytes[i] !== currentKeyBytes[i]) {
+              matches = false;
+              break;
+            }
+          }
+        }
+        if (!matches) {
+          console.warn('[WebPush] Chave VAPID anterior desatualizada. Renovando subscrição push...');
+          try {
+            await sub.unsubscribe();
+          } catch {}
+          sub = null;
+        }
+      }
+
       if (!sub) {
-        const applicationServerKey = urlBase64ToUint8Array(pubKey);
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
+          applicationServerKey: currentKeyBytes.buffer as ArrayBuffer,
         });
       }
 
@@ -294,6 +317,7 @@ export default function DashboardTopNav() {
     window.triggerSaleNotification = (amount?: number) => {
       const finalAmount = amount !== undefined ? amount : 455;
       const msg = formatSaleNotificationMessage(finalAmount);
+      playSalePingSound();
       if (window.NotifStack) {
         window.NotifStack.push({
           id: `test-${Date.now()}`,
@@ -355,19 +379,51 @@ export default function DashboardTopNav() {
         const storedNotified = JSON.parse(localStorage.getItem('otterfy_notified_orders') || '[]');
         const notifiedSet = new Set<string>(storedNotified);
 
-        // On initial mount / first load, mark all existing past orders as already seen
+        // On initial mount / first load, check if there are recent sales from the last 15 minutes not yet alerted
         if (!initialLoadedRef.current) {
+          initialLoadedRef.current = true;
+          const nowMs = Date.now();
+          const recentFreshOrders = list.filter((o: any) => {
+            if (notifiedSet.has(o.id)) return false;
+            const orderTime = o.createdAt ? new Date(o.createdAt).getTime() : 0;
+            return nowMs - orderTime < 15 * 60 * 1000;
+          });
+
+          // Mark all orders as seen in localStorage
           list.forEach((o: any) => notifiedSet.add(o.id));
           localStorage.setItem('otterfy_notified_orders', JSON.stringify(Array.from(notifiedSet)));
-          initialLoadedRef.current = true;
+
+          if (recentFreshOrders.length > 0) {
+            playSalePingSound();
+            recentFreshOrders.forEach((order: any) => {
+              if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate([200, 100, 300]); } catch {}
+              }
+              const saleMsg = formatSaleNotificationMessage(order.amount);
+              if (window.NotifStack) {
+                window.NotifStack.push({
+                  id: order.id,
+                  title: SALE_NOTIFICATION_TITLE,
+                  message: saleMsg,
+                  amount: Number(order.amount) || 0,
+                  customerName: order.customerName || 'Cliente',
+                  method: order.transaction?.method || 'M-Pesa',
+                  icon: '/logo.png',
+                });
+                window.NotifStack.open();
+              }
+              sendSystemPushNotification(SALE_NOTIFICATION_TITLE, saleMsg, `sale-${order.id}`);
+            });
+          }
         } else {
           // Check for brand new approved orders
           const newOrders = list.filter((o: any) => !notifiedSet.has(o.id));
           if (newOrders.length > 0) {
+            playSalePingSound();
             newOrders.forEach((order: any) => {
               notifiedSet.add(order.id);
 
-              // Vibrate phone on mobile if supported (silent, no audio)
+              // Vibrate phone on mobile if supported
               if (typeof window !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate([200, 100, 300]); } catch {}
               }
@@ -385,6 +441,7 @@ export default function DashboardTopNav() {
                   method: order.transaction?.method || 'M-Pesa',
                   icon: '/logo.png',
                 });
+                window.NotifStack.open();
               }
 
               // 3. Mobile / Desktop Native Push Notification

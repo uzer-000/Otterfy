@@ -13,6 +13,7 @@ export async function GET() {
   return NextResponse.json({
     publicKey: VAPID_PUBLIC_KEY,
     subscribedCount: subs.length,
+    vapidConfigured: Boolean(process.env.VAPID_PRIVATE_KEY),
   });
 }
 

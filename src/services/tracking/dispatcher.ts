@@ -374,7 +374,7 @@ export async function dispatchSaleWebPush(order: OrderData, product?: { id?: str
             { TTL: 86400, urgency: 'high' }
           );
         } catch (err: any) {
-          if (err?.statusCode === 404 || err?.statusCode === 410) {
+          if (err?.statusCode === 404 || err?.statusCode === 410 || err?.statusCode === 403) {
             await removePushSubscription(sub.endpoint);
           } else {
             console.warn('[WebPush Send Error]:', err?.statusCode || err?.message);
