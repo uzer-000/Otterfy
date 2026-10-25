@@ -85,6 +85,9 @@ const updateProductSchema = z.object({
   }).passthrough().optional(),
 }).passthrough();
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -97,7 +100,11 @@ export async function GET(
       return NextResponse.json({ error: 'Produto não encontrado.' }, { status: 404 });
     }
 
-    return NextResponse.json(product);
+    return NextResponse.json(product, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    });
   } catch (error) {
     console.error('Erro ao buscar produto:', error);
     return NextResponse.json({ error: 'Erro interno do servidor.' }, { status: 500 });

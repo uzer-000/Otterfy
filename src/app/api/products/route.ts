@@ -22,12 +22,19 @@ const createProductSchema = z.object({
   allowAffiliation: z.boolean().optional(),
 });
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status') || undefined;
     const products = await dbStore.getProducts(status);
-    return NextResponse.json(products);
+    return NextResponse.json(products, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    });
   } catch (error) {
     console.error('Erro ao buscar produtos:', error);
     return NextResponse.json({ error: 'Erro interno do servidor.' }, { status: 500 });

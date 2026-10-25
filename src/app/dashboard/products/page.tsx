@@ -14,7 +14,7 @@ export default function ProductsPage() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch('/api/products');
+        const res = await fetch('/api/products', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           setProducts(data);
@@ -27,6 +27,10 @@ export default function ProductsPage() {
     }
     
     fetchProducts();
+    window.addEventListener('orders_updated', fetchProducts);
+    return () => {
+      window.removeEventListener('orders_updated', fetchProducts);
+    };
   }, []);
 
   const handleToggleStatus = async (id: string, newStatus: string) => {

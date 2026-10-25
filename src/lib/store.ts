@@ -168,12 +168,27 @@ export const dbStore = {
     try {
       const dbProducts = await prisma.product.findMany({
         where: status && (status === 'ACTIVE' || status === 'INACTIVE') ? { status } : undefined,
+        include: {
+          orders: {
+            where: { status: 'APPROVED' },
+            select: { id: true, amount: true },
+          },
+          _count: {
+            select: {
+              orders: {
+                where: { status: 'APPROVED' },
+              },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
       });
       const store = readLocalStore();
       return dbProducts.map(p => {
-        const localMatch = store.products.find(lp => lp.id === p.id);
-        const salesCount = store.orders.filter(o => o.productId === p.id && o.status === 'APPROVED').length;
+        const localMatch = store.products?.find(lp => lp.id === p.id);
+        const dbSales = p._count?.orders ?? p.orders?.length ?? 0;
+        const localSales = store.orders?.filter(o => o.productId === p.id && o.status === 'APPROVED').length || 0;
+        const totalSalesCount = Math.max(dbSales, localSales);
         const zenId = (p as any).checkoutSettings?.zenofyProductId || (p as any).checkoutSettings?.customCheckout?.zenofyProductId || localMatch?.zenofyProductId;
         return {
           id: p.id,
@@ -186,7 +201,7 @@ export const dbStore = {
           category: localMatch?.category || 'SoftwareSaaS',
           currency: localMatch?.currency || 'MZN',
           approvalStatus: localMatch?.approvalStatus || 'Aprovado',
-          salesCount: localMatch?.salesCount ?? salesCount,
+          salesCount: totalSalesCount,
           contentDeliveryType: (p as any).contentDeliveryType || localMatch?.contentDeliveryType,
           contentUrl: (p as any).contentUrl || localMatch?.contentUrl,
           materials: ((p as any).materials as any) || localMatch?.materials,
@@ -202,10 +217,10 @@ export const dbStore = {
       console.error('[dbStore.getProducts] Database query failed, falling back to local store:', err?.message || err);
       // Fallback to local store
       const store = readLocalStore();
-      return store.products
+      return (store.products || [])
         .filter(p => !status || status === 'ALL' || p.status === status)
         .map(p => {
-          const salesCount = store.orders.filter(o => o.productId === p.id && o.status === 'APPROVED').length;
+          const salesCount = store.orders?.filter(o => o.productId === p.id && o.status === 'APPROVED').length || 0;
           return {
             ...p,
             category: p.category || 'SoftwareSaaS',
@@ -222,17 +237,47 @@ export const dbStore = {
     if (!cleanId) return null;
 
     try {
-      let p = await prisma.product.findUnique({ where: { id: cleanId } });
+      let p = await prisma.product.findUnique({
+        where: { id: cleanId },
+        include: {
+          orders: {
+            where: { status: 'APPROVED' },
+            select: { id: true, amount: true },
+          },
+          _count: {
+            select: {
+              orders: {
+                where: { status: 'APPROVED' },
+              },
+            },
+          },
+        },
+      });
       if (!p) {
         p = await prisma.product.findFirst({
           where: { id: { equals: cleanId, mode: 'insensitive' } },
+          include: {
+            orders: {
+              where: { status: 'APPROVED' },
+              select: { id: true, amount: true },
+            },
+            _count: {
+              select: {
+                orders: {
+                  where: { status: 'APPROVED' },
+                },
+              },
+            },
+          },
         });
       }
 
       if (p) {
         const store = readLocalStore();
-        const localMatch = store.products.find(lp => lp.id.toLowerCase() === cleanId.toLowerCase());
-        const salesCount = store.orders.filter(o => o.productId === p!.id && o.status === 'APPROVED').length;
+        const localMatch = store.products?.find(lp => lp.id.toLowerCase() === cleanId.toLowerCase());
+        const dbSales = p._count?.orders ?? p.orders?.length ?? 0;
+        const localSales = store.orders?.filter(o => o.productId === p!.id && o.status === 'APPROVED').length || 0;
+        const totalSalesCount = Math.max(dbSales, localSales);
         const zenId = (p as any).checkoutSettings?.zenofyProductId || (p as any).checkoutSettings?.customCheckout?.zenofyProductId || localMatch?.zenofyProductId;
         return {
           id: p.id,
@@ -245,7 +290,7 @@ export const dbStore = {
           category: localMatch?.category || 'SoftwareSaaS',
           currency: localMatch?.currency || 'MZN',
           approvalStatus: localMatch?.approvalStatus || 'Aprovado',
-          salesCount: localMatch?.salesCount ?? salesCount,
+          salesCount: totalSalesCount,
           contentDeliveryType: (p as any).contentDeliveryType || localMatch?.contentDeliveryType,
           contentUrl: (p as any).contentUrl || localMatch?.contentUrl,
           materials: ((p as any).materials as any) || localMatch?.materials,
