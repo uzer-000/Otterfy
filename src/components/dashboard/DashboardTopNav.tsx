@@ -4,9 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AwardsModal from './AwardsModal';
-import NotificationStack from './NotificationStack';
 import { formatMZN, formatSaleNotificationMessage, SALE_NOTIFICATION_TITLE } from '@/lib/utils';
-import { playSalePingSound } from '@/lib/sound';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -17,12 +15,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
-}
-
-declare global {
-  interface Window {
-    triggerSaleNotification?: (amount?: number) => void;
-  }
 }
 
 export default function DashboardTopNav() {
@@ -36,61 +28,6 @@ export default function DashboardTopNav() {
   const [profileAvatar, setProfileAvatar] = useState<string>('');
   const [isSyncingAvatar, setIsSyncingAvatar] = useState(false);
   const topNavFileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const [pushPermission, setPushPermission] = useState<'granted' | 'denied' | 'default'>('default');
-  const [isTestingPush, setIsTestingPush] = useState(false);
-  const [pushToast, setPushToast] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPushPermission(Notification.permission);
-    }
-  }, []);
-
-  const handleActivateOrTestPush = async () => {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      alert('Este navegador não suporta notificações Push.');
-      return;
-    }
-
-    if (Notification.permission !== 'granted') {
-      try {
-        const perm = await Notification.requestPermission();
-        setPushPermission(perm);
-        if (perm === 'granted') {
-          await ensureWebPushSubscription();
-          setPushToast('Notificações ativadas! Enviando teste...');
-          try {
-            await fetch('/api/push/test', { method: 'POST' });
-            setPushToast('Notificação de teste enviada com sucesso!');
-          } catch {}
-        } else {
-          alert('Permissão não concedida. Por favor, autorize as notificações nas configurações do seu navegador.');
-        }
-      } catch (e) {
-        console.warn('Erro ao solicitar permissão:', e);
-      } finally {
-        setTimeout(() => setPushToast(null), 4000);
-      }
-    } else {
-      setIsTestingPush(true);
-      try {
-        await ensureWebPushSubscription();
-        const res = await fetch('/api/push/test', { method: 'POST' });
-        const data = await res.json();
-        if (res.ok) {
-          setPushToast('Notificação de teste enviada para o seu telemóvel!');
-        } else {
-          setPushToast(data.error || 'Erro ao enviar notificação.');
-        }
-      } catch {
-        setPushToast('Erro ao contactar o servidor.');
-      } finally {
-        setIsTestingPush(false);
-        setTimeout(() => setPushToast(null), 4000);
-      }
-    }
-  };
 
   const handleQuickAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -367,29 +304,6 @@ export default function DashboardTopNav() {
     }
   };
 
-  // Helper to trigger test notification from any UI or DevTools
-  useEffect(() => {
-    window.triggerSaleNotification = (amount?: number) => {
-      const finalAmount = amount !== undefined ? amount : 455;
-      const msg = formatSaleNotificationMessage(finalAmount);
-      playSalePingSound();
-      if (window.NotifStack) {
-        window.NotifStack.push({
-          id: `test-${Date.now()}`,
-          title: SALE_NOTIFICATION_TITLE,
-          message: msg,
-          amount: finalAmount,
-          icon: '/logo.png',
-        });
-        window.NotifStack.open();
-      }
-      sendSystemPushNotification(SALE_NOTIFICATION_TITLE, msg, `test-${Date.now()}`);
-    };
-    return () => {
-      delete window.triggerSaleNotification;
-    };
-  }, []);
-
   const initialLoadedRef = useRef(false);
 
   const isFetchingRef = useRef(false);
@@ -449,24 +363,11 @@ export default function DashboardTopNav() {
           localStorage.setItem('otterfy_notified_orders', JSON.stringify(Array.from(notifiedSet)));
 
           if (recentFreshOrders.length > 0) {
-            playSalePingSound();
             recentFreshOrders.forEach((order: any) => {
               if (typeof window !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate([200, 100, 300]); } catch {}
               }
               const saleMsg = formatSaleNotificationMessage(order.amount);
-              if (window.NotifStack) {
-                window.NotifStack.push({
-                  id: order.id,
-                  title: SALE_NOTIFICATION_TITLE,
-                  message: saleMsg,
-                  amount: Number(order.amount) || 0,
-                  customerName: order.customerName || 'Cliente',
-                  method: order.transaction?.method || 'M-Pesa',
-                  icon: '/logo.png',
-                });
-                window.NotifStack.open();
-              }
               sendSystemPushNotification(SALE_NOTIFICATION_TITLE, saleMsg, `sale-${order.id}`);
             });
           }
@@ -474,7 +375,6 @@ export default function DashboardTopNav() {
           // Check for brand new approved orders
           const newOrders = list.filter((o: any) => !notifiedSet.has(o.id));
           if (newOrders.length > 0) {
-            playSalePingSound();
             newOrders.forEach((order: any) => {
               notifiedSet.add(order.id);
 
@@ -485,21 +385,7 @@ export default function DashboardTopNav() {
 
               const saleMsg = formatSaleNotificationMessage(order.amount);
 
-              // 2. Feed visual notification stack (acumula no sino do painel)
-              if (window.NotifStack) {
-                window.NotifStack.push({
-                  id: order.id,
-                  title: SALE_NOTIFICATION_TITLE,
-                  message: saleMsg,
-                  amount: Number(order.amount) || 0,
-                  customerName: order.customerName || 'Cliente',
-                  method: order.transaction?.method || 'M-Pesa',
-                  icon: '/logo.png',
-                });
-                window.NotifStack.open();
-              }
-
-              // 3. Mobile / Desktop Native Push Notification
+              // Mobile / Desktop Native Push Notification
               sendSystemPushNotification(
                 SALE_NOTIFICATION_TITLE,
                 saleMsg,
@@ -660,29 +546,8 @@ export default function DashboardTopNav() {
             </div>
           </Link>
 
-          {/* Right: Notifications + Theme Switcher + Profile */}
+          {/* Right: Theme Switcher + Profile */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Push Notification Button (Ativar / Testar) */}
-            <button
-              type="button"
-              onClick={handleActivateOrTestPush}
-              disabled={isTestingPush}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-sm ${
-                pushPermission === 'granted'
-                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                  : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/40 animate-pulse'
-              }`}
-              title={pushPermission === 'granted' ? 'Clique para disparar um teste de notificação' : 'Clique para ativar notificações no celular'}
-            >
-              <span className="text-xs">🔔</span>
-              <span className="hidden xs:inline">
-                {pushPermission === 'granted' ? (isTestingPush ? 'Enviando...' : 'Testar Push') : 'Ativar Notificações'}
-              </span>
-            </button>
-
-            {/* Notification Stack (sino de vendas aprovadas scrollável) */}
-            <NotificationStack />
-
             {/* Dark / Light Theme Toggle */}
             <button
               type="button"
@@ -721,14 +586,6 @@ export default function DashboardTopNav() {
           </div>
         </div>
       </header>
-
-      {/* Toast Feedback for Push Activation / Test */}
-      {pushToast && (
-        <div className="fixed top-20 right-4 z-[99999] px-4 py-2.5 rounded-xl bg-violet-950 border border-violet-500/40 text-violet-200 text-xs shadow-2xl flex items-center gap-2 animate-fadeIn">
-          <span className="text-emerald-400 font-bold">✓</span>
-          <span>{pushToast}</span>
-        </div>
-      )}
 
       {/* Awards Modal (Milestones & Trophies) */}
       <AwardsModal
