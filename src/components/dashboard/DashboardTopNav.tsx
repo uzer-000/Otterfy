@@ -37,6 +37,61 @@ export default function DashboardTopNav() {
   const [isSyncingAvatar, setIsSyncingAvatar] = useState(false);
   const topNavFileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const [pushPermission, setPushPermission] = useState<'granted' | 'denied' | 'default'>('default');
+  const [isTestingPush, setIsTestingPush] = useState(false);
+  const [pushToast, setPushToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setPushPermission(Notification.permission);
+    }
+  }, []);
+
+  const handleActivateOrTestPush = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      alert('Este navegador não suporta notificações Push.');
+      return;
+    }
+
+    if (Notification.permission !== 'granted') {
+      try {
+        const perm = await Notification.requestPermission();
+        setPushPermission(perm);
+        if (perm === 'granted') {
+          await ensureWebPushSubscription();
+          setPushToast('Notificações ativadas! Enviando teste...');
+          try {
+            await fetch('/api/push/test', { method: 'POST' });
+            setPushToast('Notificação de teste enviada com sucesso!');
+          } catch {}
+        } else {
+          alert('Permissão não concedida. Por favor, autorize as notificações nas configurações do seu navegador.');
+        }
+      } catch (e) {
+        console.warn('Erro ao solicitar permissão:', e);
+      } finally {
+        setTimeout(() => setPushToast(null), 4000);
+      }
+    } else {
+      setIsTestingPush(true);
+      try {
+        await ensureWebPushSubscription();
+        const res = await fetch('/api/push/test', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          setPushToast('Notificação de teste enviada para o seu telemóvel!');
+        } else {
+          setPushToast(data.error || 'Erro ao enviar notificação.');
+        }
+      } catch {
+        setPushToast('Erro ao contactar o servidor.');
+      } finally {
+        setIsTestingPush(false);
+        setTimeout(() => setPushToast(null), 4000);
+      }
+    }
+  };
+
   const handleQuickAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
@@ -607,6 +662,24 @@ export default function DashboardTopNav() {
 
           {/* Right: Notifications + Theme Switcher + Profile */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Push Notification Button (Ativar / Testar) */}
+            <button
+              type="button"
+              onClick={handleActivateOrTestPush}
+              disabled={isTestingPush}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-sm ${
+                pushPermission === 'granted'
+                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/40 animate-pulse'
+              }`}
+              title={pushPermission === 'granted' ? 'Clique para disparar um teste de notificação' : 'Clique para ativar notificações no celular'}
+            >
+              <span className="text-xs">🔔</span>
+              <span className="hidden xs:inline">
+                {pushPermission === 'granted' ? (isTestingPush ? 'Enviando...' : 'Testar Push') : 'Ativar Notificações'}
+              </span>
+            </button>
+
             {/* Notification Stack (sino de vendas aprovadas scrollável) */}
             <NotificationStack />
 
@@ -648,6 +721,14 @@ export default function DashboardTopNav() {
           </div>
         </div>
       </header>
+
+      {/* Toast Feedback for Push Activation / Test */}
+      {pushToast && (
+        <div className="fixed top-20 right-4 z-[99999] px-4 py-2.5 rounded-xl bg-violet-950 border border-violet-500/40 text-violet-200 text-xs shadow-2xl flex items-center gap-2 animate-fadeIn">
+          <span className="text-emerald-400 font-bold">✓</span>
+          <span>{pushToast}</span>
+        </div>
+      )}
 
       {/* Awards Modal (Milestones & Trophies) */}
       <AwardsModal
