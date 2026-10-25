@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AwardsModal from './AwardsModal';
+import NotificationStack from './NotificationStack';
 import { formatMZN, formatSaleNotificationMessage, SALE_NOTIFICATION_TITLE } from '@/lib/utils';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -368,6 +369,18 @@ export default function DashboardTopNav() {
                 try { navigator.vibrate([200, 100, 300]); } catch {}
               }
               const saleMsg = formatSaleNotificationMessage(order.amount);
+              if (window.NotifStack) {
+                window.NotifStack.push({
+                  id: order.id,
+                  title: SALE_NOTIFICATION_TITLE,
+                  message: saleMsg,
+                  amount: Number(order.amount) || 0,
+                  customerName: order.customerName || 'Cliente',
+                  method: order.transaction?.method || 'M-Pesa',
+                  icon: '/logo.png',
+                });
+                window.NotifStack.open();
+              }
               sendSystemPushNotification(SALE_NOTIFICATION_TITLE, saleMsg, `sale-${order.id}`);
             });
           }
@@ -384,6 +397,20 @@ export default function DashboardTopNav() {
               }
 
               const saleMsg = formatSaleNotificationMessage(order.amount);
+
+              // Feed visual notification stack with real approved sale
+              if (window.NotifStack) {
+                window.NotifStack.push({
+                  id: order.id,
+                  title: SALE_NOTIFICATION_TITLE,
+                  message: saleMsg,
+                  amount: Number(order.amount) || 0,
+                  customerName: order.customerName || 'Cliente',
+                  method: order.transaction?.method || 'M-Pesa',
+                  icon: '/logo.png',
+                });
+                window.NotifStack.open();
+              }
 
               // Mobile / Desktop Native Push Notification
               sendSystemPushNotification(
@@ -546,8 +573,11 @@ export default function DashboardTopNav() {
             </div>
           </Link>
 
-          {/* Right: Theme Switcher + Profile */}
+          {/* Right: Notification Stack + Theme Switcher + Profile */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Notification Stack (histórico de vendas aprovadas reais) */}
+            <NotificationStack />
+
             {/* Dark / Light Theme Toggle */}
             <button
               type="button"
