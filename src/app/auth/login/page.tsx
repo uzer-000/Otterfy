@@ -48,7 +48,9 @@ export default function LoginPage() {
           });
           const checkData = await checkRes.json();
           if (checkData?.status === 'PENDING') {
-            router.push('/auth/pending-approval');
+            setError(
+              '⏳ A sua conta está registada e aguarda aprovação da administração. Assim que o administrador aprovar no painel, o seu login será liberado automaticamente.'
+            );
             return;
           }
           if (checkData?.status === 'REJECTED' || checkData?.status === 'BLOCKED') {
@@ -62,8 +64,7 @@ export default function LoginPage() {
         }
         setError('Credenciais inválidas. Verifique o seu email e senha.');
       } else {
-        router.push('/dashboard');
-        router.refresh();
+        window.location.href = '/dashboard';
       }
     } catch {
       setError('Ocorreu um erro ao fazer login. Tente novamente.');

@@ -15,10 +15,27 @@ import {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+async function isSessionAdmin(session: any): Promise<boolean> {
+  const userEmail = session?.user?.email?.trim().toLowerCase();
+  if (userEmail && isAdminEmail(userEmail)) return true;
+
+  const userId = session?.user?.id;
+  if (userId) {
+    const dbAdmin = await prisma.user.findFirst({
+      where: { email: { equals: ADMIN_EMAIL, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (dbAdmin && dbAdmin.id === userId) return true;
+  }
+
+  return false;
+}
+
 export async function GET() {
   try {
     const session = await auth();
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+    const isAuthorized = await isSessionAdmin(session);
+    if (!isAuthorized) {
       return NextResponse.json(
         { error: 'Acesso restrito exclusivamente ao Administrador Otterfy.' },
         { status: 403 }
@@ -210,7 +227,8 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+    const isAuthorized = await isSessionAdmin(session);
+    if (!isAuthorized) {
       return NextResponse.json(
         { error: 'Acesso restrito exclusivamente ao Administrador Otterfy.' },
         { status: 403 }

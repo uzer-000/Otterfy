@@ -1,13 +1,24 @@
 import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardTopNav from '@/components/dashboard/DashboardTopNav';
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { getUserApprovalStatus, isAdminEmail } from '@/lib/adminState';
 import { redirect } from 'next/navigation';
 import { ReactNode } from 'react';
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const session = await auth();
-  const userEmail = session?.user?.email;
+  let userEmail = session?.user?.email?.trim().toLowerCase();
+
+  if (!userEmail && session?.user?.id) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { email: true },
+    });
+    if (dbUser?.email) {
+      userEmail = dbUser.email.trim().toLowerCase();
+    }
+  }
 
   if (!session || !userEmail) {
     redirect('/auth/login');
