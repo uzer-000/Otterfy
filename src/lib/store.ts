@@ -162,6 +162,8 @@ function writeLocalStore(data: StoreData) {
   }
 }
 
+const productMemoryCache = new Map<string, { product: ProductItem; expiresAt: number }>();
+
 export const dbStore = {
   // PRODUCTS
   async getProducts(status?: string): Promise<ProductItem[]> {
@@ -190,7 +192,7 @@ export const dbStore = {
         const localSales = store.orders?.filter(o => o.productId === p.id && o.status === 'APPROVED').length || 0;
         const totalSalesCount = Math.max(dbSales, localSales);
         const zenId = (p as any).checkoutSettings?.zenofyProductId || (p as any).checkoutSettings?.customCheckout?.zenofyProductId || localMatch?.zenofyProductId;
-        return {
+        const result: ProductItem = {
           id: p.id,
           name: p.name,
           description: p.description,
@@ -212,6 +214,8 @@ export const dbStore = {
           createdAt: p.createdAt.toISOString(),
           updatedAt: p.updatedAt.toISOString(),
         };
+        productMemoryCache.set(p.id, { product: result, expiresAt: Date.now() + 30_000 });
+        return result;
       });
     } catch (err: any) {
       console.error('[dbStore.getProducts] Database query failed, falling back to local store:', err?.message || err);
@@ -235,6 +239,11 @@ export const dbStore = {
   async getProductById(id: string): Promise<ProductItem | null> {
     const cleanId = (id || '').trim();
     if (!cleanId) return null;
+
+    const cached = productMemoryCache.get(cleanId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.product;
+    }
 
     try {
       let p = await prisma.product.findUnique({
@@ -279,7 +288,7 @@ export const dbStore = {
         const localSales = store.orders?.filter(o => o.productId === p!.id && o.status === 'APPROVED').length || 0;
         const totalSalesCount = Math.max(dbSales, localSales);
         const zenId = (p as any).checkoutSettings?.zenofyProductId || (p as any).checkoutSettings?.customCheckout?.zenofyProductId || localMatch?.zenofyProductId;
-        return {
+        const result: ProductItem = {
           id: p.id,
           name: p.name,
           description: p.description,
@@ -301,6 +310,8 @@ export const dbStore = {
           createdAt: p.createdAt.toISOString(),
           updatedAt: p.updatedAt.toISOString(),
         };
+        productMemoryCache.set(p.id, { product: result, expiresAt: Date.now() + 30_000 });
+        return result;
       }
     } catch (e) {
       console.error('Error fetching product from Prisma:', e);
@@ -513,12 +524,14 @@ export const dbStore = {
       // Prisma optional fallback
     }
 
+    productMemoryCache.delete(id);
     return updatedItem;
   },
 
   async deleteProduct(id: string): Promise<boolean> {
     const cleanId = (id || '').trim();
     if (!cleanId) return false;
+    productMemoryCache.delete(cleanId);
 
     // 1. Delete from Prisma database if connected
     try {
@@ -696,6 +709,7 @@ export const dbStore = {
   },
 
   async createOrder(data: {
+    id?: string;
     productId: string;
     customerName: string;
     customerPhone: string;
@@ -714,19 +728,21 @@ export const dbStore = {
       term?: string;
     };
   }): Promise<OrderItem> {
-    const orderId = `OTF-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const orderId = data.id || `OTF-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
     try {
-      let customer = await prisma.customer.findUnique({ where: { phone: data.customerPhone } });
-      if (!customer) {
-        customer = await prisma.customer.create({
-          data: {
-            name: data.customerName,
-            phone: data.customerPhone,
-            email: data.customerEmail || null,
-          },
-        });
-      }
+      const customer = await prisma.customer.upsert({
+        where: { phone: data.customerPhone },
+        update: {
+          name: data.customerName,
+          ...(data.customerEmail ? { email: data.customerEmail } : {}),
+        },
+        create: {
+          name: data.customerName,
+          phone: data.customerPhone,
+          email: data.customerEmail || null,
+        },
+      });
 
       const order = await prisma.order.create({
         data: {

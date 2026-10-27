@@ -379,7 +379,7 @@ export default function CheckoutForm({
         candidateUrl &&
         /^https?:\/\//i.test(candidateUrl)
       ) {
-        window.location.href = candidateUrl;
+        window.location.replace(candidateUrl);
         return;
       }
 

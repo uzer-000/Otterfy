@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import dbStore from '@/lib/store';
 import { dispatchCheckout } from '@/services/payment/gatewayManager';
@@ -8,6 +8,14 @@ import { DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID } from '@/services/payment/zenofy';
 import { clientIp, enforceRateLimit, rateLimitResponse } from '@/lib/security';
 
 export const maxDuration = 60;
+
+function runInBackground(task: () => Promise<void>) {
+  try {
+    after(task);
+  } catch {
+    task().catch((err) => console.error('[checkout/backgroundTask] error:', err));
+  }
+}
 
 const checkoutSchema = z.object({
   productId: z.string().min(1),
@@ -146,20 +154,6 @@ export async function POST(req: Request) {
     }
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || reqOrigin || 'http://localhost:3000';
 
-    const order = await dbStore.createOrder({
-      productId: product.id,
-      customerName,
-      customerPhone,
-      customerEmail: customerEmail || undefined,
-      amount: totalAmount,
-      paymentMethod,
-      hasOrderBump: resolvedHasOrderBump,
-      orderBumpTitle: resolvedHasOrderBump ? resolvedBumpTitle : undefined,
-      orderBumpAmount: resolvedHasOrderBump ? resolvedBumpAmount : undefined,
-      affiliateRef,
-      utmParams,
-    });
-
     const rawProductZenofyId =
       product.zenofyProductId ||
       product.checkoutSettings?.zenofyProductId ||
@@ -176,21 +170,40 @@ export async function POST(req: Request) {
       validCustomZenofyId ||
       DEFAULT_ZENOFY_GATEWAY_PRODUCT_ID;
 
-    const dispatchResult = await dispatchCheckout({
-      orderId: order.id,
-      amount: totalAmount,
-      productName: product.name,
-      hasOrderBump: resolvedHasOrderBump,
-      orderBumpTitle: resolvedBumpTitle,
-      zenofyProductId: resolvedZenofyProductId,
-      customer: {
-        name: customerName,
-        phone: customerPhone,
-        email: customerEmail || undefined,
-      },
-      paymentMethod,
-      baseUrl,
-    });
+    // Fast-path: Pre-generate order ID so dbStore.createOrder and gateway dispatch run in parallel
+    const orderId = `OTF-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+    const [order, dispatchResult] = await Promise.all([
+      dbStore.createOrder({
+        id: orderId,
+        productId: product.id,
+        customerName,
+        customerPhone,
+        customerEmail: customerEmail || undefined,
+        amount: totalAmount,
+        paymentMethod,
+        hasOrderBump: resolvedHasOrderBump,
+        orderBumpTitle: resolvedHasOrderBump ? resolvedBumpTitle : undefined,
+        orderBumpAmount: resolvedHasOrderBump ? resolvedBumpAmount : undefined,
+        affiliateRef,
+        utmParams,
+      }),
+      dispatchCheckout({
+        orderId,
+        amount: totalAmount,
+        productName: product.name,
+        hasOrderBump: resolvedHasOrderBump,
+        orderBumpTitle: resolvedBumpTitle,
+        zenofyProductId: resolvedZenofyProductId,
+        customer: {
+          name: customerName,
+          phone: customerPhone,
+          email: customerEmail || undefined,
+        },
+        paymentMethod,
+        baseUrl,
+      }),
+    ]);
 
     const upsellUrl =
       product.checkoutSettings?.postPurchase?.upsellUrl?.trim() ||
@@ -202,17 +215,27 @@ export async function POST(req: Request) {
       undefined;
 
     if (dispatchResult.status === 'APPROVED') {
-      await dbStore.updateOrderTransaction(order.id, {
-        status: 'APPROVED',
-        zenofyCheckoutId: dispatchResult.transactionId,
-        zenofyTransactionId: dispatchResult.transactionId,
-        method: paymentMethod,
-      });
+      runInBackground(async () => {
+        try {
+          await dbStore.updateOrderTransaction(order.id, {
+            status: 'APPROVED',
+            zenofyCheckoutId: dispatchResult.transactionId,
+            zenofyTransactionId: dispatchResult.transactionId,
+            method: paymentMethod,
+          });
+        } catch (err) {
+          console.error('[checkout] error updating approved transaction:', err);
+        }
 
-      await Promise.allSettled([
-        dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
-        dispatchAllApprovedOrderEvents(product, { ...order, status: 'APPROVED' }),
-      ]);
+        try {
+          await Promise.allSettled([
+            dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
+            dispatchAllApprovedOrderEvents(product, { ...order, status: 'APPROVED' }),
+          ]);
+        } catch (err) {
+          console.error('[checkout] error dispatching approved tracking events:', err);
+        }
+      });
 
       return NextResponse.json({
         checkoutUrl: upsellUrl || dispatchResult.checkoutUrl,
@@ -223,21 +246,32 @@ export async function POST(req: Request) {
         status: 'APPROVED',
       });
     } else {
-      await dbStore.updateOrderTransaction(order.id, {
-        zenofyCheckoutId: dispatchResult.transactionId,
-        zenofyCheckoutUrl: dispatchResult.checkoutUrl,
-        status: 'PENDING',
-        method: paymentMethod,
-      });
-
       const reqIp = clientIp(req);
       const reqUa = req.headers.get('user-agent') || undefined;
-      const pendingTasks: Promise<unknown>[] = [
-        dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
-        dispatchMetaCapi(product, 'InitiateCheckout', { ...order, status: 'PENDING' }, reqIp, reqUa),
-        dispatchUtmifyOrder(product, { ...order, status: 'PENDING' }),
-      ];
-      await Promise.allSettled(pendingTasks);
+
+      runInBackground(async () => {
+        try {
+          await dbStore.updateOrderTransaction(order.id, {
+            zenofyCheckoutId: dispatchResult.transactionId,
+            zenofyCheckoutUrl: dispatchResult.checkoutUrl,
+            status: 'PENDING',
+            method: paymentMethod,
+          });
+        } catch (err) {
+          console.error('[checkout] error updating pending transaction:', err);
+        }
+
+        try {
+          const pendingTasks: Promise<unknown>[] = [
+            dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
+            dispatchMetaCapi(product, 'InitiateCheckout', { ...order, status: 'PENDING' }, reqIp, reqUa),
+            dispatchUtmifyOrder(product, { ...order, status: 'PENDING' }),
+          ];
+          await Promise.allSettled(pendingTasks);
+        } catch (err) {
+          console.error('[checkout] error dispatching pending tracking events:', err);
+        }
+      });
 
       return NextResponse.json({
         checkoutUrl: dispatchResult.checkoutUrl,

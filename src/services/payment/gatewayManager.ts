@@ -142,6 +142,7 @@ export function getAllGateways(): StoredGatewayConfig[] {
 }
 
 export async function getAllGatewaysAsync(): Promise<StoredGatewayConfig[]> {
+  if (memoryGateways && memoryGateways.length > 0) return memoryGateways;
   try {
     const row = await prisma.user.findUnique({
       where: { email: CONFIG_EMAIL_GATEWAYS },

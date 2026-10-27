@@ -77,6 +77,12 @@ export default async function CheckoutPage({ params }: PageProps) {
 
   return (
     <div style={{ backgroundColor: '#F5F3FA', color: '#0F172A' }} className="min-h-screen flex flex-col justify-between bg-[#F5F3FA] text-[#0F172A]">
+      {/* High-speed payment gateway preconnect & DNS prefetch */}
+      <link rel="preconnect" href="https://pay.zenofy.io" crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href="https://pay.zenofy.io" />
+      <link rel="preconnect" href="https://api.zenofy.io" crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href="https://api.zenofy.io" />
+
       {/* Gated third-party tracking scripts (loaded ONLY after explicit marketing cookie consent) */}
       <CheckoutTrackingScripts metaPixelId={metaPixelId} utmifyPixelId={utmifyPixelId} />
 

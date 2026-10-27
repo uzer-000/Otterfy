@@ -148,8 +148,56 @@ export const zenofyProvider = {
       Authorization: `Bearer ${apiKey}`,
     };
 
-    // 1. Try direct dynamic API Gateway endpoint with user's official Zenofy account (/checkout/order-api-gateway)
-    // Works for ANY custom price (10, 50, 120, 150, 190, 300 MZN) when configured with a Zenofy API Gateway product
+    // 1. Primary path: Standard fixed-price product endpoint (/checkout/order-from-product)
+    // Fast path: Responds in ~700-1000ms without wasting 1.1s on failed order-api-gateway calls
+    const standardBody = {
+      productId: targetProductId,
+      customerName,
+      email,
+      phoneNumber: toZenofyPhone(params.customer.phone),
+      currency: 'MZN',
+      language: 'pt',
+      bumpProductIds: [],
+      redirectUrl: successRedirectUrl,
+      webhookUrl,
+    };
+
+    let response: Response | null = null;
+    let standardError = '';
+
+    try {
+      response = await fetch('https://api.zenofy.io/checkout/order-from-product', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify(standardBody),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (response.ok) {
+        const data = await response.json().catch(() => null);
+        const checkoutId = data?.orderId || data?.checkout_id;
+        if (checkoutId && data?.success !== false) {
+          const rawCheckoutUrl =
+            data.paymentUrl || data.checkout_url || `https://pay.zenofy.io/o/${checkoutId}`;
+          const checkoutUrl = rawCheckoutUrl.includes('?')
+            ? rawCheckoutUrl
+            : `${rawCheckoutUrl}?lang=pt`;
+
+          return {
+            checkout_id: checkoutId,
+            checkout_url: checkoutUrl,
+            status: data.status || 'PENDING',
+          };
+        }
+      } else {
+        standardError = await response.text().catch(() => `HTTP ${response?.status}`);
+      }
+    } catch (err: unknown) {
+      standardError = err instanceof Error ? err.message : 'Timeout ou erro de rede';
+    }
+
+    // 2. Fallback path: Dynamic API Gateway endpoint (/checkout/order-api-gateway)
+    // Used if product is explicitly configured as an API gateway product
     const gatewayProductId =
       process.env.ZENOFY_GATEWAY_PRODUCT_ID ||
       (isParamExactMatch ? params.productId : undefined) ||
@@ -195,72 +243,12 @@ export const zenofyProvider = {
         }
       }
     } catch {
-      // Proceed to fixed-price product endpoint in user's Zenofy account below
+      // Fallback failed as well
     }
 
-    // 2. Standard product endpoint in user's Zenofy account (/checkout/order-from-product)
-    const body = {
-      productId: targetProductId,
-      customerName,
-      email,
-      phoneNumber: toZenofyPhone(params.customer.phone),
-      currency: 'MZN',
-      language: 'pt',
-      bumpProductIds: [],
-      redirectUrl: successRedirectUrl,
-      webhookUrl,
-    };
-
-    let response: Response;
-    try {
-      response = await fetch('https://api.zenofy.io/checkout/order-from-product', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(12000),
-      });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Timeout ou erro de rede';
-      throw new Error(`Falha ao conectar com o gateway Zenofy: ${message}`);
-    }
-
-    if (!response.ok) {
-      let errorBody = '';
-      try {
-        errorBody = await response.text();
-      } catch {
-        errorBody = `HTTP ${response.status}`;
-      }
-      throw new Error(
-        `Erro Zenofy (${response.status}): ${errorBody || 'Resposta inválida do provedor'}`
-      );
-    }
-
-    let data: any;
-    try {
-      data = await response.json();
-    } catch {
-      throw new Error('Zenofy retornou resposta em formato inválido.');
-    }
-
-    if (!data.orderId && !data.checkout_id) {
-      throw new Error(
-        data.message || 'Zenofy não retornou identificador de pedido válido.'
-      );
-    }
-
-    const checkoutId = data.orderId || data.checkout_id;
-    const rawCheckoutUrl =
-      data.paymentUrl || data.checkout_url || `https://pay.zenofy.io/o/${checkoutId}`;
-    const checkoutUrl = rawCheckoutUrl.includes('?')
-      ? rawCheckoutUrl
-      : `${rawCheckoutUrl}?lang=pt`;
-
-    return {
-      checkout_id: checkoutId,
-      checkout_url: checkoutUrl,
-      status: data.status || 'PENDING',
-    };
+    throw new Error(
+      `Falha ao conectar com o gateway Zenofy: ${standardError || 'Resposta inválida do provedor'}`
+    );
   },
 
   /**
