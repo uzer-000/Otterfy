@@ -153,31 +153,40 @@ export default function CustomizableWidgets({
   // Live 24-hour daily flow synchronization (00:00 - 23:59 in local timezone)
   useEffect(() => {
     let active = true;
+    let lastSync = 0;
 
-    const syncLive24hFlow = async () => {
+    // Fetch yesterday once on mount since historical 24h data is static
+    const fetchYesterdayOnce = async () => {
       try {
         const mozNow = getMozambiqueDate();
         const yDate = new Date(mozNow.getTime() - 86400000);
         const yesterdayIso = getMozambiqueDateString(yDate);
-
-        const [resToday, resYesterday] = await Promise.all([
-          fetch('/api/analytics/hourly', { cache: 'no-store' }),
-          fetch(`/api/analytics/hourly?date=${yesterdayIso}`, { cache: 'no-store' }),
-        ]);
-
+        const resYesterday = await fetch(`/api/analytics/hourly?date=${yesterdayIso}`);
         if (!active) return;
-
-        if (resToday.ok) {
-          const jsonToday = await resToday.json();
-          if (jsonToday.success && Array.isArray(jsonToday.data)) {
-            setLiveHourlyToday(jsonToday.data);
-          }
-        }
-
         if (resYesterday.ok) {
           const jsonYesterday = await resYesterday.json();
           if (jsonYesterday.success && Array.isArray(jsonYesterday.data)) {
             setLiveHourlyYesterday(jsonYesterday.data);
+          }
+        }
+      } catch {}
+    };
+
+    fetchYesterdayOnce();
+
+    const syncTodayFlow = async () => {
+      if (document.visibilityState === 'hidden') return;
+      const now = Date.now();
+      if (now - lastSync < 30_000) return; // Minimum 30s throttle
+      lastSync = now;
+
+      try {
+        const resToday = await fetch('/api/analytics/hourly');
+        if (!active) return;
+        if (resToday.ok) {
+          const jsonToday = await resToday.json();
+          if (jsonToday.success && Array.isArray(jsonToday.data)) {
+            setLiveHourlyToday(jsonToday.data);
           }
         }
       } catch {
@@ -185,13 +194,15 @@ export default function CustomizableWidgets({
       }
     };
 
-    syncLive24hFlow();
-    const interval = setInterval(syncLive24hFlow, 15000);
-    window.addEventListener('focus', syncLive24hFlow);
+    syncTodayFlow();
+    // 90-second refresh instead of aggressive 15s to preserve Neon network transfer budget
+    const interval = setInterval(syncTodayFlow, 90_000);
+    const handleFocus = () => syncTodayFlow();
+    window.addEventListener('focus', handleFocus);
     return () => {
       active = false;
       clearInterval(interval);
-      window.removeEventListener('focus', syncLive24hFlow);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 

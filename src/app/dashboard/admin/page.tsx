@@ -132,8 +132,10 @@ export default function AdminControlPage() {
   useEffect(() => {
     void fetchAdminData(false);
     const interval = setInterval(() => {
-      void fetchAdminData(true);
-    }, 10000);
+      if (document.visibilityState === 'visible') {
+        void fetchAdminData(true);
+      }
+    }, 60000); // 60s interval with visibility guard to prevent database drainage
     return () => clearInterval(interval);
   }, [fetchAdminData]);
 

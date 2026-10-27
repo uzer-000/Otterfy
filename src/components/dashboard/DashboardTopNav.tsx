@@ -124,28 +124,15 @@ export default function DashboardTopNav() {
         .catch(() => {});
     };
 
+    // Initial sync once on mount; dynamic changes update via local events
     syncProfileFromCloud();
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        syncProfileFromCloud();
-      }
-    };
 
     window.addEventListener('profile_updated', updateAvatarFromStorage);
     window.addEventListener('storage', updateAvatarFromStorage);
-    window.addEventListener('focus', syncProfileFromCloud);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Periodic sync (every 15s) for instant background sync across tabs/devices
-    const syncInterval = setInterval(syncProfileFromCloud, 15000);
 
     return () => {
       window.removeEventListener('profile_updated', updateAvatarFromStorage);
       window.removeEventListener('storage', updateAvatarFromStorage);
-      window.removeEventListener('focus', syncProfileFromCloud);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearInterval(syncInterval);
     };
   }, []);
 

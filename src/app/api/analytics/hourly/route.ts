@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import dbStore from '@/lib/store';
 import {
   getMozambiqueDate,
@@ -7,6 +8,10 @@ import {
   getMozambiqueDateString,
   createMozambiqueDateUtc,
 } from '@/lib/utils';
+
+// Server-side lightweight in-memory cache to eliminate redundant Neon DB egress
+const hourlyMemoryCache = new Map<string, { data: any; expiresAt: number }>();
+const CACHE_TTL_MS = 30_000; // 30 seconds
 
 const HOURS_LIST = [
   '00:00', '01:00', '02:00', '03:00', '04:00', '05:00',
@@ -51,17 +56,60 @@ export async function GET(req: Request) {
     const daysInMonth = new Date(queryMonthYear, queryMonth + 1, 0).getDate();
     const endOfMonth = createMozambiqueDateUtc(queryMonthYear, queryMonth, daysInMonth, 23, 59, 59, 999);
 
-    // Fetch orders for the target day and the month in parallel
-    const [dayOrders, monthOrders] = await Promise.all([
-      dbStore.getOrders({
-        startDate: startOfDay.toISOString(),
-        endDate: endOfDay.toISOString(),
-      }),
-      dbStore.getOrders({
-        startDate: startOfMonth.toISOString(),
-        endDate: endOfMonth.toISOString(),
-      }),
-    ]);
+    const cacheKey = `${dateParam || 'default'}_${monthParam || 'default'}`;
+    const cached = hourlyMemoryCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return NextResponse.json(cached.data);
+    }
+
+    // Fetch only needed columns (status, createdAt) to keep Neon network egress tiny
+    let dayOrders: { status: string; createdAt: Date | string }[] = [];
+    let monthOrders: { status: string; createdAt: Date | string }[] = [];
+
+    try {
+      const [dbDay, dbMonth] = await Promise.all([
+        prisma.order.findMany({
+          where: {
+            createdAt: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+          select: {
+            status: true,
+            createdAt: true,
+          },
+        }),
+        prisma.order.findMany({
+          where: {
+            createdAt: {
+              gte: startOfMonth,
+              lte: endOfMonth,
+            },
+          },
+          select: {
+            status: true,
+            createdAt: true,
+          },
+        }),
+      ]);
+      dayOrders = dbDay;
+      monthOrders = dbMonth;
+    } catch {
+      // Fallback to dbStore if direct prisma throws
+      const [fallbackDay, fallbackMonth] = await Promise.all([
+        dbStore.getOrders({
+          startDate: startOfDay.toISOString(),
+          endDate: endOfDay.toISOString(),
+        }),
+        dbStore.getOrders({
+          startDate: startOfMonth.toISOString(),
+          endDate: endOfMonth.toISOString(),
+        }),
+      ]);
+      dayOrders = fallbackDay;
+      monthOrders = fallbackMonth;
+    }
 
     // Build 24-hour buckets using Mozambique local hour
     const hourlyData = HOURS_LIST.map((hour, idx) => {
@@ -135,7 +183,7 @@ export async function GET(req: Request) {
     if (isToday) badgeLabel = 'Hoje (24 Horas)';
     else if (isYesterday) badgeLabel = 'Ontem (24 Horas)';
 
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       date: dateIso,
       isToday,
@@ -150,7 +198,14 @@ export async function GET(req: Request) {
       peakRange,
       monthActivity,
       monthQuery: `${queryMonthYear}-${String(queryMonth + 1).padStart(2, '0')}`,
+    };
+
+    hourlyMemoryCache.set(cacheKey, {
+      data: responsePayload,
+      expiresAt: Date.now() + CACHE_TTL_MS,
     });
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
     console.error('Erro na API hourly analytics:', error);
     return NextResponse.json({ success: false, error: 'Erro ao processar dados de horário' }, { status: 500 });

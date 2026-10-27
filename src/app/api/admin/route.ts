@@ -46,6 +46,15 @@ export async function GET() {
       getAdminCloudState(),
       prisma.user.findMany({
         where: { NOT: { email: { endsWith: '@otterfy.internal' } } },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          avatarImage: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.product.findMany({
@@ -57,9 +66,18 @@ export async function GET() {
         orderBy: { createdAt: 'desc' },
       }),
       prisma.order.findMany({
-        include: {
-          customer: true,
-          transaction: true,
+        select: {
+          id: true,
+          productId: true,
+          amount: true,
+          status: true,
+          createdAt: true,
+          customer: {
+            select: { name: true, phone: true },
+          },
+          transaction: {
+            select: { method: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),

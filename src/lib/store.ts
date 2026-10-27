@@ -581,9 +581,38 @@ export const dbStore = {
         },
         orderBy: { createdAt: 'desc' },
         include: {
-          product: true,
-          customer: true,
-          transaction: true,
+          product: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              status: true,
+              userId: true,
+              contentDeliveryType: true,
+              contentUrl: true,
+              materials: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+            },
+          },
+          transaction: {
+            select: {
+              id: true,
+              method: true,
+              status: true,
+              zenofyCheckoutId: true,
+              zenofyCheckoutUrl: true,
+              zenofyTransactionId: true,
+            },
+          },
         },
       });
       return dbOrders.map(o => {
@@ -776,9 +805,38 @@ export const dbStore = {
           },
         },
         include: {
-          product: true,
-          customer: true,
-          transaction: true,
+          product: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              status: true,
+              userId: true,
+              contentDeliveryType: true,
+              contentUrl: true,
+              materials: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+            },
+          },
+          transaction: {
+            select: {
+              id: true,
+              method: true,
+              status: true,
+              zenofyCheckoutId: true,
+              zenofyCheckoutUrl: true,
+              zenofyTransactionId: true,
+            },
+          },
         },
       });
 

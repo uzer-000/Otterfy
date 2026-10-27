@@ -42,27 +42,15 @@ export default function DashboardGreetingBanner() {
         .catch(() => {});
     };
 
+    // Fetch once on mount; updates propagate via profile_updated / storage events
     syncProfileFromCloud();
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        syncProfileFromCloud();
-      }
-    };
 
     window.addEventListener('profile_updated', updateAvatarFromStorage);
     window.addEventListener('storage', updateAvatarFromStorage);
-    window.addEventListener('focus', syncProfileFromCloud);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    const interval = setInterval(syncProfileFromCloud, 15000);
 
     return () => {
       window.removeEventListener('profile_updated', updateAvatarFromStorage);
       window.removeEventListener('storage', updateAvatarFromStorage);
-      window.removeEventListener('focus', syncProfileFromCloud);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearInterval(interval);
     };
   }, []);
 

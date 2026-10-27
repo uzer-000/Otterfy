@@ -38,32 +38,26 @@ function saveLocalProfile(data: Record<string, unknown>) {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+let userProfileCache: { data: any; expiresAt: number } | null = null;
+
 export async function GET() {
   try {
+    if (userProfileCache && userProfileCache.expiresAt > Date.now()) {
+      return NextResponse.json(userProfileCache.data);
+    }
+
     const profile = getLocalProfile();
     try {
-      const users = await prisma.user.findMany({
+      const primaryUser = await prisma.user.findFirst({
+        where: { email: { equals: 'nhacossfilipe@gmail.com', mode: 'insensitive' } },
+        select: { id: true, name: true, email: true, phone: true, avatarImage: true },
+      }) || await prisma.user.findFirst({
         where: { NOT: { email: { endsWith: '@otterfy.internal' } } },
+        select: { id: true, name: true, email: true, phone: true, avatarImage: true },
       });
-      const primaryUser =
-        users.find((u) => u.email.toLowerCase() === 'nhacossfilipe@gmail.com') ||
-        users[0] ||
-        null;
-      const anyAvatarUser = users.find((u) => u.avatarImage && u.avatarImage.length > 10);
 
       if (primaryUser) {
-        const resolvedAvatar =
-          primaryUser.avatarImage || anyAvatarUser?.avatarImage || profile.avatarImage || '';
-
-        // Auto-heal if avatar was stored on another user row previously
-        if (!primaryUser.avatarImage && resolvedAvatar) {
-          await prisma.user
-            .update({
-              where: { id: primaryUser.id },
-              data: { avatarImage: resolvedAvatar },
-            })
-            .catch(() => {});
-        }
+        const resolvedAvatar = primaryUser.avatarImage || profile.avatarImage || '';
 
         const resolved = {
           name: primaryUser.name || profile.name || 'Pedro Hill',
@@ -71,20 +65,16 @@ export async function GET() {
           phone: primaryUser.phone || profile.phone || '+258 84 000 0000',
           avatarImage: resolvedAvatar,
         };
-        return NextResponse.json(
-          {
-            success: true,
-            profile: resolved,
-            ...resolved,
-          },
-          {
-            headers: {
-              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-              Pragma: 'no-cache',
-              Expires: '0',
-            },
-          }
-        );
+        const responseData = {
+          success: true,
+          profile: resolved,
+          ...resolved,
+        };
+        userProfileCache = {
+          data: responseData,
+          expiresAt: Date.now() + 60_000,
+        };
+        return NextResponse.json(responseData);
       }
     } catch {
       // ignore DB error and use local
@@ -162,6 +152,7 @@ export async function POST(req: Request) {
     };
 
     saveLocalProfile(updated);
+    userProfileCache = null;
 
     try {
       if (dbUser) {
