@@ -329,7 +329,18 @@ export const zenofyProvider = {
         typeof pageRes.headers.getSetCookie === 'function'
           ? pageRes.headers.getSetCookie()
           : [pageRes.headers.get('set-cookie')].filter((c): c is string => Boolean(c));
-      const cookieHeader = [...new Set(setCookies.map((c) => c.split(';')[0]))].join('; ');
+      const cookieMap = new Map<string, string>();
+      for (const c of setCookies) {
+        if (!c) continue;
+        const part = c.split(';')[0];
+        const eqIdx = part.indexOf('=');
+        if (eqIdx !== -1) {
+          cookieMap.set(part.slice(0, eqIdx).trim(), part.slice(eqIdx + 1).trim());
+        }
+      }
+      const cookieHeader = Array.from(cookieMap.entries())
+        .map(([k, v]) => `${k}=${v}`)
+        .join('; ');
 
       const html = await pageRes.text();
       const tokenMatch =
@@ -353,7 +364,7 @@ export const zenofyProvider = {
           orderId: checkoutId,
           phoneNumber: cleanPhone,
         }),
-        signal: AbortSignal.timeout(55000),
+        signal: AbortSignal.timeout(25000),
       });
 
       const result = await payRes.json().catch(() => ({}));

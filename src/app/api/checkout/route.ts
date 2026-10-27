@@ -245,7 +245,7 @@ export async function POST(req: Request) {
         downsellUrl,
         orderId: order.id,
         gateway: dispatchResult.gatewayId,
-        status: 'PENDING',
+        status: dispatchResult.status || 'PENDING',
         message: dispatchResult.message,
       });
     }

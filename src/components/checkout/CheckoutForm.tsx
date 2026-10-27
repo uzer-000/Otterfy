@@ -371,7 +371,19 @@ export default function CheckoutForm({
         } catch {}
       }
 
-      // If PENDING USSD Push (M-Pesa / e-Mola), open interactive waiting screen with instructions & polling
+      const candidateUrl = data.checkoutUrl || (data.status === 'APPROVED' ? data.upsellUrl : undefined);
+
+      // If REDIRECT gateway (Zenofy, EscalePay, etc.), immediately navigate to hosted payment authorization URL
+      if (
+        (data.status === 'REDIRECT' || data.gateway === 'zenofy' || data.gateway === 'escalepay') &&
+        candidateUrl &&
+        /^https?:\/\//i.test(candidateUrl)
+      ) {
+        window.location.href = candidateUrl;
+        return;
+      }
+
+      // If PENDING USSD Push (M-Pesa / e-Mola via native gateway), open interactive waiting screen with instructions & polling
       if (data.status === 'PENDING' && data.orderId) {
         setUssdModalData({
           orderId: String(data.orderId),
@@ -404,7 +416,6 @@ export default function CheckoutForm({
         } catch {}
       }
 
-      const candidateUrl = data.checkoutUrl || (data.status === 'APPROVED' ? data.upsellUrl : undefined);
       if (candidateUrl && /^https?:\/\//i.test(candidateUrl)) {
         window.location.href = candidateUrl;
       } else {

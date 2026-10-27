@@ -403,9 +403,9 @@ export default function CheckoutUssdPushModal({
               {checkoutUrl && /^https?:\/\//i.test(checkoutUrl) && (
                 <a
                   href={checkoutUrl}
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[#047857] font-bold text-xs transition-colors flex items-center justify-center gap-1.5 text-center"
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 text-center shadow-md shadow-emerald-600/20"
                 >
-                  <span>Não recebeu o pop-up no ecrã? Concluir na Página Oficial</span>
+                  <span>Não recebeu o pop-up? Abrir tela oficial para colocar PIN</span>
                   <span aria-hidden="true">↗</span>
                 </a>
               )}
