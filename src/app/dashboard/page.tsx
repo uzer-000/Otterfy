@@ -341,11 +341,22 @@ export default async function DashboardPage() {
 
     // Payment method totals for approved orders in this period (or all orders in period if none approved yet)
     const methodSource = approved.length > 0 ? approved : ordersInPeriod;
+    const resolveOrderMethod = (o: (typeof ordersInPeriod)[number]) => {
+      const raw = (o.transaction?.method || '').toUpperCase().trim();
+      if (raw.includes('EMOLA') || raw.includes('E-MOLA')) return 'EMOLA';
+      if (raw.includes('MPESA') || raw.includes('M-PESA')) return 'MPESA';
+      const clean = (o.customerPhone || '').replace(/\D/g, '');
+      const moz = clean.startsWith('258') ? clean.slice(3) : clean;
+      if (moz.startsWith('86') || moz.startsWith('87')) return 'EMOLA';
+      if (moz.startsWith('84') || moz.startsWith('85')) return 'MPESA';
+      return raw || 'MPESA';
+    };
+
     const periodEmolaTotal = methodSource
-      .filter((o) => o.transaction?.method === 'EMOLA')
+      .filter((o) => resolveOrderMethod(o) === 'EMOLA')
       .reduce((sum, o) => sum + o.amount, 0);
     const periodMpesaTotal = methodSource
-      .filter((o) => o.transaction?.method === 'MPESA' || !o.transaction?.method)
+      .filter((o) => resolveOrderMethod(o) === 'MPESA')
       .reduce((sum, o) => sum + o.amount, 0);
 
     const periodTransactions = ordersInPeriod.slice(0, 20).map((o) => ({
@@ -358,6 +369,7 @@ export default async function DashboardPage() {
       status: o.status,
       productName: o.product?.name || 'Produto Digital',
       date: o.createdAt,
+      method: resolveOrderMethod(o),
     }));
 
     return {

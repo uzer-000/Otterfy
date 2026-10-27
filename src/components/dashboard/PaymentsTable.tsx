@@ -37,7 +37,11 @@ export default function PaymentsTable({ payments, loading }: { payments: any[], 
         </thead>
         <tbody className="divide-y divide-slate-200 dark:divide-[#1E1B26] bg-white dark:bg-[#08070C]">
           {payments.map((p) => {
-            const method = p.transaction?.method || p.method || 'MPESA';
+            const rawMethod = (p.transaction?.method || p.method || '').toUpperCase().trim();
+            const phone = p.customerPhone || p.customer?.phone || '';
+            const cleanDigits = phone.replace(/\D/g, '').slice(-9);
+            const isEmola = rawMethod.includes('EMOLA') || cleanDigits.startsWith('86') || cleanDigits.startsWith('87');
+            const method = isEmola ? 'EMOLA' : (rawMethod || 'MPESA');
             return (
               <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-[#1A1820] transition-colors text-slate-900 dark:text-[#F8FAFC]">
                 <td className="px-6 py-4 font-mono text-xs font-medium text-slate-900 dark:text-[#F8FAFC]">{p.id}</td>

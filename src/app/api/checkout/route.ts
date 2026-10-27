@@ -76,6 +76,12 @@ export async function POST(req: Request) {
       utmParams,
     } = result.data;
 
+    // Detect payment method: explicitly selected or automatically inferred from Mozambique operator prefix (86/87 = Movitel e-Mola)
+    const cleanPhoneDigits = customerPhone.replace(/\D/g, '').slice(-9);
+    const isEmolaPhone = cleanPhoneDigits.startsWith('86') || cleanPhoneDigits.startsWith('87');
+    const resolvedPaymentMethod: 'MPESA' | 'EMOLA' =
+      paymentMethod === 'EMOLA' || isEmolaPhone ? 'EMOLA' : 'MPESA';
+
     let product = await dbStore.getProductById(productId);
     if (!product && productId.toLowerCase() === 'demo') {
       product = {
@@ -181,7 +187,7 @@ export async function POST(req: Request) {
         customerPhone,
         customerEmail: customerEmail || undefined,
         amount: totalAmount,
-        paymentMethod,
+        paymentMethod: resolvedPaymentMethod,
         hasOrderBump: resolvedHasOrderBump,
         orderBumpTitle: resolvedHasOrderBump ? resolvedBumpTitle : undefined,
         orderBumpAmount: resolvedHasOrderBump ? resolvedBumpAmount : undefined,
@@ -200,7 +206,7 @@ export async function POST(req: Request) {
           phone: customerPhone,
           email: customerEmail || undefined,
         },
-        paymentMethod,
+        paymentMethod: resolvedPaymentMethod,
         baseUrl,
       }),
     ]);
@@ -221,7 +227,7 @@ export async function POST(req: Request) {
             status: 'APPROVED',
             zenofyCheckoutId: dispatchResult.transactionId,
             zenofyTransactionId: dispatchResult.transactionId,
-            method: paymentMethod,
+            method: resolvedPaymentMethod,
           });
         } catch (err) {
           console.error('[checkout] error updating approved transaction:', err);
@@ -255,7 +261,7 @@ export async function POST(req: Request) {
             zenofyCheckoutId: dispatchResult.transactionId,
             zenofyCheckoutUrl: dispatchResult.checkoutUrl,
             status: 'PENDING',
-            method: paymentMethod,
+            method: resolvedPaymentMethod,
           });
         } catch (err) {
           console.error('[checkout] error updating pending transaction:', err);

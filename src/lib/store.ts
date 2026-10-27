@@ -586,43 +586,50 @@ export const dbStore = {
           transaction: true,
         },
       });
-      return dbOrders.map(o => ({
-        id: o.id,
-        productId: o.productId,
-        customerId: o.customerId,
-        customerName: o.customer.name,
-        customerPhone: o.customer.phone,
-        customerEmail: o.customer.email,
-        amount: o.amount,
-        status: o.status as any,
-        hasOrderBump: o.hasOrderBump || false,
-        orderBumpTitle: o.orderBumpTitle || undefined,
-        orderBumpAmount: o.orderBumpAmount || undefined,
-        affiliateRef: o.affiliateRef || undefined,
-        utmParams: (o.utmParams as any) || undefined,
-        createdAt: o.createdAt.toISOString(),
-        updatedAt: o.updatedAt.toISOString(),
-        product: {
-          id: o.product.id,
-          name: o.product.name,
-          price: o.product.price,
-          status: o.product.status as any,
-          userId: o.product.userId,
-          contentDeliveryType: (o.product as any).contentDeliveryType,
-          contentUrl: (o.product as any).contentUrl,
-          materials: (o.product as any).materials,
-          createdAt: o.product.createdAt.toISOString(),
-          updatedAt: o.product.updatedAt.toISOString(),
-        },
-        transaction: o.transaction ? {
-          id: o.transaction.id,
-          method: o.transaction.method as any,
-          status: o.transaction.status,
-          zenofyCheckoutId: o.transaction.zenofyCheckoutId,
-          zenofyCheckoutUrl: o.transaction.zenofyCheckoutUrl,
-          zenofyTransactionId: o.transaction.zenofyTransactionId,
-        } : null,
-      }));
+      return dbOrders.map(o => {
+        const rawMethod = (o.transaction?.method || '').toUpperCase().trim();
+        const phoneDigits = (o.customer?.phone || '').replace(/\D/g, '').slice(-9);
+        const isEmola = rawMethod.includes('EMOLA') || phoneDigits.startsWith('86') || phoneDigits.startsWith('87');
+        const resolvedMethod = isEmola ? 'EMOLA' : (rawMethod || 'MPESA');
+
+        return {
+          id: o.id,
+          productId: o.productId,
+          customerId: o.customerId,
+          customerName: o.customer.name,
+          customerPhone: o.customer.phone,
+          customerEmail: o.customer.email,
+          amount: o.amount,
+          status: o.status as any,
+          hasOrderBump: o.hasOrderBump || false,
+          orderBumpTitle: o.orderBumpTitle || undefined,
+          orderBumpAmount: o.orderBumpAmount || undefined,
+          affiliateRef: o.affiliateRef || undefined,
+          utmParams: (o.utmParams as any) || undefined,
+          createdAt: o.createdAt.toISOString(),
+          updatedAt: o.updatedAt.toISOString(),
+          product: {
+            id: o.product.id,
+            name: o.product.name,
+            price: o.product.price,
+            status: o.product.status as any,
+            userId: o.product.userId,
+            contentDeliveryType: (o.product as any).contentDeliveryType,
+            contentUrl: (o.product as any).contentUrl,
+            materials: (o.product as any).materials,
+            createdAt: o.product.createdAt.toISOString(),
+            updatedAt: o.product.updatedAt.toISOString(),
+          },
+          transaction: o.transaction ? {
+            id: o.transaction.id,
+            method: resolvedMethod as any,
+            status: o.transaction.status,
+            zenofyCheckoutId: o.transaction.zenofyCheckoutId,
+            zenofyCheckoutUrl: o.transaction.zenofyCheckoutUrl,
+            zenofyTransactionId: o.transaction.zenofyTransactionId,
+          } : null,
+        };
+      });
     } catch (err: any) {
       console.error('[dbStore.getOrders] Database query failed, falling back to local store:', err?.message || err);
       // Fallback
@@ -659,6 +666,11 @@ export const dbStore = {
         include: { product: true, customer: true, transaction: true },
       });
       if (o) {
+        const rawMethod = (o.transaction?.method || '').toUpperCase().trim();
+        const phoneDigits = (o.customer?.phone || '').replace(/\D/g, '').slice(-9);
+        const isEmola = rawMethod.includes('EMOLA') || phoneDigits.startsWith('86') || phoneDigits.startsWith('87');
+        const resolvedMethod = isEmola ? 'EMOLA' : (rawMethod || 'MPESA');
+
         return {
           id: o.id,
           productId: o.productId,
@@ -689,7 +701,7 @@ export const dbStore = {
           },
           transaction: o.transaction ? {
             id: o.transaction.id,
-            method: o.transaction.method as any,
+            method: resolvedMethod as any,
             status: o.transaction.status,
             zenofyCheckoutId: o.transaction.zenofyCheckoutId,
             zenofyCheckoutUrl: o.transaction.zenofyCheckoutUrl,
