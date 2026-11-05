@@ -32,6 +32,15 @@ export default function DashboardTopNav() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [approvedOrders, setApprovedOrders] = useState<any[]>([]);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
+
+  useEffect(() => {
+    try {
+      const cachedRev = Number(localStorage.getItem('otterfy_cached_total_revenue'));
+      if (!isNaN(cachedRev) && cachedRev > 0) {
+        setTotalRevenue((prev) => (prev === 0 ? cachedRev : prev));
+      }
+    } catch {}
+  }, []);
   const [profileAvatar, setProfileAvatar] = useState<string>('');
   const [isSyncingAvatar, setIsSyncingAvatar] = useState(false);
   const topNavFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -339,6 +348,10 @@ export default function DashboardTopNav() {
           typeof json.summary?.totalApprovedRevenue === 'number'
             ? json.summary.totalApprovedRevenue
             : list.reduce((acc: number, o: any) => acc + (Number(o.amount) || 0), 0);
+
+        try {
+          localStorage.setItem('otterfy_cached_total_revenue', String(sum));
+        } catch {}
 
         setTotalRevenue((prev) => {
           if (prev !== sum) {

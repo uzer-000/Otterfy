@@ -989,7 +989,7 @@ export default function CustomizableWidgets({
                 <span>{activeStats.salesTrend}</span>
               </div>
               <p className="text-[11px] text-white/80 font-normal">
-                {activeStats.vsLabel} • Total: {effectiveApprovedCount} aprovadas
+                {activeStats.vsLabel}
               </p>
             </div>
           </div>
@@ -1024,14 +1024,9 @@ export default function CustomizableWidgets({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
                 </svg>
                 <span>{activeStats.revenueTrend}</span>
-                <span className="text-[11px] text-white/80 font-normal">({activeStats.vsLabel})</span>
               </div>
-              <p className="text-[11px] text-white/90 font-medium">
-                {selectedPeriod === 'all'
-                  ? `Mês Atual: ${formatMZN(effectiveMonthRevenue)}`
-                  : selectedPeriod === 'month'
-                  ? `Acumulado Total: ${formatMZN(effectiveTotalRevenue)}`
-                  : `Mês: ${formatMZN(effectiveMonthRevenue)} • Total: ${formatMZN(effectiveTotalRevenue)}`}
+              <p className="text-[11px] text-white/80 font-normal">
+                {activeStats.vsLabel}
               </p>
             </div>
           </div>

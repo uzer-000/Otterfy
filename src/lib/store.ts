@@ -186,7 +186,9 @@ export const dbStore = {
         orderBy: { createdAt: 'desc' },
       });
       const store = readLocalStore();
-      return dbProducts.map(p => {
+      return dbProducts
+        .filter((p) => !((p as any).checkoutSettings && (p as any).checkoutSettings._deleted === true))
+        .map(p => {
         const localMatch = store.products?.find(lp => lp.id === p.id);
         const dbSales = p._count?.orders ?? p.orders?.length ?? 0;
         const localSales = store.orders?.filter(o => o.productId === p.id && o.status === 'APPROVED').length || 0;
@@ -533,29 +535,56 @@ export const dbStore = {
     if (!cleanId) return false;
     productMemoryCache.delete(cleanId);
 
-    // 1. Delete from Prisma database if connected
+    // 1. Delete from Prisma database if connected — NEVER delete APPROVED orders/revenue!
     try {
-      // First delete transactions linked to orders of this product
+      const approvedCount = await prisma.order.count({
+        where: { productId: cleanId, status: 'APPROVED' },
+      });
+
+      // Delete only non-approved transactions and orders linked to this product
       await prisma.transaction.deleteMany({
-        where: { order: { productId: cleanId } },
+        where: {
+          order: {
+            productId: cleanId,
+            status: { not: 'APPROVED' },
+          },
+        },
       });
-      // Delete orders of this product
       await prisma.order.deleteMany({
-        where: { productId: cleanId },
+        where: {
+          productId: cleanId,
+          status: { not: 'APPROVED' },
+        },
       });
-      // Delete the product
-      await prisma.product.delete({
-        where: { id: cleanId },
-      });
+
+      if (approvedCount > 0) {
+        // Soft-delete product so it disappears from /dashboard/products while preserving APPROVED sales & revenue
+        const existingProd = await prisma.product.findUnique({ where: { id: cleanId } });
+        const existingSettings = ((existingProd as any)?.checkoutSettings as Record<string, unknown>) || {};
+        await prisma.product.update({
+          where: { id: cleanId },
+          data: {
+            status: 'INACTIVE',
+            checkoutSettings: {
+              ...existingSettings,
+              _deleted: true,
+            } as any,
+          },
+        });
+      } else {
+        await prisma.product.delete({
+          where: { id: cleanId },
+        });
+      }
     } catch (err: any) {
       console.error('[dbStore.deleteProduct] Prisma delete error:', err?.message || err);
     }
 
-    // 2. Delete from local JSON store
+    // 2. Delete from local JSON store (keep approved orders if any)
     try {
       const store = readLocalStore();
       store.products = store.products.filter(p => p.id !== cleanId);
-      store.orders = store.orders.filter(o => o.productId !== cleanId);
+      store.orders = store.orders.filter(o => o.productId !== cleanId || o.status === 'APPROVED');
       writeLocalStore(store);
     } catch (err) {
       console.error('[dbStore.deleteProduct] Local store delete error:', err);
