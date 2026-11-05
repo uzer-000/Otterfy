@@ -1,4 +1,3 @@
-import TotalRevenueHeroCard from '@/components/dashboard/TotalRevenueHeroCard';
 import CustomizableWidgets from '@/components/dashboard/CustomizableWidgets';
 import DashboardGreetingBanner from '@/components/dashboard/DashboardGreetingBanner';
 import dbStore from '@/lib/store';
@@ -436,12 +435,6 @@ export default async function DashboardPage() {
     <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-6 sm:space-y-8 pb-16 min-w-0 overflow-x-hidden">
       {/* Top Greeting Banner */}
       <DashboardGreetingBanner />
-
-      {/* Hero Progress Card for Cumulative Revenue & Next Award Milestone (50K, 100K, etc.) */}
-      <TotalRevenueHeroCard
-        totalRevenue={finalTotalRevenue}
-        approvedCount={finalApprovedCount}
-      />
 
       {/* Customizable Dashboard with Reorderable Blocks (Graphs First, KPIs, Transactions, etc.) */}
       <CustomizableWidgets
