@@ -2,13 +2,43 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { formatMZN } from '@/lib/utils';
+import { formatMZN, getMozambiqueDate, getMozambiqueDateString } from '@/lib/utils';
 import HourlyCartsLineChart from '@/components/dashboard/HourlyCartsLineChart';
 import WeeklySalesBarChart from '@/components/dashboard/WeeklySalesBarChart';
 import ApprovalsVsVolumeLineChart from '@/components/dashboard/ApprovalsVsVolumeLineChart';
 
 type PeriodOption = 'today' | '7d' | '30d' | 'month' | 'all';
 type MetricTab = 'overview' | 'abandoned' | 'gateways' | 'salesHistory';
+
+const CAT_OFFSET_MS = 2 * 60 * 60 * 1000;
+
+function parseMozDateParts(dateStr: string): { year: number; month: number; day: number } {
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length === 3 && !parts.some(isNaN)) {
+    return { year: parts[0], month: parts[1] - 1, day: parts[2] };
+  }
+  const mozNow = getMozambiqueDate();
+  return {
+    year: mozNow.getUTCFullYear(),
+    month: mozNow.getUTCMonth(),
+    day: mozNow.getUTCDate(),
+  };
+}
+
+function formatShiftedDateStr(shiftedMs: number): string {
+  const d = new Date(shiftedMs);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatShiftedShortDate(shiftedMs: number): string {
+  const d = new Date(shiftedMs);
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  return `${day}/${m}`;
+}
 
 interface OrderItem {
   id: string;
@@ -31,7 +61,9 @@ interface OrderItem {
 }
 
 export default function MetricsPage() {
-  const [period, setPeriod] = useState<PeriodOption>('today');
+  const [period, setPeriod] = useState<PeriodOption>('7d');
+  const todayMozStr = useMemo(() => getMozambiqueDateString(), []);
+  const [referenceDateStr, setReferenceDateStr] = useState<string>(() => getMozambiqueDateString());
   const [activeTab, setActiveTab] = useState<MetricTab>('overview');
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +71,32 @@ export default function MetricsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [gatewayFilter, setGatewayFilter] = useState('ALL');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const isCustomDateActive = referenceDateStr !== todayMozStr;
+
+  const shiftPeriodDate = (direction: -1 | 1) => {
+    const { year, month, day } = parseMozDateParts(referenceDateStr);
+    if (period === 'today') {
+      setReferenceDateStr(formatShiftedDateStr(Date.UTC(year, month, day + direction)));
+      return;
+    }
+    if (period === 'month') {
+      setReferenceDateStr(formatShiftedDateStr(Date.UTC(year, month + direction, 1)));
+      return;
+    }
+    setReferenceDateStr(formatShiftedDateStr(Date.UTC(year, month, day + direction * 7)));
+    if (period === 'all') {
+      setPeriod('7d');
+    }
+  };
+
+  const handleDatePick = (pickedStr: string) => {
+    if (!pickedStr) return;
+    setReferenceDateStr(pickedStr);
+    if (period === 'all') {
+      setPeriod('7d');
+    }
+  };
 
   // Load orders
   useEffect(() => {
@@ -66,29 +124,58 @@ export default function MetricsPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Filter orders by selected period
-  const filteredByPeriodOrders = useMemo(() => {
-    const now = new Date();
-    return orders.filter((o) => {
-      const orderDate = new Date(o.createdAt);
+  const { mondayStartShifted, sundayEndShifted, weekRangeStr, navigatorLabel, filteredByPeriodOrders } = useMemo(() => {
+    const { year, month, day } = parseMozDateParts(referenceDateStr);
+    const refDayStartShifted = Date.UTC(year, month, day, 0, 0, 0, 0);
+    const refDayEndShifted = refDayStartShifted + 86400_000 - 1;
+
+    const dow = new Date(refDayStartShifted).getUTCDay();
+    const diffToMonday = dow === 0 ? -6 : 1 - dow;
+    const mStart = refDayStartShifted + diffToMonday * 86400_000;
+    const sEnd = mStart + 7 * 86400_000 - 1;
+    const wRange = `${formatShiftedShortDate(mStart)} – ${formatShiftedShortDate(sEnd)}`;
+    const dayShort = formatShiftedShortDate(refDayStartShifted);
+
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+    ];
+    const monthStart = Date.UTC(year, month, 1, 0, 0, 0, 0);
+    const monthEnd = Date.UTC(year, month + 1, 1, 0, 0, 0, 0) - 1;
+
+    let navLabel = `Seg ${formatShiftedShortDate(mStart)} – Dom ${formatShiftedShortDate(sEnd)}`;
+    if (period === 'today') {
+      navLabel = `Dia ${dayShort} (Sem ${wRange})`;
+    } else if (period === 'month') {
+      navLabel = `${monthNames[month]} ${year}`;
+    }
+
+    const filtered = orders.filter((o) => {
+      const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
       if (period === 'today') {
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        return orderDate >= startOfToday;
+        return shifted >= refDayStartShifted && shifted <= refDayEndShifted;
       }
       if (period === '7d') {
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return orderDate >= sevenDaysAgo;
+        return shifted >= mStart && shifted <= sEnd;
       }
       if (period === '30d') {
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        return orderDate >= thirtyDaysAgo;
+        const thirtyDaysStart = refDayEndShifted - 30 * 86400_000 + 1;
+        return shifted >= thirtyDaysStart && shifted <= refDayEndShifted;
       }
       if (period === 'month') {
-        return orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
+        return shifted >= monthStart && shifted <= monthEnd;
       }
       return true;
     });
-  }, [orders, period]);
+
+    return {
+      mondayStartShifted: mStart,
+      sundayEndShifted: sEnd,
+      weekRangeStr: wRange,
+      navigatorLabel: navLabel,
+      filteredByPeriodOrders: filtered,
+    };
+  }, [orders, period, referenceDateStr]);
 
   // Aggregated calculations based on period
   const approvedOrders = useMemo(() => filteredByPeriodOrders.filter((o) => o.status === 'APPROVED'), [filteredByPeriodOrders]);
@@ -137,8 +224,8 @@ export default function MetricsPage() {
 
     return hours.map((hour, index) => {
       const ordersInHour = filteredByPeriodOrders.filter((o) => {
-        const h = new Date(o.createdAt).getHours();
-        return h === index;
+        const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+        return new Date(shifted).getUTCHours() === index;
       });
       return {
         hour,
@@ -148,142 +235,54 @@ export default function MetricsPage() {
     });
   }, [filteredByPeriodOrders]);
 
+  // Always Monday to Sunday (Seg – Dom) synchronized with selected week/period
   const { barChartData, approvalsVsVolumeData } = useMemo(() => {
-    const now = new Date();
-    if (period === 'today') {
-      const blocks = [
-        { start: 0, end: 3, short: '00h', full: '00:00 – 02:59' },
-        { start: 3, end: 6, short: '03h', full: '03:00 – 05:59' },
-        { start: 6, end: 9, short: '06h', full: '06:00 – 08:59' },
-        { start: 9, end: 12, short: '09h', full: '09:00 – 11:59' },
-        { start: 12, end: 15, short: '12h', full: '12:00 – 14:59' },
-        { start: 15, end: 18, short: '15h', full: '15:00 – 17:59' },
-        { start: 18, end: 21, short: '18h', full: '18:00 – 20:59' },
-        { start: 21, end: 24, short: '21h', full: '21:00 – 23:59' },
-      ];
-      const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-      return {
-        barChartData: blocks.map((b) => {
-          const inBlock = filteredByPeriodOrders.filter((o) => {
-            const h = new Date(o.createdAt).getHours();
-            return h >= b.start && h < b.end && o.status === 'APPROVED';
-          });
-          return { day: b.short, fullLabel: b.full, vendas: inBlock.length, date: dateStr };
-        }),
-        approvalsVsVolumeData: blocks.map((b) => {
-          const inBlock = filteredByPeriodOrders.filter((o) => {
-            const h = new Date(o.createdAt).getHours();
-            return h >= b.start && h < b.end;
-          });
-          const app = inBlock.filter((o) => o.status === 'APPROVED');
-          return {
-            date: b.short,
-            dayName: b.full,
-            fullDate: dateStr,
-            aprovados: app.reduce((s, o) => s + o.amount, 0),
-            volume: inBlock.reduce((s, o) => s + o.amount, 0),
-          };
-        }),
-      };
-    }
+    const weekDays = [
+      { dow: 1, short: 'Seg', full: 'Segunda-feira', offset: 0 },
+      { dow: 2, short: 'Ter', full: 'Terça-feira', offset: 1 },
+      { dow: 3, short: 'Qua', full: 'Quarta-feira', offset: 2 },
+      { dow: 4, short: 'Qui', full: 'Quinta-feira', offset: 3 },
+      { dow: 5, short: 'Sex', full: 'Sexta-feira', offset: 4 },
+      { dow: 6, short: 'Sáb', full: 'Sábado', offset: 5 },
+      { dow: 0, short: 'Dom', full: 'Domingo', offset: 6 },
+    ];
 
-    if (period === '7d') {
-      const weekDayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-      const weekDayShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-      const days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i), 0, 0, 0, 0);
-        const nextD = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0);
-        const label = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-        return {
-          start: d,
-          end: nextD,
-          short: weekDayShort[d.getDay()],
-          full: weekDayNames[d.getDay()],
-          dateLabel: label,
-        };
-      });
+    const useWeekWindow = period === 'today' || period === '7d';
+    const sourceOrders = useWeekWindow
+      ? orders.filter((o) => {
+          const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+          return shifted >= mondayStartShifted && shifted <= sundayEndShifted;
+        })
+      : filteredByPeriodOrders;
 
-      return {
-        barChartData: days.map((d) => {
-          const inDay = filteredByPeriodOrders.filter((o) => {
-            const dt = new Date(o.createdAt);
-            return dt >= d.start && dt < d.end && o.status === 'APPROVED';
-          });
-          return { day: d.short, fullLabel: d.full, vendas: inDay.length, date: d.dateLabel };
-        }),
-        approvalsVsVolumeData: days.map((d) => {
-          const inDay = filteredByPeriodOrders.filter((o) => {
-            const dt = new Date(o.createdAt);
-            return dt >= d.start && dt < d.end;
-          });
-          const app = inDay.filter((o) => o.status === 'APPROVED');
-          return {
-            date: d.short,
-            dayName: d.full,
-            fullDate: d.dateLabel,
-            aprovados: app.reduce((s, o) => s + o.amount, 0),
-            volume: inDay.reduce((s, o) => s + o.amount, 0),
-          };
-        }),
-      };
-    }
-
-    if (period === '30d' || period === 'month') {
-      const monthNum = (now.getMonth() + 1).toString().padStart(2, '0');
-      const weeks = [
-        { short: 'Sem 1', full: 'Semana 1', range: `01/${monthNum} – 07/${monthNum}`, min: 1, max: 7 },
-        { short: 'Sem 2', full: 'Semana 2', range: `08/${monthNum} – 14/${monthNum}`, min: 8, max: 14 },
-        { short: 'Sem 3', full: 'Semana 3', range: `15/${monthNum} – 21/${monthNum}`, min: 15, max: 21 },
-        { short: 'Sem 4', full: 'Semana 4', range: `22/${monthNum} – 28/${monthNum}`, min: 22, max: 28 },
-        { short: 'Sem 5', full: 'Semana 5', range: `29/${monthNum}+`, min: 29, max: 31 },
-      ];
-      return {
-        barChartData: weeks.map((w) => {
-          const inW = filteredByPeriodOrders.filter((o) => {
-            const dom = new Date(o.createdAt).getDate();
-            return dom >= w.min && dom <= w.max && o.status === 'APPROVED';
-          });
-          return { day: w.short, fullLabel: w.full, vendas: inW.length, date: w.range };
-        }),
-        approvalsVsVolumeData: weeks.map((w) => {
-          const inW = filteredByPeriodOrders.filter((o) => {
-            const dom = new Date(o.createdAt).getDate();
-            return dom >= w.min && dom <= w.max;
-          });
-          const app = inW.filter((o) => o.status === 'APPROVED');
-          return {
-            date: w.short,
-            dayName: w.full,
-            fullDate: w.range,
-            aprovados: app.reduce((s, o) => s + o.amount, 0),
-            volume: inW.reduce((s, o) => s + o.amount, 0),
-          };
-        }),
-      };
-    }
-
-    const mShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    const mFull = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     return {
-      barChartData: mShort.map((ms, idx) => {
-        const inM = filteredByPeriodOrders.filter(
-          (o) => new Date(o.createdAt).getMonth() === idx && o.status === 'APPROVED'
-        );
-        return { day: ms, fullLabel: mFull[idx], vendas: inM.length, date: 'Histórico' };
+      barChartData: weekDays.map((wd) => {
+        const dayShifted = mondayStartShifted + wd.offset * 86400_000;
+        const dateLabel = useWeekWindow ? formatShiftedShortDate(dayShifted) : 'Seg – Dom';
+        const inDay = sourceOrders.filter((o) => {
+          const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+          return new Date(shifted).getUTCDay() === wd.dow && o.status === 'APPROVED';
+        });
+        return { day: wd.short, fullLabel: wd.full, vendas: inDay.length, date: dateLabel };
       }),
-      approvalsVsVolumeData: mShort.map((ms, idx) => {
-        const inM = filteredByPeriodOrders.filter((o) => new Date(o.createdAt).getMonth() === idx);
-        const app = inM.filter((o) => o.status === 'APPROVED');
+      approvalsVsVolumeData: weekDays.map((wd) => {
+        const dayShifted = mondayStartShifted + wd.offset * 86400_000;
+        const dateLabel = useWeekWindow ? formatShiftedShortDate(dayShifted) : 'Seg – Dom';
+        const inDay = sourceOrders.filter((o) => {
+          const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+          return new Date(shifted).getUTCDay() === wd.dow;
+        });
+        const app = inDay.filter((o) => o.status === 'APPROVED');
         return {
-          date: ms,
-          dayName: mFull[idx],
-          fullDate: 'Histórico',
+          date: wd.short,
+          dayName: wd.full,
+          fullDate: dateLabel,
           aprovados: app.reduce((s, o) => s + o.amount, 0),
-          volume: inM.reduce((s, o) => s + o.amount, 0),
+          volume: inDay.reduce((s, o) => s + o.amount, 0),
         };
       }),
     };
-  }, [filteredByPeriodOrders, period]);
+  }, [orders, filteredByPeriodOrders, period, mondayStartShifted, sundayEndShifted]);
 
   // Abandoned carts recovery handler
   const handleRecoverWhatsApp = (order: OrderItem) => {
@@ -319,8 +318,8 @@ export default function MetricsPage() {
   }, [filteredByPeriodOrders, statusFilter, gatewayFilter, searchTerm]);
 
   const periodLabels: Record<PeriodOption, string> = {
-    today: 'Hoje (24 Horas)',
-    '7d': 'Últimos 7 Dias',
+    today: isCustomDateActive ? `Dia (${formatShiftedShortDate(Date.UTC(parseMozDateParts(referenceDateStr).year, parseMozDateParts(referenceDateStr).month, parseMozDateParts(referenceDateStr).day))})` : 'Hoje (24 Horas)',
+    '7d': `Semana (${weekRangeStr})`,
     '30d': 'Últimos 30 Dias',
     month: 'Este Mês',
     all: 'Todo o Período',
@@ -338,7 +337,7 @@ export default function MetricsPage() {
       )}
 
       {/* Header: Title, Description & Period Selector */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-violet-600/15 border border-violet-500/25 flex items-center justify-center text-violet-400">
@@ -353,22 +352,72 @@ export default function MetricsPage() {
           </div>
         </div>
 
-        {/* Period Selector Buttons */}
-        <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#121016] border border-[#1E1B26] self-start md:self-auto overflow-x-auto">
-          {(['today', '7d', '30d', 'month', 'all'] as PeriodOption[]).map((p) => (
+        {/* Period Selector Buttons + Synchronized Week/Date Navigator */}
+        <div className="flex flex-wrap items-center gap-2 self-start xl:self-auto">
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#121016] border border-[#1E1B26] overflow-x-auto">
+            {(['today', '7d', '30d', 'month', 'all'] as PeriodOption[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => {
+                  setPeriod(p);
+                  if (p === 'today') setReferenceDateStr(todayMozStr);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  period === p
+                    ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1A1820]'
+                }`}
+              >
+                {p === '7d' ? 'Semana (Seg–Dom)' : periodLabels[p]}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1 p-1.5 rounded-2xl bg-[#121016] border border-[#1E1B26] text-xs text-[#F8FAFC]">
             <button
-              key={p}
               type="button"
-              onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                period === p
-                  ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
-                  : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1A1820]'
-              }`}
+              onClick={() => shiftPeriodDate(-1)}
+              className="px-2 py-1 rounded-lg hover:bg-[#1A1820] text-[#94A3B8] hover:text-white font-bold cursor-pointer"
+              title="Semana / Período Anterior"
             >
-              {periodLabels[p]}
+              ‹
             </button>
-          ))}
+            <label
+              className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-[#1A1820] font-mono text-xs font-semibold cursor-pointer"
+              title="Escolher data ou semana no calendário"
+            >
+              <svg className="w-3.5 h-3.5 text-violet-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+              <span className="whitespace-nowrap">{navigatorLabel}</span>
+              <input
+                type="date"
+                value={referenceDateStr}
+                max={todayMozStr}
+                onChange={(e) => handleDatePick(e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => shiftPeriodDate(1)}
+              disabled={!isCustomDateActive}
+              className="px-2 py-1 rounded-lg hover:bg-[#1A1820] text-[#94A3B8] hover:text-white font-bold cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+              title="Próxima Semana / Período"
+            >
+              ›
+            </button>
+            {isCustomDateActive && (
+              <button
+                type="button"
+                onClick={() => setReferenceDateStr(todayMozStr)}
+                className="px-2 py-1 rounded-lg text-[10px] font-bold bg-violet-600 text-white hover:bg-violet-500 cursor-pointer"
+              >
+                Atual
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -485,7 +534,7 @@ export default function MetricsPage() {
               data={hourlyData}
               title={`Fluxo por Horário (${periodLabels[period]})`}
               badgeLabel={periodLabels[period]}
-              animationKey={period}
+              animationKey={`hourly-${period}-${referenceDateStr}`}
             />
           </div>
 
@@ -603,21 +652,21 @@ export default function MetricsPage() {
             </div>
           </div>
 
-          {/* Gráficos Diários Complementares */}
+          {/* Gráficos Semanais (Seg – Dom) Sincronizados */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2 min-w-0">
             <WeeklySalesBarChart
               data={barChartData}
-              title={`Vendas Aprovadas (${periodLabels[period]})`}
-              subtitle={`Distribuição de vendas em ${periodLabels[period]}`}
-              badgeLabel={periodLabels[period]}
-              animationKey={period}
+              title={`Vendas da Semana (Seg – Dom)`}
+              subtitle={`Distribuição de Segunda a Domingo (${period === 'today' || period === '7d' ? weekRangeStr : periodLabels[period]})`}
+              badgeLabel={`Seg – Dom (${period === 'today' || period === '7d' ? weekRangeStr : periodLabels[period]})`}
+              animationKey={`bar-${period}-${referenceDateStr}`}
             />
             <ApprovalsVsVolumeLineChart
               data={approvalsVsVolumeData}
-              title={`Aprovados vs Volume (${periodLabels[period]})`}
-              subtitle={`Evolução financeira em Meticais (${periodLabels[period]})`}
-              badgeLabel={periodLabels[period]}
-              animationKey={period}
+              title={`Carrinhos Aprovados vs Total (Seg – Dom)`}
+              subtitle={`Volume aprovado vs. iniciado de Segunda a Domingo (${period === 'today' || period === '7d' ? weekRangeStr : periodLabels[period]})`}
+              badgeLabel={`Seg – Dom (${period === 'today' || period === '7d' ? weekRangeStr : periodLabels[period]})`}
+              animationKey={`line-${period}-${referenceDateStr}`}
             />
           </div>
         </div>

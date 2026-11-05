@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import KPICard from './KPICard';
 import WeeklySalesBarChart from './WeeklySalesBarChart';
@@ -87,6 +87,53 @@ interface Transaction {
   method?: string;
 }
 
+export interface ClientOrder {
+  id: string;
+  reference: string;
+  amount: number;
+  status: string;
+  productName: string;
+  createdAt: string;
+  method?: string;
+}
+
+const CAT_OFFSET_MS = 2 * 60 * 60 * 1000; // UTC+2 (Maputo, Moçambique)
+
+function parseMozDateParts(dateStr: string): { year: number; month: number; day: number } {
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length === 3 && !parts.some(isNaN)) {
+    return { year: parts[0], month: parts[1] - 1, day: parts[2] };
+  }
+  const mozNow = getMozambiqueDate();
+  return {
+    year: mozNow.getUTCFullYear(),
+    month: mozNow.getUTCMonth(),
+    day: mozNow.getUTCDate(),
+  };
+}
+
+function formatShiftedDateStr(shiftedMs: number): string {
+  const d = new Date(shiftedMs);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatShiftedShortDate(shiftedMs: number): string {
+  const d = new Date(shiftedMs);
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  return `${day}/${m}`;
+}
+
+function calcTrendStr(current: number, previous: number): string {
+  if (previous === 0) return current > 0 ? '+100.0%' : '+0.0%';
+  const diff = ((current - previous) / previous) * 100;
+  const sign = diff >= 0 ? '+' : '';
+  return `${sign}${diff.toFixed(1)}%`;
+}
+
 interface CustomizableWidgetsProps {
   todayRevenue: number;
   todaySalesCount: number;
@@ -111,6 +158,7 @@ interface CustomizableWidgetsProps {
   weeklyData?: { day: string; vendas: number; date?: string }[];
   approvalsVsVolumeData?: { date: string; dayName?: string; fullDate?: string; aprovados: number; volume: number }[];
   periodStats?: Record<PeriodKey, PeriodMetric>;
+  initialOrders?: ClientOrder[];
 }
 
 export default function CustomizableWidgets({
@@ -137,10 +185,15 @@ export default function CustomizableWidgets({
   weeklyData,
   approvalsVsVolumeData,
   periodStats,
+  initialOrders = [],
 }: CustomizableWidgetsProps) {
   const [blocks, setBlocks] = useState<DashboardBlock[]>(DEFAULT_BLOCKS);
   const [kpis, setKpis] = useState<KpiItem[]>(DEFAULT_KPIS);
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>('week');
+  const todayMozStr = useMemo(() => getMozambiqueDateString(), []);
+  const [referenceDateStr, setReferenceDateStr] = useState<string>(() => getMozambiqueDateString());
+  const [ordersList, setOrdersList] = useState<ClientOrder[]>(initialOrders);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
   const [customizingOpen, setCustomizingOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'blocks' | 'kpis'>('blocks');
   const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
@@ -165,18 +218,43 @@ export default function CustomizableWidgets({
   } | null>(null);
 
   useEffect(() => {
+    if (initialOrders && initialOrders.length > 0) {
+      setOrdersList(initialOrders);
+    }
+  }, [initialOrders]);
+
+  useEffect(() => {
     const handleOrdersUpdated = (e: Event) => {
       const customEvt = e as CustomEvent;
       if (customEvt.detail?.summary) {
         setLiveSummary(customEvt.detail.summary);
-      } else {
-        fetch('/api/payments', { cache: 'no-store' })
-          .then((r) => r.json())
-          .then((json) => {
-            if (json.summary) setLiveSummary(json.summary);
-          })
-          .catch(() => {});
       }
+      fetch('/api/payments', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.summary) setLiveSummary(json.summary);
+          if (Array.isArray(json.data)) {
+            setOrdersList(
+              json.data.map((o: {
+                id: string;
+                amount: number;
+                status: string;
+                createdAt: string;
+                product?: { name?: string };
+                transaction?: { id?: string; method?: string | null } | null;
+              }) => ({
+                id: o.id,
+                reference: o.transaction?.id || o.id,
+                amount: o.amount,
+                status: o.status,
+                productName: o.product?.name || 'Produto Digital',
+                createdAt: o.createdAt,
+                method: o.transaction?.method || 'MPESA',
+              }))
+            );
+          }
+        })
+        .catch(() => {});
     };
     window.addEventListener('orders_updated', handleOrdersUpdated);
     return () => window.removeEventListener('orders_updated', handleOrdersUpdated);
@@ -392,6 +470,357 @@ export default function CustomizableWidgets({
     localStorage.setItem('otterfy-dashboard-blocks-v2', JSON.stringify(blocks));
   };
 
+  // Interactive date & week navigation handlers
+  const shiftPeriodDate = (direction: -1 | 1) => {
+    const baseStr =
+      selectedPeriod === 'yesterday' && referenceDateStr === todayMozStr
+        ? formatShiftedDateStr(
+            Date.UTC(
+              parseMozDateParts(todayMozStr).year,
+              parseMozDateParts(todayMozStr).month,
+              parseMozDateParts(todayMozStr).day - 1
+            )
+          )
+        : referenceDateStr;
+
+    const { year, month, day } = parseMozDateParts(baseStr);
+
+    if (selectedPeriod === 'today' || selectedPeriod === 'yesterday') {
+      const shifted = Date.UTC(year, month, day + direction);
+      setReferenceDateStr(formatShiftedDateStr(shifted));
+      setSelectedPeriod('today');
+      return;
+    }
+
+    if (selectedPeriod === 'month') {
+      const shifted = Date.UTC(year, month + direction, 1);
+      setReferenceDateStr(formatShiftedDateStr(shifted));
+      return;
+    }
+
+    if (selectedPeriod === 'year') {
+      const shifted = Date.UTC(year + direction, month, 1);
+      setReferenceDateStr(formatShiftedDateStr(shifted));
+      return;
+    }
+
+    // Default ('week' or 'all'): step week-by-week (Segunda a Domingo)
+    const shifted = Date.UTC(year, month, day + direction * 7);
+    setReferenceDateStr(formatShiftedDateStr(shifted));
+    if (selectedPeriod === 'all') {
+      setSelectedPeriod('week');
+    }
+  };
+
+  const handleDatePick = (pickedStr: string) => {
+    if (!pickedStr) return;
+    setReferenceDateStr(pickedStr);
+    if (selectedPeriod === 'all' || selectedPeriod === 'year' || selectedPeriod === 'yesterday') {
+      setSelectedPeriod('week');
+    }
+  };
+
+  const resetToCurrentDate = () => {
+    setReferenceDateStr(todayMozStr);
+  };
+
+  const isCustomDateActive = referenceDateStr !== todayMozStr;
+
+  // Dynamic calculation for any selectedPeriod + referenceDateStr (Monday-to-Sunday weekly charts & synchronized widgets)
+  const dynamicComputed = useMemo(() => {
+    const { year, month, day } = parseMozDateParts(referenceDateStr);
+    const refDayStartShifted = Date.UTC(year, month, day, 0, 0, 0, 0);
+
+    // Effective day when 'yesterday' is selected on default date
+    const activeDayStartShifted =
+      selectedPeriod === 'yesterday' && !isCustomDateActive
+        ? refDayStartShifted - 86400_000
+        : refDayStartShifted;
+    const activeDayEndShifted = activeDayStartShifted + 86400_000 - 1;
+
+    // Monday-to-Sunday bounds around activeDayStartShifted
+    const dow = new Date(activeDayStartShifted).getUTCDay(); // 0=Dom, 1=Seg..6=Sab
+    const diffToMonday = dow === 0 ? -6 : 1 - dow;
+    const mondayStartShifted = activeDayStartShifted + diffToMonday * 86400_000;
+    const sundayEndShifted = mondayStartShifted + 7 * 86400_000 - 1;
+
+    const weekRangeStr = `${formatShiftedShortDate(mondayStartShifted)} – ${formatShiftedShortDate(sundayEndShifted)}`;
+    const dayShortStr = formatShiftedShortDate(activeDayStartShifted);
+
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+    ];
+    const monthStartShifted = Date.UTC(year, month, 1, 0, 0, 0, 0);
+    const nextMonthStartShifted = Date.UTC(year, month + 1, 1, 0, 0, 0, 0);
+    const monthEndShifted = nextMonthStartShifted - 1;
+    const prevMonthStartShifted = Date.UTC(year, month - 1, 1, 0, 0, 0, 0);
+    const prevMonthEndShifted = monthStartShifted - 1;
+
+    const yearStartShifted = Date.UTC(year, 0, 1, 0, 0, 0, 0);
+    const yearEndShifted = Date.UTC(year + 1, 0, 1, 0, 0, 0, 0) - 1;
+    const prevYearStartShifted = Date.UTC(year - 1, 0, 1, 0, 0, 0, 0);
+    const prevYearEndShifted = yearStartShifted - 1;
+
+    let navigatorLabel = `Seg ${formatShiftedShortDate(mondayStartShifted)} – Dom ${formatShiftedShortDate(sundayEndShifted)}`;
+    if (selectedPeriod === 'today' || selectedPeriod === 'yesterday') {
+      navigatorLabel = `Dia ${dayShortStr} (Sem ${weekRangeStr})`;
+    } else if (selectedPeriod === 'month') {
+      navigatorLabel = `${monthNames[month]} ${year}`;
+    } else if (selectedPeriod === 'year') {
+      navigatorLabel = `Ano ${year}`;
+    } else if (selectedPeriod === 'all' && !isCustomDateActive) {
+      navigatorLabel = `Seg ${formatShiftedShortDate(mondayStartShifted)} – Dom ${formatShiftedShortDate(sundayEndShifted)}`;
+    }
+
+    if (!ordersList || ordersList.length === 0) {
+      return { metric: null, navigatorLabel, weekRangeStr };
+    }
+
+    // Period start/end in shifted CAT ms
+    let pStartShifted = mondayStartShifted;
+    let pEndShifted = sundayEndShifted;
+    let prevStartShifted = mondayStartShifted - 7 * 86400_000;
+    let prevEndShifted = mondayStartShifted - 1;
+    let vsLabel = 'vs. semana anterior';
+    let expiredLabel = isCustomDateActive ? `na semana (${weekRangeStr})` : 'nesta semana';
+    let periodBadge = `Semana (${weekRangeStr})`;
+    let hourlyBadge = `Semana (${weekRangeStr})`;
+    let hourlyTitle = `Fluxo por Horário na Semana (${weekRangeStr})`;
+    let hourlySubtitle = `Iniciados vs. Aprovados de Segunda a Domingo (${weekRangeStr})`;
+    let barChartTitle = 'Vendas da Semana (Seg – Dom)';
+    let barChartSubtitle = `Vendas aprovadas de Segunda a Domingo (${weekRangeStr})`;
+    let lineChartTitle = 'Carrinhos Aprovados vs Total (Seg – Dom)';
+    let lineChartSubtitle = `Volume aprovado vs. iniciado de Segunda a Domingo (${weekRangeStr})`;
+
+    if (selectedPeriod === 'today' || selectedPeriod === 'yesterday') {
+      pStartShifted = activeDayStartShifted;
+      pEndShifted = activeDayEndShifted;
+      prevStartShifted = activeDayStartShifted - 86400_000;
+      prevEndShifted = activeDayStartShifted - 1;
+      const isYest = selectedPeriod === 'yesterday' && !isCustomDateActive;
+      vsLabel = isYest ? 'vs. anteontem' : 'vs. dia anterior';
+      expiredLabel = isCustomDateActive ? `em ${dayShortStr}` : isYest ? 'ontem' : 'hoje';
+      periodBadge = `Semana (${weekRangeStr})`;
+      hourlyBadge = isCustomDateActive ? `Dia ${dayShortStr} (24h)` : isYest ? `Ontem (${dayShortStr})` : `Hoje (${dayShortStr})`;
+      hourlyTitle = isCustomDateActive
+        ? `Fluxo por Horário em ${dayShortStr} (00:00 – 23:59)`
+        : isYest
+        ? `Fluxo por Horário de Ontem (00:00 – 23:59)`
+        : `Fluxo por Horário do Dia (00:00 – 23:59)`;
+      hourlySubtitle = `Carrinhos iniciados vs. vendas aprovadas em ${dayShortStr}`;
+    } else if (selectedPeriod === 'month') {
+      pStartShifted = monthStartShifted;
+      pEndShifted = monthEndShifted;
+      prevStartShifted = prevMonthStartShifted;
+      prevEndShifted = prevMonthEndShifted;
+      vsLabel = 'vs. mês anterior';
+      expiredLabel = `em ${monthNames[month]}`;
+      periodBadge = `Seg – Dom (${monthNames[month]})`;
+      hourlyBadge = `${monthNames[month]} (24h)`;
+      hourlyTitle = `Fluxo por Horário em ${monthNames[month]} (00:00 – 23:59)`;
+      hourlySubtitle = `Distribuição horária acumulada em ${monthNames[month]} ${year}`;
+      barChartTitle = `Vendas por Dia da Semana (${monthNames[month]})`;
+      barChartSubtitle = `Vendas aprovadas de Segunda a Domingo em ${monthNames[month]}`;
+      lineChartTitle = `Carrinhos Aprovados vs Total (${monthNames[month]})`;
+      lineChartSubtitle = `Volume de Segunda a Domingo em ${monthNames[month]}`;
+    } else if (selectedPeriod === 'year') {
+      pStartShifted = yearStartShifted;
+      pEndShifted = yearEndShifted;
+      prevStartShifted = prevYearStartShifted;
+      prevEndShifted = prevYearEndShifted;
+      vsLabel = 'vs. ano anterior';
+      expiredLabel = `em ${year}`;
+      periodBadge = `Seg – Dom (${year})`;
+      hourlyBadge = `Ano ${year} (24h)`;
+      hourlyTitle = `Fluxo por Horário em ${year} (00:00 – 23:59)`;
+      hourlySubtitle = `Distribuição horária acumulada no ano de ${year}`;
+      barChartTitle = `Vendas por Dia da Semana (${year})`;
+      barChartSubtitle = `Vendas aprovadas de Segunda a Domingo em ${year}`;
+      lineChartTitle = `Carrinhos Aprovados vs Total (${year})`;
+      lineChartSubtitle = `Volume de Segunda a Domingo em ${year}`;
+    } else if (selectedPeriod === 'all') {
+      pStartShifted = 0;
+      pEndShifted = Number.MAX_SAFE_INTEGER;
+      prevStartShifted = 0;
+      prevEndShifted = 0;
+      vsLabel = 'desde o início';
+      expiredLabel = 'em todo o período';
+      periodBadge = 'Seg – Dom (Todo o Período)';
+      hourlyBadge = 'Todo o Período (24h)';
+      hourlyTitle = 'Fluxo por Horário Acumulado (00:00 – 23:59)';
+      hourlySubtitle = 'Distribuição horária de todos os pedidos registrados';
+      barChartTitle = 'Vendas por Dia da Semana (Seg – Dom)';
+      barChartSubtitle = 'Total de vendas aprovadas de Segunda a Domingo';
+      lineChartTitle = 'Carrinhos Aprovados vs Total (Seg – Dom)';
+      lineChartSubtitle = 'Volume aprovado vs. iniciado de Segunda a Domingo';
+    }
+
+    const inPeriod = ordersList.filter((o) => {
+      const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+      return shifted >= pStartShifted && shifted <= pEndShifted;
+    });
+
+    const inPrevPeriod =
+      selectedPeriod === 'all'
+        ? []
+        : ordersList.filter((o) => {
+            const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+            return shifted >= prevStartShifted && shifted <= prevEndShifted;
+          });
+
+    const approvedInPeriod = inPeriod.filter((o) => o.status === 'APPROVED');
+    const approvedInPrev = inPrevPeriod.filter((o) => o.status === 'APPROVED');
+
+    const pendingInPeriod = inPeriod.filter((o) => o.status === 'PENDING');
+    const pendingInPrev = inPrevPeriod.filter((o) => o.status === 'PENDING');
+
+    const expiredInPeriod = inPeriod.filter(
+      (o) => o.status === 'EXPIRED' || o.status === 'CANCELLED' || o.status === 'DECLINED'
+    );
+
+    const revInPeriod = approvedInPeriod.reduce((s, o) => s + o.amount, 0);
+    const revInPrev = approvedInPrev.reduce((s, o) => s + o.amount, 0);
+
+    const emolaInPeriod = approvedInPeriod
+      .filter((o) => o.method === 'EMOLA')
+      .reduce((s, o) => s + o.amount, 0);
+    const mpesaInPeriod = Math.max(0, revInPeriod - emolaInPeriod);
+
+    const convRate =
+      inPeriod.length > 0 ? Number(((approvedInPeriod.length / inPeriod.length) * 100).toFixed(1)) : 0;
+
+    // Build Monday-to-Sunday (Seg - Dom) series
+    const weekDays = [
+      { dow: 1, short: 'Seg', full: 'Segunda-feira', offset: 0 },
+      { dow: 2, short: 'Ter', full: 'Terça-feira', offset: 1 },
+      { dow: 3, short: 'Qua', full: 'Quarta-feira', offset: 2 },
+      { dow: 4, short: 'Qui', full: 'Quinta-feira', offset: 3 },
+      { dow: 5, short: 'Sex', full: 'Sexta-feira', offset: 4 },
+      { dow: 6, short: 'Sáb', full: 'Sábado', offset: 5 },
+      { dow: 0, short: 'Dom', full: 'Domingo', offset: 6 },
+    ];
+
+    const useSpecificWeekWindow =
+      selectedPeriod === 'week' || selectedPeriod === 'today' || selectedPeriod === 'yesterday';
+
+    const sourceForWeeklyChart = useSpecificWeekWindow
+      ? ordersList.filter((o) => {
+          const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+          return shifted >= mondayStartShifted && shifted <= sundayEndShifted;
+        })
+      : inPeriod;
+
+    const computedBarData = weekDays.map((wd) => {
+      const dayShifted = mondayStartShifted + wd.offset * 86400_000;
+      const dateLabel = useSpecificWeekWindow
+        ? formatShiftedShortDate(dayShifted)
+        : selectedPeriod === 'month'
+        ? monthNames[month]
+        : selectedPeriod === 'year'
+        ? String(year)
+        : 'Seg – Dom';
+
+      const ordersOnDay = sourceForWeeklyChart.filter((o) => {
+        const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+        return new Date(shifted).getUTCDay() === wd.dow && o.status === 'APPROVED';
+      });
+
+      return {
+        day: wd.short,
+        fullLabel: wd.full,
+        vendas: ordersOnDay.length,
+        date: dateLabel,
+      };
+    });
+
+    const computedLineData = weekDays.map((wd) => {
+      const dayShifted = mondayStartShifted + wd.offset * 86400_000;
+      const dateLabel = useSpecificWeekWindow
+        ? formatShiftedShortDate(dayShifted)
+        : selectedPeriod === 'month'
+        ? monthNames[month]
+        : selectedPeriod === 'year'
+        ? String(year)
+        : 'Seg – Dom';
+
+      const ordersOnDay = sourceForWeeklyChart.filter((o) => {
+        const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+        return new Date(shifted).getUTCDay() === wd.dow;
+      });
+      const appOnDay = ordersOnDay.filter((o) => o.status === 'APPROVED');
+
+      return {
+        date: wd.short,
+        dayName: wd.full,
+        fullDate: dateLabel,
+        aprovados: appOnDay.reduce((s, o) => s + o.amount, 0),
+        volume: ordersOnDay.reduce((s, o) => s + o.amount, 0),
+      };
+    });
+
+    // Build 24-hour series (00:00 - 23:59) in CAT
+    const hours = Array.from({ length: 24 }, (_, h) =>
+      h === 23 ? '23:59' : `${String(h).padStart(2, '0')}:00`
+    );
+    const computedHourly = hours.map((hourLabel, hIdx) => {
+      const inHour = inPeriod.filter((o) => {
+        const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+        return new Date(shifted).getUTCHours() === hIdx;
+      });
+      return {
+        hour: hourLabel,
+        iniciados: inHour.length,
+        aprovados: inHour.filter((o) => o.status === 'APPROVED').length,
+      };
+    });
+
+    const computedTransactions: Transaction[] = inPeriod.slice(0, 6).map((o) => ({
+      id: o.id,
+      reference: o.reference,
+      amount: o.amount,
+      status: o.status,
+      productName: o.productName,
+      date: new Date(o.createdAt).toLocaleDateString('pt-MZ', {
+        timeZone: 'Africa/Maputo',
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      method: o.method || 'MPESA',
+    }));
+
+    const metric: PeriodMetric = {
+      salesCount: approvedInPeriod.length,
+      revenue: revInPeriod,
+      pendingCount: pendingInPeriod.length,
+      expiredCount: expiredInPeriod.length,
+      salesTrend: selectedPeriod === 'all' ? '+100.0%' : calcTrendStr(approvedInPeriod.length, approvedInPrev.length),
+      revenueTrend: selectedPeriod === 'all' ? '+100.0%' : calcTrendStr(revInPeriod, revInPrev),
+      pendingTrend: selectedPeriod === 'all' ? '+0.0%' : calcTrendStr(pendingInPeriod.length, pendingInPrev.length),
+      vsLabel,
+      expiredLabel,
+      periodBadge,
+      hourlyBadge,
+      hourlyTitle,
+      hourlySubtitle,
+      barChartTitle,
+      barChartSubtitle,
+      lineChartTitle,
+      lineChartSubtitle,
+      hourlyData: computedHourly,
+      barChartData: computedBarData,
+      approvalsVsVolumeData: computedLineData,
+      conversionRate: convRate,
+      emolaTotal: emolaInPeriod,
+      mpesaTotal: mpesaInPeriod,
+      recentTransactions: computedTransactions,
+    };
+
+    return { metric, navigatorLabel, weekRangeStr };
+  }, [ordersList, selectedPeriod, referenceDateStr, isCustomDateActive]);
+
   // Fallback period stats when not provided by server
   const fallbackPeriodStats: Record<PeriodKey, PeriodMetric> = {
     yesterday: {
@@ -462,47 +891,56 @@ export default function CustomizableWidgets({
     },
   };
 
-  const baseStats = (periodStats || fallbackPeriodStats)[selectedPeriod];
+  const baseStats = computedPeriodMetricOrFallback();
+  function computedPeriodMetricOrFallback(): PeriodMetric {
+    if (dynamicComputed.metric) {
+      return dynamicComputed.metric;
+    }
+    return (periodStats || fallbackPeriodStats)[selectedPeriod];
+  }
+
   const effectiveTotalRevenue = liveSummary?.totalApprovedRevenue ?? totalRevenue;
   const effectiveApprovedCount = liveSummary?.totalApprovedCount ?? approvedCount;
   const effectiveMonthRevenue = liveSummary?.monthRevenue ?? monthRevenue;
 
-  const activeStats: PeriodMetric = {
-    ...baseStats,
-    salesCount:
-      selectedPeriod === 'today'
-        ? (liveSummary?.todaySalesCount ?? baseStats.salesCount)
-        : selectedPeriod === 'yesterday'
-        ? (liveSummary?.yesterdaySalesCount ?? baseStats.salesCount)
-        : selectedPeriod === 'week'
-        ? (liveSummary?.weekSalesCount ?? baseStats.salesCount)
-        : selectedPeriod === 'month'
-        ? (liveSummary?.monthSalesCount ?? baseStats.salesCount)
-        : (effectiveApprovedCount ?? baseStats.salesCount),
-    revenue:
-      selectedPeriod === 'today'
-        ? (liveSummary?.todayRevenue ?? baseStats.revenue)
-        : selectedPeriod === 'yesterday'
-        ? (liveSummary?.yesterdayRevenue ?? baseStats.revenue)
-        : selectedPeriod === 'week'
-        ? (liveSummary?.weekRevenue ?? baseStats.revenue)
-        : selectedPeriod === 'month'
-        ? (liveSummary?.monthRevenue ?? baseStats.revenue)
-        : (effectiveTotalRevenue ?? baseStats.revenue),
-    pendingCount:
-      selectedPeriod === 'all' || selectedPeriod === 'year'
-        ? (liveSummary?.pendingCount ?? baseStats.pendingCount)
-        : baseStats.pendingCount,
-    expiredCount:
-      selectedPeriod === 'all' || selectedPeriod === 'year'
-        ? (liveSummary?.expiredCount ?? baseStats.expiredCount)
-        : baseStats.expiredCount,
-  };
+  const activeStats: PeriodMetric = isCustomDateActive || dynamicComputed.metric
+    ? baseStats
+    : {
+        ...baseStats,
+        salesCount:
+          selectedPeriod === 'today'
+            ? (liveSummary?.todaySalesCount ?? baseStats.salesCount)
+            : selectedPeriod === 'yesterday'
+            ? (liveSummary?.yesterdaySalesCount ?? baseStats.salesCount)
+            : selectedPeriod === 'week'
+            ? (liveSummary?.weekSalesCount ?? baseStats.salesCount)
+            : selectedPeriod === 'month'
+            ? (liveSummary?.monthSalesCount ?? baseStats.salesCount)
+            : (effectiveApprovedCount ?? baseStats.salesCount),
+        revenue:
+          selectedPeriod === 'today'
+            ? (liveSummary?.todayRevenue ?? baseStats.revenue)
+            : selectedPeriod === 'yesterday'
+            ? (liveSummary?.yesterdayRevenue ?? baseStats.revenue)
+            : selectedPeriod === 'week'
+            ? (liveSummary?.weekRevenue ?? baseStats.revenue)
+            : selectedPeriod === 'month'
+            ? (liveSummary?.monthRevenue ?? baseStats.revenue)
+            : (effectiveTotalRevenue ?? baseStats.revenue),
+        pendingCount:
+          selectedPeriod === 'all' || selectedPeriod === 'year'
+            ? (liveSummary?.pendingCount ?? baseStats.pendingCount)
+            : baseStats.pendingCount,
+        expiredCount:
+          selectedPeriod === 'all' || selectedPeriod === 'year'
+            ? (liveSummary?.expiredCount ?? baseStats.expiredCount)
+            : baseStats.expiredCount,
+      };
 
   const salesTitleMap: Record<PeriodKey, string> = {
     yesterday: 'Vendas de Ontem',
-    today: 'Vendas de Hoje',
-    week: 'Vendas na Semana',
+    today: isCustomDateActive ? `Vendas (${formatShiftedShortDate(Date.UTC(parseMozDateParts(referenceDateStr).year, parseMozDateParts(referenceDateStr).month, parseMozDateParts(referenceDateStr).day))})` : 'Vendas de Hoje',
+    week: isCustomDateActive ? `Vendas (${dynamicComputed.weekRangeStr})` : 'Vendas na Semana',
     month: 'Vendas no Mês',
     year: 'Vendas no Ano',
     all: 'Total de Vendas',
@@ -510,8 +948,8 @@ export default function CustomizableWidgets({
 
   const revenueTitleMap: Record<PeriodKey, string> = {
     yesterday: 'Faturamento de Ontem',
-    today: 'Faturamento de Hoje',
-    week: 'Faturamento Semanal',
+    today: isCustomDateActive ? `Faturamento (${formatShiftedShortDate(Date.UTC(parseMozDateParts(referenceDateStr).year, parseMozDateParts(referenceDateStr).month, parseMozDateParts(referenceDateStr).day))})` : 'Faturamento de Hoje',
+    week: isCustomDateActive ? `Faturamento (${dynamicComputed.weekRangeStr})` : 'Faturamento Semanal',
     month: 'Faturamento Mensal',
     year: 'Faturamento Anual',
     all: 'Faturamento Total',
@@ -673,6 +1111,8 @@ export default function CustomizableWidgets({
     }
   };
 
+  const animKey = `${selectedPeriod}-${referenceDateStr}`;
+
   // Render Master Blocks based on order
   const renderBlock = (block: DashboardBlock) => {
     if (!block.visible) return null;
@@ -688,58 +1128,118 @@ export default function CustomizableWidgets({
 
         return (
           <div key={block.id} className="space-y-4 w-full max-w-full min-w-0">
-            {/* BARRA DE PERÍODO (Ontem, Hoje, Semana, Mês, Ano, Tudo + Calendário) & PRÓXIMA CONQUISTA */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full max-w-full min-w-0">
-              <div
-                className={`flex items-center gap-0.5 p-1 rounded-xl border w-full sm:w-auto max-w-full overflow-x-auto no-scrollbar ${
-                  isLight
-                    ? 'bg-[#ECEAF6] border-[#DFDCF0]'
-                    : 'bg-[#0B0911] border-[#1E1B26]'
-                }`}
-              >
-                {PERIOD_OPTIONS.map((opt) => {
-                  const active = selectedPeriod === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setSelectedPeriod(opt.id)}
-                      className={`flex-1 sm:flex-initial text-center px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                        active
-                          ? 'otter-keep-colors bg-white text-[#0F172A] font-semibold shadow-sm'
-                          : isLight
-                            ? 'text-[#475569] hover:text-[#0F172A] font-medium'
-                            : 'text-[#94A3B8] hover:text-white font-medium'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const idx = PERIOD_OPTIONS.findIndex((p) => p.id === selectedPeriod);
-                    const next = PERIOD_OPTIONS[(idx + 1) % PERIOD_OPTIONS.length];
-                    setSelectedPeriod(next.id);
-                  }}
-                  title="Alternar período"
-                  className={`px-2 sm:px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ${
+            {/* BARRA DE PERÍODO + NAVEGADOR DE SEMANA/DATA SINCRONIZADO & PRÓXIMA CONQUISTA */}
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 w-full max-w-full min-w-0">
+              <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto max-w-full min-w-0">
+                <div
+                  className={`flex items-center gap-0.5 p-1 rounded-xl border w-full sm:w-auto max-w-full overflow-x-auto no-scrollbar ${
                     isLight
-                      ? 'text-[#475569] hover:text-[#0F172A]'
-                      : 'text-[#94A3B8] hover:text-white'
+                      ? 'bg-[#ECEAF6] border-[#DFDCF0]'
+                      : 'bg-[#0B0911] border-[#1E1B26]'
                   }`}
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                  </svg>
-                </button>
+                  {PERIOD_OPTIONS.map((opt) => {
+                    const active = selectedPeriod === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPeriod(opt.id);
+                          if (opt.id === 'today' || opt.id === 'yesterday') {
+                            setReferenceDateStr(todayMozStr);
+                          }
+                        }}
+                        className={`flex-1 sm:flex-initial text-center px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                          active
+                            ? 'otter-keep-colors bg-white text-[#0F172A] font-semibold shadow-sm'
+                            : isLight
+                              ? 'text-[#475569] hover:text-[#0F172A] font-medium'
+                              : 'text-[#94A3B8] hover:text-white font-medium'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Navegador de Semana / Data (Seg – Dom) */}
+                <div
+                  className={`flex items-center gap-1 p-1 rounded-xl border text-xs shrink-0 ${
+                    isLight
+                      ? 'bg-[#ECEAF6] border-[#DFDCF0] text-[#0F172A]'
+                      : 'bg-[#0B0911] border-[#1E1B26] text-[#F8FAFC]'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => shiftPeriodDate(-1)}
+                    title="Semana / Período Anterior"
+                    className={`px-2 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
+                      isLight
+                        ? 'hover:bg-white text-[#475569] hover:text-[#0F172A]'
+                        : 'hover:bg-[#1A1625] text-[#94A3B8] hover:text-white'
+                    }`}
+                  >
+                    ‹
+                  </button>
+
+                  <label
+                    className={`relative flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono text-[11px] sm:text-xs font-semibold cursor-pointer transition-colors ${
+                      isCustomDateActive
+                        ? 'bg-violet-600/20 text-violet-400 border border-violet-500/30'
+                        : isLight
+                        ? 'hover:bg-white text-[#0F172A]'
+                        : 'hover:bg-[#1A1625] text-[#F8FAFC]'
+                    }`}
+                    title="Clique para escolher uma data ou semana específica"
+                  >
+                    <svg className="w-3.5 h-3.5 text-violet-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                    <span className="whitespace-nowrap">{dynamicComputed.navigatorLabel}</span>
+                    <input
+                      ref={dateInputRef}
+                      type="date"
+                      value={referenceDateStr}
+                      max={todayMozStr}
+                      onChange={(e) => handleDatePick(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => shiftPeriodDate(1)}
+                    disabled={!isCustomDateActive && selectedPeriod !== 'yesterday'}
+                    title="Próxima Semana / Período"
+                    className={`px-2 py-1 rounded-lg font-bold transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none ${
+                      isLight
+                        ? 'hover:bg-white text-[#475569] hover:text-[#0F172A]'
+                        : 'hover:bg-[#1A1625] text-[#94A3B8] hover:text-white'
+                    }`}
+                  >
+                    ›
+                  </button>
+
+                  {isCustomDateActive && (
+                    <button
+                      type="button"
+                      onClick={resetToCurrentDate}
+                      className="px-2 py-1 rounded-lg text-[10px] font-bold bg-violet-600 text-white hover:bg-violet-500 transition-colors cursor-pointer"
+                      title="Voltar para a semana/data atual"
+                    >
+                      Atual
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Atalho compacto da Próxima Conquista da Otterfy */}
               <Link
                 href="/dashboard/awards"
-                className="otter-widget-card rounded-xl px-3.5 py-2 flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 w-full sm:w-auto max-w-full min-w-0 group"
+                className="otter-widget-card rounded-xl px-3.5 py-2 flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 w-full xl:w-auto max-w-full min-w-0 group"
                 title="Clique para ver os marcos e placas oficiais"
               >
                 <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse shrink-0" />
@@ -761,18 +1261,23 @@ export default function CustomizableWidgets({
             </div>
 
             {/* OS 4 WIDGETS PRINCIPAIS COM AS CORES DO PRINT (Total de Vendas, Receita Total, Vendas Pendentes, Vendas Expiradas) */}
-            <div key={`kpis-${selectedPeriod}`} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 otter-chart-animate">
+            <div key={`kpis-${animKey}`} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 otter-chart-animate">
               {visibleKpis.map((k) => renderKpiCard(k.id))}
             </div>
           </div>
         );
 
       case 'hourly': {
-        const isYesterday = selectedPeriod === 'yesterday';
-        const liveHourly = isYesterday ? liveHourlyYesterday : liveHourlyToday;
+        const isDefaultToday = selectedPeriod === 'today' && !isCustomDateActive;
+        const isDefaultYesterday = selectedPeriod === 'yesterday' && !isCustomDateActive;
+        const liveHourly = isDefaultYesterday
+          ? liveHourlyYesterday
+          : isDefaultToday
+          ? liveHourlyToday
+          : null;
         const syncedHourly = liveHourly || activeStats.hourlyData || hourlyData;
         const hourlyBadge =
-          activeStats.hourlyBadge || (isYesterday ? 'Ontem (24 Horas)' : 'Hoje (24 Horas)');
+          activeStats.hourlyBadge || (isDefaultYesterday ? 'Ontem (24 Horas)' : 'Hoje (24 Horas)');
         return (
           <div key={block.id} className="w-full max-w-full min-w-0">
             <HourlyCartsLineChart
@@ -780,7 +1285,7 @@ export default function CustomizableWidgets({
               title={activeStats.hourlyTitle || 'Fluxo por Horário do Dia (00:00 – 23:59)'}
               subtitle={activeStats.hourlySubtitle}
               badgeLabel={hourlyBadge}
-              animationKey={isYesterday ? 'yesterday-24h' : 'today-24h'}
+              animationKey={`hourly-${animKey}`}
             />
           </div>
         );
@@ -793,17 +1298,17 @@ export default function CustomizableWidgets({
           <div key={block.id} className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-full min-w-0">
             <WeeklySalesBarChart
               data={syncedBarData}
-              title={activeStats.barChartTitle || 'Vendas no Período'}
-              subtitle={activeStats.barChartSubtitle || 'Evolução das vendas aprovadas'}
-              badgeLabel={activeStats.periodBadge || 'Semana Atual'}
-              animationKey={selectedPeriod}
+              title={activeStats.barChartTitle || 'Vendas da Semana (Seg – Dom)'}
+              subtitle={activeStats.barChartSubtitle || 'Vendas aprovadas de Segunda a Domingo'}
+              badgeLabel={activeStats.periodBadge || 'Seg – Dom'}
+              animationKey={`bar-${animKey}`}
             />
             <ApprovalsVsVolumeLineChart
               data={syncedLineData}
-              title={activeStats.lineChartTitle || 'Carrinhos Aprovados vs Total'}
-              subtitle={activeStats.lineChartSubtitle || 'Evolução financeira em Meticais'}
-              badgeLabel={activeStats.periodBadge || '7 Dias'}
-              animationKey={selectedPeriod}
+              title={activeStats.lineChartTitle || 'Carrinhos Aprovados vs Total (Seg – Dom)'}
+              subtitle={activeStats.lineChartSubtitle || 'Volume de Segunda a Domingo em Meticais'}
+              badgeLabel={activeStats.periodBadge || 'Seg – Dom'}
+              animationKey={`line-${animKey}`}
             />
           </div>
         );
@@ -825,7 +1330,7 @@ export default function CustomizableWidgets({
               mpesaAmount={syncedMpesa}
               sparklineData={syncedBarData?.map((w) => ({ val: w.vendas }))}
               periodLabel={activeStats.expiredLabel || 'nesta semana'}
-              animationKey={selectedPeriod}
+              animationKey={`conv-${animKey}`}
             />
           </div>
         );

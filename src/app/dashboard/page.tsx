@@ -5,8 +5,7 @@ import dbStore from '@/lib/store';
 import {
   getMozambiqueDate,
   getMozambiqueHour,
-  getMozambiqueDay,
-  getMozambiqueMonth,
+  getMozambiqueDayOfWeek,
   createMozambiqueDateUtc,
 } from '@/lib/utils';
 
@@ -95,13 +94,16 @@ export default async function DashboardPage() {
     '18:00', '19:00', '20:00', '21:00', '22:00', '23:59'
   ];
 
-  const weekDayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-  const weekDayShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-  const monthNamesShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  const monthNamesFull = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  const weekDayNames = [
+    'Segunda-feira',
+    'Terça-feira',
+    'Quarta-feira',
+    'Quinta-feira',
+    'Sexta-feira',
+    'Sábado',
+    'Domingo',
   ];
+  const weekDayShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
   const buildHourlySeries = (ordersList: typeof allOrders) =>
     hours.map((hour, index) => {
@@ -113,78 +115,65 @@ export default async function DashboardPage() {
       };
     });
 
-  // Helper for single-day 3-hour buckets (Ontem / Hoje) in Mozambique time
-  const hourBlocks = [
-    { start: 0, end: 3, short: '00h', full: '00:00 – 02:59' },
-    { start: 3, end: 6, short: '03h', full: '03:00 – 05:59' },
-    { start: 6, end: 9, short: '06h', full: '06:00 – 08:59' },
-    { start: 9, end: 12, short: '09h', full: '09:00 – 11:59' },
-    { start: 12, end: 15, short: '12h', full: '12:00 – 14:59' },
-    { start: 15, end: 18, short: '15h', full: '15:00 – 17:59' },
-    { start: 18, end: 21, short: '18h', full: '18:00 – 20:59' },
-    { start: 21, end: 24, short: '21h', full: '21:00 – 23:59' },
-  ];
-
-  const buildDayBlocksSeries = (ordersList: typeof allOrders, targetDateUtc: Date) => {
-    const mozTarget = getMozambiqueDate(targetDateUtc);
-    const dateLabel = `${mozTarget.getUTCDate().toString().padStart(2, '0')}/${(mozTarget.getUTCMonth() + 1).toString().padStart(2, '0')}`;
-    const barChartData = hourBlocks.map((b) => {
-      const inBlock = ordersList.filter((o) => {
-        const h = getMozambiqueHour(o.createdAt);
-        return h >= b.start && h < b.end && o.status === 'APPROVED';
-      });
-      return {
-        day: b.short,
-        fullLabel: b.full,
-        vendas: inBlock.length,
-        date: dateLabel,
-      };
-    });
-
-    const approvalsVsVolumeData = hourBlocks.map((b) => {
-      const inBlock = ordersList.filter((o) => {
-        const h = getMozambiqueHour(o.createdAt);
-        return h >= b.start && h < b.end;
-      });
-      const approvedInBlock = inBlock.filter((o) => o.status === 'APPROVED');
-      return {
-        date: b.short,
-        dayName: b.full,
-        fullDate: dateLabel,
-        aprovados: approvedInBlock.reduce((s, o) => s + o.amount, 0),
-        volume: inBlock.reduce((s, o) => s + o.amount, 0),
-      };
-    });
-
-    return { barChartData, approvalsVsVolumeData };
-  };
-
-  // Helper for weekly series (Segunda a Domingo) in Mozambique time
-  const buildWeekSeries = (ordersList: typeof allOrders) => {
+  // Always build weekly series from Monday to Sunday (Seg – Dom) in Mozambique time
+  const buildWeeklyMondayToSundaySeries = (
+    ordersList: typeof allOrders,
+    weekMondayCoords?: { year: number; month: number; mondayDate: number },
+    periodDateLabel?: string
+  ) => {
     const barChartData = weekDayShort.map((shortDay, idx) => {
-      const dayStart = createMozambiqueDateUtc(mozYear, mozMonth, mozDay - diffToMonday + idx, 0, 0, 0, 0);
-      const dayEnd = createMozambiqueDateUtc(mozYear, mozMonth, mozDay - diffToMonday + idx + 1, 0, 0, 0, 0);
-      const mozDayLabel = getMozambiqueDate(dayStart);
-      const dateLabel = `${mozDayLabel.getUTCDate().toString().padStart(2, '0')}/${(mozDayLabel.getUTCMonth() + 1).toString().padStart(2, '0')}`;
+      // idx 0 = Seg (UTCDay 1), ..., idx 5 = Sáb (UTCDay 6), idx 6 = Dom (UTCDay 0)
+      const targetDow = (idx + 1) % 7;
+      let dateLabel = periodDateLabel || '';
+      if (weekMondayCoords) {
+        const dayStart = createMozambiqueDateUtc(
+          weekMondayCoords.year,
+          weekMondayCoords.month,
+          weekMondayCoords.mondayDate + idx,
+          0,
+          0,
+          0,
+          0
+        );
+        const mozDayLabel = getMozambiqueDate(dayStart);
+        dateLabel = `${mozDayLabel.getUTCDate().toString().padStart(2, '0')}/${(
+          mozDayLabel.getUTCMonth() + 1
+        )
+          .toString()
+          .padStart(2, '0')}`;
+      }
 
-      const count = ordersList.filter((o) => {
-        const d = new Date(o.createdAt);
-        return d >= dayStart && d < dayEnd && o.status === 'APPROVED';
-      }).length;
+      const count = ordersList.filter(
+        (o) => getMozambiqueDayOfWeek(o.createdAt) === targetDow && o.status === 'APPROVED'
+      ).length;
 
       return { day: shortDay, fullLabel: weekDayNames[idx], vendas: count, date: dateLabel };
     });
 
     const approvalsVsVolumeData = weekDayShort.map((shortDay, idx) => {
-      const dayStart = createMozambiqueDateUtc(mozYear, mozMonth, mozDay - diffToMonday + idx, 0, 0, 0, 0);
-      const dayEnd = createMozambiqueDateUtc(mozYear, mozMonth, mozDay - diffToMonday + idx + 1, 0, 0, 0, 0);
-      const mozDayLabel = getMozambiqueDate(dayStart);
-      const dateLabel = `${mozDayLabel.getUTCDate().toString().padStart(2, '0')}/${(mozDayLabel.getUTCMonth() + 1).toString().padStart(2, '0')}`;
+      const targetDow = (idx + 1) % 7;
+      let dateLabel = periodDateLabel || '';
+      if (weekMondayCoords) {
+        const dayStart = createMozambiqueDateUtc(
+          weekMondayCoords.year,
+          weekMondayCoords.month,
+          weekMondayCoords.mondayDate + idx,
+          0,
+          0,
+          0,
+          0
+        );
+        const mozDayLabel = getMozambiqueDate(dayStart);
+        dateLabel = `${mozDayLabel.getUTCDate().toString().padStart(2, '0')}/${(
+          mozDayLabel.getUTCMonth() + 1
+        )
+          .toString()
+          .padStart(2, '0')}`;
+      }
 
-      const dayOrders = ordersList.filter((o) => {
-        const d = new Date(o.createdAt);
-        return d >= dayStart && d < dayEnd;
-      });
+      const dayOrders = ordersList.filter(
+        (o) => getMozambiqueDayOfWeek(o.createdAt) === targetDow
+      );
       const dayApproved = dayOrders.filter((o) => o.status === 'APPROVED');
 
       return {
@@ -193,77 +182,6 @@ export default async function DashboardPage() {
         fullDate: dateLabel,
         aprovados: dayApproved.reduce((s, o) => s + o.amount, 0),
         volume: dayOrders.reduce((s, o) => s + o.amount, 0),
-      };
-    });
-
-    return { barChartData, approvalsVsVolumeData };
-  };
-
-  // Helper for monthly series (Semanas do mês atual: Sem 1 a Sem 5) in Mozambique time
-  const buildMonthSeries = (ordersList: typeof allOrders) => {
-    const monthNum = (mozMonth + 1).toString().padStart(2, '0');
-    const weeksOfMonth = [
-      { short: 'Sem 1', full: 'Semana 1', range: `01/${monthNum} – 07/${monthNum}`, minDay: 1, maxDay: 7 },
-      { short: 'Sem 2', full: 'Semana 2', range: `08/${monthNum} – 14/${monthNum}`, minDay: 8, maxDay: 14 },
-      { short: 'Sem 3', full: 'Semana 3', range: `15/${monthNum} – 21/${monthNum}`, minDay: 15, maxDay: 21 },
-      { short: 'Sem 4', full: 'Semana 4', range: `22/${monthNum} – 28/${monthNum}`, minDay: 22, maxDay: 28 },
-      { short: 'Sem 5', full: 'Semana 5', range: `29/${monthNum}+`, minDay: 29, maxDay: 31 },
-    ];
-
-    const barChartData = weeksOfMonth.map((w) => {
-      const inSegment = ordersList.filter((o) => {
-        const dom = getMozambiqueDay(o.createdAt);
-        return dom >= w.minDay && dom <= w.maxDay && o.status === 'APPROVED';
-      });
-      return {
-        day: w.short,
-        fullLabel: w.full,
-        vendas: inSegment.length,
-        date: w.range,
-      };
-    });
-
-    const approvalsVsVolumeData = weeksOfMonth.map((w) => {
-      const inSegment = ordersList.filter((o) => {
-        const dom = getMozambiqueDay(o.createdAt);
-        return dom >= w.minDay && dom <= w.maxDay;
-      });
-      const approved = inSegment.filter((o) => o.status === 'APPROVED');
-      return {
-        date: w.short,
-        dayName: w.full,
-        fullDate: w.range,
-        aprovados: approved.reduce((s, o) => s + o.amount, 0),
-        volume: inSegment.reduce((s, o) => s + o.amount, 0),
-      };
-    });
-
-    return { barChartData, approvalsVsVolumeData };
-  };
-
-  // Helper for yearly / all-time series (Jan - Dez) in Mozambique time
-  const buildYearSeries = (ordersList: typeof allOrders, yearLabel: string) => {
-    const barChartData = monthNamesShort.map((mShort, mIdx) => {
-      const inMonth = ordersList.filter(
-        (o) => getMozambiqueMonth(o.createdAt) === mIdx && o.status === 'APPROVED'
-      );
-      return {
-        day: mShort,
-        fullLabel: monthNamesFull[mIdx],
-        vendas: inMonth.length,
-        date: yearLabel,
-      };
-    });
-
-    const approvalsVsVolumeData = monthNamesShort.map((mShort, mIdx) => {
-      const inMonth = ordersList.filter((o) => getMozambiqueMonth(o.createdAt) === mIdx);
-      const approved = inMonth.filter((o) => o.status === 'APPROVED');
-      return {
-        date: mShort,
-        dayName: monthNamesFull[mIdx],
-        fullDate: yearLabel,
-        aprovados: approved.reduce((s, o) => s + o.amount, 0),
-        volume: inMonth.reduce((s, o) => s + o.amount, 0),
       };
     });
 
@@ -294,12 +212,27 @@ export default async function DashboardPage() {
     return d >= startOfLastYear && d < startOfThisYear;
   });
 
-  const yesterdayCharts = buildDayBlocksSeries(yesterdayOrders, startOfYesterday);
-  const todayCharts = buildDayBlocksSeries(todayOrders, startOfToday);
-  const weekCharts = buildWeekSeries(thisWeekOrders);
-  const monthCharts = buildMonthSeries(thisMonthOrders);
-  const yearCharts = buildYearSeries(thisYearOrders, `${mozYear}`);
-  const allCharts = buildYearSeries(allOrders, 'Histórico');
+  const currentWeekMondayCoords = {
+    year: mozYear,
+    month: mozMonth,
+    mondayDate: mozDay - diffToMonday,
+  };
+
+  const mozYesterday = getMozambiqueDate(startOfYesterday);
+  const yesterdayDow = mozYesterday.getUTCDay();
+  const yesterdayDiffToMonday = yesterdayDow === 0 ? 6 : yesterdayDow - 1;
+  const yesterdayWeekMondayCoords = {
+    year: mozYesterday.getUTCFullYear(),
+    month: mozYesterday.getUTCMonth(),
+    mondayDate: mozYesterday.getUTCDate() - yesterdayDiffToMonday,
+  };
+
+  const yesterdayCharts = buildWeeklyMondayToSundaySeries(yesterdayOrders, yesterdayWeekMondayCoords);
+  const todayCharts = buildWeeklyMondayToSundaySeries(todayOrders, currentWeekMondayCoords);
+  const weekCharts = buildWeeklyMondayToSundaySeries(thisWeekOrders, currentWeekMondayCoords);
+  const monthCharts = buildWeeklyMondayToSundaySeries(thisMonthOrders, undefined, 'Este Mês');
+  const yearCharts = buildWeeklyMondayToSundaySeries(thisYearOrders, undefined, `${mozYear}`);
+  const allCharts = buildWeeklyMondayToSundaySeries(allOrders, undefined, 'Todo o Período');
 
   const todayHourlySeries = buildHourlySeries(todayOrders);
   const yesterdayHourlySeries = buildHourlySeries(yesterdayOrders);
@@ -404,78 +337,100 @@ export default async function DashboardPage() {
 
   const periodStats = {
     yesterday: buildPeriodMetric(yesterdayOrders, twoDaysAgoOrders, 'vs. dia anterior', 'ontem', {
-      periodBadge: 'Ontem (24h)',
+      periodBadge: 'Ontem (Seg – Dom)',
       hourlyBadge: 'Ontem (24 Horas)',
       hourlyTitle: 'Fluxo por Horário do Dia — Ontem (00:00 – 23:59)',
       hourlySubtitle: 'Movimento hora a hora durante as 24 horas de ontem (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
       hourlyData: yesterdayHourlySeries,
-      barChartTitle: 'Vendas por Faixa Horária (Ontem)',
-      barChartSubtitle: 'Distribuição das vendas aprovadas em janelas de 3h ontem',
-      lineChartTitle: 'Carrinhos Aprovados vs Total (Ontem)',
-      lineChartSubtitle: 'Evolução financeira de ontem em Meticais (00h – 23h)',
+      barChartTitle: 'Vendas por Dia da Semana (Seg – Dom)',
+      barChartSubtitle: 'Ciclo semanal de Segunda a Domingo (Ontem)',
+      lineChartTitle: 'Carrinhos Aprovados vs Total (Seg – Dom)',
+      lineChartSubtitle: 'Evolução de Segunda a Domingo em Meticais (Ontem)',
       ...yesterdayCharts,
     }),
     today: buildPeriodMetric(todayOrders, yesterdayOrders, 'vs. ontem', 'hoje', {
-      periodBadge: 'Hoje (24h)',
+      periodBadge: 'Hoje (Seg – Dom)',
       hourlyBadge: 'Hoje (24 Horas)',
       hourlyTitle: 'Fluxo por Horário do Dia (00:00 – 23:59)',
       hourlySubtitle: 'Movimento em tempo real ao longo das 24 horas de hoje (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
       hourlyData: todayHourlySeries,
-      barChartTitle: 'Vendas por Faixa Horária (Hoje)',
-      barChartSubtitle: 'Distribuição das vendas aprovadas em janelas de 3h hoje',
-      lineChartTitle: 'Carrinhos Aprovados vs Total (Hoje)',
-      lineChartSubtitle: 'Evolução financeira de hoje em Meticais (00h – 23h)',
+      barChartTitle: 'Vendas por Dia da Semana (Seg – Dom)',
+      barChartSubtitle: 'Ciclo semanal atual (Segunda a Domingo — Hoje)',
+      lineChartTitle: 'Carrinhos Aprovados vs Total (Seg – Dom)',
+      lineChartSubtitle: 'Evolução diária de Segunda a Domingo em Meticais (Hoje)',
       ...todayCharts,
     }),
     week: buildPeriodMetric(thisWeekOrders, lastWeekOrders, 'vs. semana anterior', 'na última semana', {
-      periodBadge: 'Esta Semana',
+      periodBadge: 'Esta Semana (Seg – Dom)',
       hourlyBadge: 'Hoje (24 Horas)',
       hourlyTitle: 'Fluxo por Horário do Dia (00:00 – 23:59)',
       hourlySubtitle: 'Movimento em tempo real ao longo das 24 horas de hoje (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
       hourlyData: todayHourlySeries,
-      barChartTitle: 'Vendas por Dia (Semana)',
+      barChartTitle: 'Vendas por Dia da Semana (Seg – Dom)',
       barChartSubtitle: 'Ciclo semanal atual (Segunda a Domingo)',
-      lineChartTitle: 'Carrinhos Aprovados vs Total (Semana)',
+      lineChartTitle: 'Carrinhos Aprovados vs Total (Seg – Dom)',
       lineChartSubtitle: 'Evolução diária da semana atual (Segunda a Domingo em Meticais)',
       ...weekCharts,
     }),
     month: buildPeriodMetric(thisMonthOrders, lastMonthOrders, 'vs. mês anterior', 'no último mês', {
-      periodBadge: 'Este Mês',
+      periodBadge: 'Este Mês (Seg – Dom)',
       hourlyBadge: 'Hoje (24 Horas)',
       hourlyTitle: 'Fluxo por Horário do Dia (00:00 – 23:59)',
       hourlySubtitle: 'Movimento em tempo real ao longo das 24 horas de hoje (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
       hourlyData: todayHourlySeries,
-      barChartTitle: 'Vendas por Semana (Mês Atual)',
-      barChartSubtitle: 'Evolução semanal ao longo do mês atual',
-      lineChartTitle: 'Carrinhos Aprovados vs Total (Mês)',
-      lineChartSubtitle: 'Evolução semanal deste mês em Meticais',
+      barChartTitle: 'Vendas por Dia da Semana (Mês)',
+      barChartSubtitle: 'Distribuição semanal de Segunda a Domingo neste mês',
+      lineChartTitle: 'Carrinhos Aprovados vs Total (Seg – Dom)',
+      lineChartSubtitle: 'Evolução de Segunda a Domingo neste mês em Meticais',
       ...monthCharts,
     }),
     year: buildPeriodMetric(thisYearOrders, lastYearOrders, 'vs. ano anterior', 'no último ano', {
-      periodBadge: 'Este Ano',
+      periodBadge: 'Este Ano (Seg – Dom)',
       hourlyBadge: 'Hoje (24 Horas)',
       hourlyTitle: 'Fluxo por Horário do Dia (00:00 – 23:59)',
       hourlySubtitle: 'Movimento em tempo real ao longo das 24 horas de hoje (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
       hourlyData: todayHourlySeries,
-      barChartTitle: 'Vendas por Mês (Ano Atual)',
-      barChartSubtitle: `Evolução mensal de vendas em ${mozYear}`,
-      lineChartTitle: 'Carrinhos Aprovados vs Total (Ano)',
-      lineChartSubtitle: `Evolução mensal de ${mozYear} em Meticais`,
+      barChartTitle: 'Vendas por Dia da Semana (Ano)',
+      barChartSubtitle: `Distribuição de Segunda a Domingo em ${mozYear}`,
+      lineChartTitle: 'Carrinhos Aprovados vs Total (Seg – Dom)',
+      lineChartSubtitle: `Volume de Segunda a Domingo em ${mozYear} (Meticais)`,
       ...yearCharts,
     }),
     all: buildPeriodMetric(allOrders, [], 'desde o início', 'em todo o período', {
-      periodBadge: 'Todo o Período',
+      periodBadge: 'Todo o Período (Seg – Dom)',
       hourlyBadge: 'Hoje (24 Horas)',
       hourlyTitle: 'Fluxo por Horário do Dia (00:00 – 23:59)',
       hourlySubtitle: 'Movimento em tempo real ao longo das 24 horas de hoje (00:00 – 23:59): Carrinhos Iniciados vs. Vendas Aprovadas',
       hourlyData: todayHourlySeries,
-      barChartTitle: 'Vendas Acumuladas por Mês',
-      barChartSubtitle: 'Histórico completo de vendas aprovadas',
-      lineChartTitle: 'Carrinhos Aprovados vs Total (Histórico)',
-      lineChartSubtitle: 'Volume histórico aprovado vs. iniciado em Meticais',
+      barChartTitle: 'Vendas por Dia da Semana (Seg – Dom)',
+      barChartSubtitle: 'Vendas aprovadas de Segunda a Domingo',
+      lineChartTitle: 'Carrinhos Aprovados vs Total (Seg – Dom)',
+      lineChartSubtitle: 'Volume aprovado vs. iniciado de Segunda a Domingo em Meticais',
       ...allCharts,
     }),
   };
+
+  const clientOrders = allOrders.map((o) => {
+    const raw = (o.transaction?.method || '').toUpperCase().trim();
+    const clean = (o.customerPhone || '').replace(/\D/g, '');
+    const moz = clean.startsWith('258') ? clean.slice(3) : clean;
+    const method =
+      raw.includes('EMOLA') || raw.includes('E-MOLA') || moz.startsWith('86') || moz.startsWith('87')
+        ? 'EMOLA'
+        : 'MPESA';
+    return {
+      id: o.id,
+      reference:
+        o.transaction?.zenofyTransactionId ||
+        o.transaction?.zenofyCheckoutId ||
+        `OTF-${o.id.slice(-5).toUpperCase()}`,
+      amount: o.amount,
+      status: o.status,
+      productName: o.product?.name || 'Produto Digital',
+      createdAt: o.createdAt,
+      method,
+    };
+  });
 
   return (
     <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-6 sm:space-y-8 pb-16 min-w-0 overflow-x-hidden">
@@ -513,6 +468,7 @@ export default async function DashboardPage() {
         weeklyData={weekCharts.barChartData}
         approvalsVsVolumeData={weekCharts.approvalsVsVolumeData}
         periodStats={periodStats}
+        initialOrders={clientOrders}
       />
     </div>
   );
