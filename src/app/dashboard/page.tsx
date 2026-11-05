@@ -32,7 +32,9 @@ export default async function DashboardPage() {
   const pendingAmount = pendingOrders.reduce((sum, o) => sum + o.amount, 0);
   const pendingCount = pendingOrders.length;
 
-  const lostOrders = allOrders.filter((o) => o.status === 'DECLINED' || o.status === 'CANCELLED');
+  const lostOrders = allOrders.filter(
+    (o) => o.status === 'DECLINED' || o.status === 'CANCELLED' || o.status === 'EXPIRED'
+  );
   const lostAmount = lostOrders.reduce((sum, o) => sum + o.amount, 0);
   const lostCount = lostOrders.length;
 
@@ -60,8 +62,8 @@ export default async function DashboardPage() {
   // 7-day / This week orders & conversion metrics
   const thisWeekOrders = allOrders.filter(o => new Date(o.createdAt) >= startOfThisWeek);
   const thisWeekApproved = thisWeekOrders.filter(o => o.status === 'APPROVED');
-  const thisWeekEmola = thisWeekOrders.filter(o => o.transaction?.method === 'EMOLA');
-  const thisWeekMpesa = thisWeekOrders.filter(o => o.transaction?.method === 'MPESA');
+  const thisWeekEmola = thisWeekApproved.filter(o => o.transaction?.method === 'EMOLA');
+  const thisWeekMpesa = thisWeekApproved.filter(o => o.transaction?.method === 'MPESA');
 
   const conversionRate = thisWeekOrders.length > 0
     ? Number(((thisWeekApproved.length / thisWeekOrders.length) * 100).toFixed(1))
@@ -339,8 +341,8 @@ export default async function DashboardPage() {
         ? Number(((approved.length / ordersInPeriod.length) * 100).toFixed(1))
         : 0;
 
-    // Payment method totals for approved orders in this period (or all orders in period if none approved yet)
-    const methodSource = approved.length > 0 ? approved : ordersInPeriod;
+    // Payment method totals strictly for approved orders in this period
+    const methodSource = approved;
     const resolveOrderMethod = (o: (typeof ordersInPeriod)[number]) => {
       const raw = (o.transaction?.method || '').toUpperCase().trim();
       if (raw.includes('EMOLA') || raw.includes('E-MOLA')) return 'EMOLA';
@@ -479,6 +481,12 @@ export default async function DashboardPage() {
     <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto space-y-6 sm:space-y-8 pb-16 min-w-0 overflow-x-hidden">
       {/* Top Greeting Banner */}
       <DashboardGreetingBanner />
+
+      {/* Hero Progress Card for Cumulative Revenue & Next Award Milestone (50K, 100K, etc.) */}
+      <TotalRevenueHeroCard
+        totalRevenue={finalTotalRevenue}
+        approvedCount={finalApprovedCount}
+      />
 
       {/* Customizable Dashboard with Reorderable Blocks (Graphs First, KPIs, Transactions, etc.) */}
       <CustomizableWidgets

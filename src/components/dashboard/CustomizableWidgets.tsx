@@ -9,7 +9,7 @@ import HourlyCartsLineChart from './HourlyCartsLineChart';
 import ConversionAndMethods from './ConversionAndMethods';
 import CensoredTransactionsTable from './CensoredTransactionsTable';
 import AwardsModal from './AwardsModal';
-import { formatMZN, getMozambiqueDate, getMozambiqueDateString } from '@/lib/utils';
+import { formatMZN, formatProgressPercent, getMozambiqueDate, getMozambiqueDateString } from '@/lib/utils';
 
 export interface DashboardBlock {
   id: string;
@@ -149,6 +149,38 @@ export default function CustomizableWidgets({
   const [awardsModalOpen, setAwardsModalOpen] = useState(false);
   const [liveHourlyToday, setLiveHourlyToday] = useState<{ hour: string; iniciados: number; aprovados: number }[] | null>(null);
   const [liveHourlyYesterday, setLiveHourlyYesterday] = useState<{ hour: string; iniciados: number; aprovados: number }[] | null>(null);
+  const [liveSummary, setLiveSummary] = useState<{
+    totalApprovedRevenue?: number;
+    totalApprovedCount?: number;
+    todayRevenue?: number;
+    todaySalesCount?: number;
+    yesterdayRevenue?: number;
+    yesterdaySalesCount?: number;
+    weekRevenue?: number;
+    weekSalesCount?: number;
+    monthRevenue?: number;
+    monthSalesCount?: number;
+    pendingCount?: number;
+    expiredCount?: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const handleOrdersUpdated = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt.detail?.summary) {
+        setLiveSummary(customEvt.detail.summary);
+      } else {
+        fetch('/api/payments', { cache: 'no-store' })
+          .then((r) => r.json())
+          .then((json) => {
+            if (json.summary) setLiveSummary(json.summary);
+          })
+          .catch(() => {});
+      }
+    };
+    window.addEventListener('orders_updated', handleOrdersUpdated);
+    return () => window.removeEventListener('orders_updated', handleOrdersUpdated);
+  }, []);
 
   // Live 24-hour daily flow synchronization (00:00 - 23:59 in local timezone)
   useEffect(() => {
@@ -430,7 +462,60 @@ export default function CustomizableWidgets({
     },
   };
 
-  const activeStats = (periodStats || fallbackPeriodStats)[selectedPeriod];
+  const baseStats = (periodStats || fallbackPeriodStats)[selectedPeriod];
+  const effectiveTotalRevenue = liveSummary?.totalApprovedRevenue ?? totalRevenue;
+  const effectiveApprovedCount = liveSummary?.totalApprovedCount ?? approvedCount;
+  const effectiveMonthRevenue = liveSummary?.monthRevenue ?? monthRevenue;
+
+  const activeStats: PeriodMetric = {
+    ...baseStats,
+    salesCount:
+      selectedPeriod === 'today'
+        ? (liveSummary?.todaySalesCount ?? baseStats.salesCount)
+        : selectedPeriod === 'yesterday'
+        ? (liveSummary?.yesterdaySalesCount ?? baseStats.salesCount)
+        : selectedPeriod === 'week'
+        ? (liveSummary?.weekSalesCount ?? baseStats.salesCount)
+        : selectedPeriod === 'month'
+        ? (liveSummary?.monthSalesCount ?? baseStats.salesCount)
+        : (effectiveApprovedCount ?? baseStats.salesCount),
+    revenue:
+      selectedPeriod === 'today'
+        ? (liveSummary?.todayRevenue ?? baseStats.revenue)
+        : selectedPeriod === 'yesterday'
+        ? (liveSummary?.yesterdayRevenue ?? baseStats.revenue)
+        : selectedPeriod === 'week'
+        ? (liveSummary?.weekRevenue ?? baseStats.revenue)
+        : selectedPeriod === 'month'
+        ? (liveSummary?.monthRevenue ?? baseStats.revenue)
+        : (effectiveTotalRevenue ?? baseStats.revenue),
+    pendingCount:
+      selectedPeriod === 'all' || selectedPeriod === 'year'
+        ? (liveSummary?.pendingCount ?? baseStats.pendingCount)
+        : baseStats.pendingCount,
+    expiredCount:
+      selectedPeriod === 'all' || selectedPeriod === 'year'
+        ? (liveSummary?.expiredCount ?? baseStats.expiredCount)
+        : baseStats.expiredCount,
+  };
+
+  const salesTitleMap: Record<PeriodKey, string> = {
+    yesterday: 'Vendas de Ontem',
+    today: 'Vendas de Hoje',
+    week: 'Vendas na Semana',
+    month: 'Vendas no Mês',
+    year: 'Vendas no Ano',
+    all: 'Total de Vendas',
+  };
+
+  const revenueTitleMap: Record<PeriodKey, string> = {
+    yesterday: 'Faturamento de Ontem',
+    today: 'Faturamento de Hoje',
+    week: 'Faturamento Semanal',
+    month: 'Faturamento Mensal',
+    year: 'Faturamento Anual',
+    all: 'Faturamento Total',
+  };
 
   // Render individual Colored KPI Card (matching screenshot)
   const renderKpiCard = (id: string) => {
@@ -443,7 +528,7 @@ export default function CustomizableWidgets({
           >
             <div className="flex items-start justify-between gap-3">
               <span className="text-[13px] font-medium text-white/95 tracking-tight">
-                Total de Vendas
+                {salesTitleMap[selectedPeriod]}
               </span>
               <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white shrink-0 backdrop-blur-[2px]">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -466,7 +551,7 @@ export default function CustomizableWidgets({
                 <span>{activeStats.salesTrend}</span>
               </div>
               <p className="text-[11px] text-white/80 font-normal">
-                {activeStats.vsLabel}
+                {activeStats.vsLabel} • Total: {effectiveApprovedCount} aprovadas
               </p>
             </div>
           </div>
@@ -480,7 +565,7 @@ export default function CustomizableWidgets({
           >
             <div className="flex items-start justify-between gap-3">
               <span className="text-[13px] font-medium text-white/95 tracking-tight">
-                Receita Total
+                {revenueTitleMap[selectedPeriod]}
               </span>
               <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white shrink-0 backdrop-blur-[2px]">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
@@ -501,9 +586,14 @@ export default function CustomizableWidgets({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
                 </svg>
                 <span>{activeStats.revenueTrend}</span>
+                <span className="text-[11px] text-white/80 font-normal">({activeStats.vsLabel})</span>
               </div>
-              <p className="text-[11px] text-white/80 font-normal">
-                {activeStats.vsLabel}
+              <p className="text-[11px] text-white/90 font-medium">
+                {selectedPeriod === 'all'
+                  ? `Mês Atual: ${formatMZN(effectiveMonthRevenue)}`
+                  : selectedPeriod === 'month'
+                  ? `Acumulado Total: ${formatMZN(effectiveTotalRevenue)}`
+                  : `Mês: ${formatMZN(effectiveMonthRevenue)} • Total: ${formatMZN(effectiveTotalRevenue)}`}
               </p>
             </div>
           </div>
@@ -592,9 +682,9 @@ export default function CustomizableWidgets({
         const visibleKpis = kpis.filter((k) => k.visible);
         if (visibleKpis.length === 0) return null;
 
-        const currentMilestone = getNextMilestone(totalRevenue);
-        const remainingForAward = Math.max(0, currentMilestone.target - totalRevenue);
-        const awardProgressPercent = Math.min(100, Math.round((totalRevenue / currentMilestone.target) * 100));
+        const currentMilestone = getNextMilestone(effectiveTotalRevenue);
+        const remainingForAward = Math.max(0, currentMilestone.target - effectiveTotalRevenue);
+        const awardProgressPercent = formatProgressPercent(effectiveTotalRevenue, currentMilestone.target);
 
         return (
           <div key={block.id} className="space-y-4 w-full max-w-full min-w-0">
@@ -661,7 +751,7 @@ export default function CustomizableWidgets({
                     Faltam {formatMZN(remainingForAward)}
                   </span>
                   <span className="text-[11px] text-emerald-400 font-mono font-semibold">
-                    ({awardProgressPercent}%)
+                    ({awardProgressPercent})
                   </span>
                 </div>
                 <span className="text-xs text-violet-400 font-bold group-hover:translate-x-0.5 transition-transform shrink-0">
@@ -1022,7 +1112,7 @@ export default function CustomizableWidgets({
       <AwardsModal
         isOpen={awardsModalOpen}
         onClose={() => setAwardsModalOpen(false)}
-        currentRevenue={totalRevenue}
+        currentRevenue={effectiveTotalRevenue}
       />
     </div>
   );

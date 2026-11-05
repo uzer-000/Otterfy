@@ -896,7 +896,7 @@ export const dbStore = {
   async updateOrderTransaction(orderId: string, data: {
     zenofyCheckoutId?: string;
     zenofyCheckoutUrl?: string;
-    status?: 'PENDING' | 'APPROVED' | 'DECLINED' | 'REFUNDED' | 'CHARGEBACK' | 'CANCELLED';
+    status?: 'PENDING' | 'APPROVED' | 'DECLINED' | 'REFUNDED' | 'CHARGEBACK' | 'CANCELLED' | 'EXPIRED';
     zenofyTransactionId?: string;
     method?: 'MPESA' | 'EMOLA';
     responsePayload?: any;
@@ -907,21 +907,27 @@ export const dbStore = {
         include: { transaction: true },
       });
       if (order && order.transaction) {
+        // Never downgrade an already APPROVED order back to PENDING or EXPIRED
+        const safeStatus =
+          order.status === 'APPROVED' && (data.status === 'PENDING' || data.status === 'EXPIRED')
+            ? undefined
+            : data.status;
+
         await prisma.transaction.update({
           where: { id: order.transaction.id },
           data: {
             ...(data.zenofyCheckoutId ? { zenofyCheckoutId: data.zenofyCheckoutId } : {}),
             ...(data.zenofyCheckoutUrl ? { zenofyCheckoutUrl: data.zenofyCheckoutUrl } : {}),
-            ...(data.status ? { status: data.status as any } : {}),
+            ...(safeStatus ? { status: safeStatus as any } : {}),
             ...(data.zenofyTransactionId ? { zenofyTransactionId: data.zenofyTransactionId } : {}),
             ...(data.method ? { method: data.method } : {}),
             ...(data.responsePayload ? { responsePayload: data.responsePayload } : {}),
           },
         });
-        if (data.status) {
+        if (safeStatus) {
           await prisma.order.update({
             where: { id: orderId },
-            data: { status: data.status as any },
+            data: { status: safeStatus as any },
           });
         }
       }
@@ -934,13 +940,18 @@ export const dbStore = {
     const orderIndex = store.orders.findIndex(o => o.id === orderId);
     if (orderIndex !== -1) {
       const ord = store.orders[orderIndex];
+      const safeLocalStatus =
+        ord.status === 'APPROVED' && (data.status === 'PENDING' || data.status === 'EXPIRED')
+          ? ord.status
+          : data.status || ord.status;
       store.orders[orderIndex] = {
         ...ord,
-        status: data.status || ord.status,
+        status: safeLocalStatus,
         updatedAt: new Date().toISOString(),
         transaction: {
           ...(ord.transaction || { id: `tx_${Date.now()}`, status: 'PENDING' }),
           ...data,
+          status: safeLocalStatus,
         },
       };
       writeLocalStore(store);

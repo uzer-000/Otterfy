@@ -60,7 +60,19 @@ export default function PaymentsTable({ payments, loading }: { payments: any[], 
                     p.status === 'PENDING' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
                     'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
                   }`}>
-                    {p.status === 'APPROVED' ? 'Aprovado' : p.status === 'PENDING' ? 'Pendente' : p.status}
+                    {p.status === 'APPROVED'
+                      ? 'Aprovado'
+                      : p.status === 'PENDING'
+                      ? 'Pendente'
+                      : p.status === 'EXPIRED'
+                      ? 'Expirado'
+                      : p.status === 'DECLINED'
+                      ? 'Recusado'
+                      : p.status === 'CANCELLED'
+                      ? 'Cancelado'
+                      : p.status === 'REFUNDED'
+                      ? 'Reembolsado'
+                      : p.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right font-bold text-violet-600 dark:text-violet-400">

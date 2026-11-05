@@ -17,7 +17,7 @@ interface OrderItem {
   customerPhone: string;
   customerEmail?: string | null;
   amount: number;
-  status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'REFUNDED' | 'CHARGEBACK' | 'CANCELLED';
+  status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'REFUNDED' | 'CHARGEBACK' | 'CANCELLED' | 'EXPIRED';
   createdAt: string;
   product?: {
     name: string;
@@ -45,7 +45,7 @@ export default function MetricsPage() {
     async function loadData() {
       setLoading(true);
       try {
-        const res = await fetch('/api/payments');
+        const res = await fetch('/api/payments', { cache: 'no-store' });
         if (res.ok) {
           const json = await res.json();
           setOrders(json.data || []);
@@ -57,6 +57,8 @@ export default function MetricsPage() {
       }
     }
     loadData();
+    window.addEventListener('orders_updated', loadData);
+    return () => window.removeEventListener('orders_updated', loadData);
   }, []);
 
   const showToast = (msg: string) => {
@@ -91,10 +93,20 @@ export default function MetricsPage() {
   // Aggregated calculations based on period
   const approvedOrders = useMemo(() => filteredByPeriodOrders.filter((o) => o.status === 'APPROVED'), [filteredByPeriodOrders]);
   const pendingOrders = useMemo(() => filteredByPeriodOrders.filter((o) => o.status === 'PENDING'), [filteredByPeriodOrders]);
-  const lostOrders = useMemo(() => filteredByPeriodOrders.filter((o) => o.status === 'DECLINED' || o.status === 'CANCELLED'), [filteredByPeriodOrders]);
+  const lostOrders = useMemo(
+    () =>
+      filteredByPeriodOrders.filter(
+        (o) => o.status === 'DECLINED' || o.status === 'CANCELLED' || o.status === 'EXPIRED'
+      ),
+    [filteredByPeriodOrders]
+  );
   const refundOrders = useMemo(() => filteredByPeriodOrders.filter((o) => o.status === 'REFUNDED'), [filteredByPeriodOrders]);
 
   const approvedRevenue = useMemo(() => approvedOrders.reduce((sum, o) => sum + o.amount, 0), [approvedOrders]);
+  const totalAllTimeRevenue = useMemo(
+    () => orders.filter((o) => o.status === 'APPROVED').reduce((sum, o) => sum + o.amount, 0),
+    [orders]
+  );
   const pendingAmount = useMemo(() => pendingOrders.reduce((sum, o) => sum + o.amount, 0), [pendingOrders]);
   const lostAmount = useMemo(() => lostOrders.reduce((sum, o) => sum + o.amount, 0), [lostOrders]);
   const refundsAmount = useMemo(() => refundOrders.reduce((sum, o) => sum + o.amount, 0), [refundOrders]);
@@ -440,9 +452,9 @@ export default function MetricsPage() {
               <p className="text-3xl font-black text-[#F8FAFC] mt-2 font-mono tracking-tight text-emerald-400">
                 {formatMZN(approvedRevenue)}
               </p>
-              <div className="flex items-center gap-2 mt-3 text-xs text-[#94A3B8] border-t border-[#1E1B26] pt-3">
-                <span className="text-emerald-400 font-bold">{approvedOrders.length} vendas concluídas</span>
-                <span>• {periodLabels[period]}</span>
+              <div className="flex items-center justify-between gap-2 mt-3 text-xs text-[#94A3B8] border-t border-[#1E1B26] pt-3 flex-wrap">
+                <span className="text-emerald-400 font-bold">{approvedOrders.length} vendas no período</span>
+                <span className="font-mono text-[#F8FAFC] font-semibold">Acumulado: {formatMZN(totalAllTimeRevenue)}</span>
               </div>
             </div>
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { formatMZN } from '@/lib/utils';
+import { formatMZN, formatProgressPercent, getProgressBarWidth } from '@/lib/utils';
 import AwardsModal from './AwardsModal';
 
 interface TotalRevenueHeroCardProps {
@@ -17,6 +17,39 @@ export default function TotalRevenueHeroCard({
   const [awardsOpen, setAwardsOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
+  const [liveRevenue, setLiveRevenue] = useState<number>(totalRevenue);
+  const [liveApprovedCount, setLiveApprovedCount] = useState<number>(approvedCount);
+
+  useEffect(() => {
+    setLiveRevenue(totalRevenue);
+  }, [totalRevenue]);
+
+  useEffect(() => {
+    setLiveApprovedCount(approvedCount);
+  }, [approvedCount]);
+
+  useEffect(() => {
+    const handleOrdersUpdated = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      const summary = customEvt.detail?.summary;
+      if (summary && typeof summary.totalApprovedRevenue === 'number') {
+        setLiveRevenue(summary.totalApprovedRevenue);
+        setLiveApprovedCount(summary.totalApprovedCount ?? 0);
+      } else {
+        fetch('/api/payments?status=APPROVED', { cache: 'no-store' })
+          .then((r) => r.json())
+          .then((json) => {
+            if (typeof json.summary?.totalApprovedRevenue === 'number') {
+              setLiveRevenue(json.summary.totalApprovedRevenue);
+              setLiveApprovedCount(json.summary.totalApprovedCount ?? 0);
+            }
+          })
+          .catch(() => {});
+      }
+    };
+    window.addEventListener('orders_updated', handleOrdersUpdated);
+    return () => window.removeEventListener('orders_updated', handleOrdersUpdated);
+  }, []);
 
   // Synchronize theme with html data-theme
   useEffect(() => {
@@ -86,9 +119,10 @@ export default function TotalRevenueHeroCard({
     }
   };
 
-  const info = getMilestoneInfo(totalRevenue);
-  const remaining = Math.max(0, info.nextTarget - totalRevenue);
-  const progressPercent = Math.min(100, Math.round((totalRevenue / info.nextTarget) * 100));
+  const info = getMilestoneInfo(liveRevenue);
+  const remaining = Math.max(0, info.nextTarget - liveRevenue);
+  const progressPercentLabel = formatProgressPercent(liveRevenue, info.nextTarget);
+  const progressBarWidth = getProgressBarWidth(liveRevenue, info.nextTarget);
 
   return (
     <>
@@ -146,12 +180,12 @@ export default function TotalRevenueHeroCard({
                 <h2 className={`text-2xl sm:text-3xl font-black tracking-tight font-mono ${
                   isLight ? 'text-[#0F172A]' : 'text-[#F8FAFC]'
                 }`}>
-                  {formatMZN(totalRevenue)}
+                  {formatMZN(liveRevenue)}
                 </h2>
                 <span className={`text-xs font-semibold ${
                   isLight ? 'text-[#64748B]' : 'text-[#64748B]'
                 }`}>
-                  ({approvedCount} {approvedCount === 1 ? 'venda aprovada' : 'vendas aprovadas'})
+                  ({liveApprovedCount} {liveApprovedCount === 1 ? 'venda aprovada' : 'vendas aprovadas'})
                 </span>
               </div>
             </div>
@@ -232,10 +266,10 @@ export default function TotalRevenueHeroCard({
                 <span className={`font-mono font-bold text-xs ${
                   isLight ? 'text-slate-900' : 'text-white'
                 }`}>
-                  {progressPercent}% CONCLUÍDO
+                  {progressPercentLabel} CONCLUÍDO
                 </span>
                 <span className={`text-[11px] ${isLight ? 'text-[#64748B]' : 'text-[#64748B]'}`}>
-                  ({formatMZN(totalRevenue)} / {formatMZN(info.nextTarget)})
+                  ({formatMZN(liveRevenue)} / {formatMZN(info.nextTarget)})
                 </span>
               </div>
             </div>
@@ -247,10 +281,10 @@ export default function TotalRevenueHeroCard({
               <div 
                 className={`h-full rounded-full transition-all duration-700 ${
                   isLight
-                    ? 'bg-gradient-to-r from-slate-600 via-slate-800 to-slate-700'
-                    : 'bg-gradient-to-r from-slate-400 via-white to-slate-200 shadow-[0_0_10px_rgba(255,255,255,0.4)]'
+                    ? 'bg-gradient-to-r from-violet-600 via-fuchsia-500 to-emerald-500'
+                    : 'bg-gradient-to-r from-violet-600 via-fuchsia-500 to-emerald-400 shadow-[0_0_10px_rgba(139,92,246,0.4)]'
                 }`}
-                style={{ width: `${progressPercent}%` }}
+                style={{ width: `${progressBarWidth}%` }}
               />
             </div>
           </div>
@@ -261,7 +295,7 @@ export default function TotalRevenueHeroCard({
       <AwardsModal
         isOpen={awardsOpen}
         onClose={() => setAwardsOpen(false)}
-        currentRevenue={totalRevenue}
+        currentRevenue={liveRevenue}
       />
     </>
   );

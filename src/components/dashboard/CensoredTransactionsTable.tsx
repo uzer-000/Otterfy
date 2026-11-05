@@ -123,7 +123,19 @@ export default function CensoredTransactionsTable({ transactions }: CensoredTran
                         tx.status === 'PENDING' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
                         'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
                       }`}>
-                        {tx.status === 'APPROVED' ? 'Aprovado' : tx.status === 'PENDING' ? 'Pendente' : tx.status}
+                        {tx.status === 'APPROVED'
+                          ? 'Aprovado'
+                          : tx.status === 'PENDING'
+                          ? 'Pendente'
+                          : tx.status === 'EXPIRED'
+                          ? 'Expirado'
+                          : tx.status === 'DECLINED'
+                          ? 'Recusado'
+                          : tx.status === 'CANCELLED'
+                          ? 'Cancelado'
+                          : tx.status === 'REFUNDED'
+                          ? 'Reembolsado'
+                          : tx.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right text-slate-900 dark:text-[#F8FAFC] font-bold">

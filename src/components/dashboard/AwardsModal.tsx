@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { formatMZN } from '@/lib/utils';
+import { formatMZN, formatProgressPercent, getProgressBarWidth } from '@/lib/utils';
 
 export interface Milestone {
   id: number;
@@ -120,10 +120,15 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
 
   if (!isOpen) return null;
 
-  const nextMilestone = MILESTONES.find((m) => m.target > currentRevenue) || MILESTONES[MILESTONES.length - 1];
+  const physicalMilestones = MILESTONES.filter((m) => m.target >= 50000);
+  const nextMilestone =
+    physicalMilestones.find((m) => m.target > currentRevenue) ||
+    MILESTONES.find((m) => m.target > currentRevenue) ||
+    MILESTONES[MILESTONES.length - 1];
   const targetAmount = nextMilestone.target;
   const remainingAmount = Math.max(0, targetAmount - currentRevenue);
-  const progressPercent = Math.min(100, Math.round((currentRevenue / targetAmount) * 100));
+  const progressPercentLabel = formatProgressPercent(currentRevenue, targetAmount);
+  const progressBarWidth = getProgressBarWidth(currentRevenue, targetAmount);
 
   const handleImageError = (level: string) => {
     setImageErrors((prev) => ({ ...prev, [level]: true }));
@@ -214,12 +219,12 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
             >
               <div
                 className="h-full bg-gradient-to-r from-violet-600 to-purple-500 rounded-full transition-all duration-700"
-                style={{ width: `${progressPercent}%` }}
+                style={{ width: `${progressBarWidth}%` }}
               />
             </div>
             <div className="flex justify-between text-[11px] text-[#64748B]">
               <span>0 MT</span>
-              <span className="font-semibold text-violet-600 dark:text-violet-400">{progressPercent}% Concluído</span>
+              <span className="font-semibold text-violet-600 dark:text-violet-400">{progressPercentLabel} Concluído</span>
               <span>{formatMZN(targetAmount)}</span>
             </div>
           </div>
@@ -243,7 +248,8 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
           {MILESTONES.map((m) => {
             const isUnlocked = currentRevenue >= m.target;
             const isCurrent = m.id === nextMilestone.id && !isUnlocked;
-            const itemPercent = Math.min(100, Math.round((currentRevenue / m.target) * 100));
+            const itemPercentLabel = formatProgressPercent(currentRevenue, m.target);
+            const itemBarWidth = getProgressBarWidth(currentRevenue, m.target);
             const diff = Math.max(0, m.target - currentRevenue);
             const hasError = imageErrors[m.level];
 
@@ -338,10 +344,10 @@ export default function AwardsModal({ isOpen, onClose, currentRevenue }: AwardsM
                           className={`h-full rounded-full transition-all duration-500 ${
                             isUnlocked ? 'bg-emerald-500' : 'bg-violet-600'
                           }`}
-                          style={{ width: `${itemPercent}%` }}
+                          style={{ width: `${itemBarWidth}%` }}
                         />
                       </div>
-                      <span className="text-[11px] font-mono text-[#64748B]">{itemPercent}%</span>
+                      <span className="text-[11px] font-mono text-[#64748B]">{itemPercentLabel}</span>
                     </div>
                   </div>
                 </div>

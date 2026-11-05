@@ -221,18 +221,18 @@ export async function POST(req: Request) {
       undefined;
 
     if (dispatchResult.status === 'APPROVED') {
-      runInBackground(async () => {
-        try {
-          await dbStore.updateOrderTransaction(order.id, {
-            status: 'APPROVED',
-            zenofyCheckoutId: dispatchResult.transactionId,
-            zenofyTransactionId: dispatchResult.transactionId,
-            method: resolvedPaymentMethod,
-          });
-        } catch (err) {
-          console.error('[checkout] error updating approved transaction:', err);
-        }
+      try {
+        await dbStore.updateOrderTransaction(order.id, {
+          status: 'APPROVED',
+          zenofyCheckoutId: dispatchResult.transactionId,
+          zenofyTransactionId: dispatchResult.transactionId,
+          method: resolvedPaymentMethod,
+        });
+      } catch (err) {
+        console.error('[checkout] error updating approved transaction:', err);
+      }
 
+      runInBackground(async () => {
         try {
           await Promise.allSettled([
             dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),
@@ -255,18 +255,17 @@ export async function POST(req: Request) {
       const reqIp = clientIp(req);
       const reqUa = req.headers.get('user-agent') || undefined;
 
-      runInBackground(async () => {
-        try {
-          await dbStore.updateOrderTransaction(order.id, {
-            zenofyCheckoutId: dispatchResult.transactionId,
-            zenofyCheckoutUrl: dispatchResult.checkoutUrl,
-            status: 'PENDING',
-            method: resolvedPaymentMethod,
-          });
-        } catch (err) {
-          console.error('[checkout] error updating pending transaction:', err);
-        }
+      try {
+        await dbStore.updateOrderTransaction(order.id, {
+          zenofyCheckoutId: dispatchResult.transactionId,
+          zenofyCheckoutUrl: dispatchResult.checkoutUrl,
+          method: resolvedPaymentMethod,
+        });
+      } catch (err) {
+        console.error('[checkout] error updating pending transaction:', err);
+      }
 
+      runInBackground(async () => {
         try {
           const pendingTasks: Promise<unknown>[] = [
             dispatchProductWebhook(product, 'order.created', { ...order, status: 'PENDING' }),

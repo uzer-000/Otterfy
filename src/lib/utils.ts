@@ -7,6 +7,44 @@ export function formatMZN(amount: number): string {
   }).format(amount).replace('MZN', 'MT');
 }
 
+/**
+ * Formats milestone/goal progress percentage with decimal precision for small values
+ * so e.g. 230 MT / 50.000 MT displays "0,46%" instead of rounding down to "0%".
+ */
+export function formatProgressPercent(current: number, target: number): string {
+  if (!Number.isFinite(current) || !Number.isFinite(target) || current <= 0 || target <= 0) {
+    return '0%';
+  }
+  if (current >= target) {
+    return '100%';
+  }
+  const raw = (current / target) * 100;
+  if (raw < 0.01) {
+    return '<0,01%';
+  }
+  if (raw < 1) {
+    return `${raw.toFixed(2).replace('.', ',')}%`;
+  }
+  if (raw < 10) {
+    return `${raw.toFixed(1).replace('.', ',')}%`;
+  }
+  return `${Math.round(raw)}%`;
+}
+
+/**
+ * Returns the visual width percentage (0 - 100) for a progress bar, ensuring
+ * a minimum visible indicator (2.5%) whenever current > 0.
+ */
+export function getProgressBarWidth(current: number, target: number): number {
+  if (!Number.isFinite(current) || !Number.isFinite(target) || current <= 0 || target <= 0) {
+    return 0;
+  }
+  if (current >= target) {
+    return 100;
+  }
+  return Math.min(100, Math.max(2.5, Number(((current / target) * 100).toFixed(2))));
+}
+
 export const SALE_NOTIFICATION_TITLE = 'Venda Aprovada - Otterfy';
 
 export function formatSaleNotificationMessage(amount?: number | string | null): string {

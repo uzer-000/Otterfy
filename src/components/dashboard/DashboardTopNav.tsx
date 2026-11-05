@@ -5,7 +5,13 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AwardsModal from './AwardsModal';
 import NotificationStack from './NotificationStack';
-import { formatMZN, formatSaleNotificationMessage, SALE_NOTIFICATION_TITLE } from '@/lib/utils';
+import {
+  formatMZN,
+  formatProgressPercent,
+  getProgressBarWidth,
+  formatSaleNotificationMessage,
+  SALE_NOTIFICATION_TITLE,
+} from '@/lib/utils';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -329,8 +335,22 @@ export default function DashboardTopNav() {
           return list;
         });
 
-        const sum = list.reduce((acc: number, o: any) => acc + (Number(o.amount) || 0), 0);
-        setTotalRevenue((prev) => (prev === sum ? prev : sum));
+        const sum =
+          typeof json.summary?.totalApprovedRevenue === 'number'
+            ? json.summary.totalApprovedRevenue
+            : list.reduce((acc: number, o: any) => acc + (Number(o.amount) || 0), 0);
+
+        setTotalRevenue((prev) => {
+          if (prev !== sum) {
+            if (typeof window !== 'undefined') {
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('orders_updated', { detail: json }));
+              }, 0);
+            }
+            return sum;
+          }
+          return prev;
+        });
 
         // Track already notified IDs in localStorage
         const storedNotified = JSON.parse(localStorage.getItem('otterfy_notified_orders') || '[]');
@@ -413,7 +433,7 @@ export default function DashboardTopNav() {
             try {
               router.refresh();
               if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('orders_updated'));
+                window.dispatchEvent(new CustomEvent('orders_updated', { detail: json }));
               }
             } catch {}
           }
@@ -488,7 +508,8 @@ export default function DashboardTopNav() {
     return { name: 'Placa Titan', target: 10000000, tag: '6/6', image: '/awards/10m.png' };
   };
   const nextMilestone = getNextMilestone(totalRevenue);
-  const milestoneProgress = Math.min(100, Math.round((totalRevenue / nextMilestone.target) * 100));
+  const milestoneProgressLabel = formatProgressPercent(totalRevenue, nextMilestone.target);
+  const milestoneProgressWidth = getProgressBarWidth(totalRevenue, nextMilestone.target);
   const approvedCount = approvedOrders.length;
 
   const getPageTitle = (path: string) => {
@@ -547,14 +568,14 @@ export default function DashboardTopNav() {
                   {nextMilestone.name}: <span className="text-slate-900 dark:text-[#F8FAFC] font-bold">{formatMZN(totalRevenue)}</span> / {formatMZN(nextMilestone.target)}
                 </span>
                 <span className="text-violet-600 dark:text-violet-400 font-mono font-bold text-[11px] shrink-0">
-                  {milestoneProgress}%
+                  {milestoneProgressLabel}
                 </span>
               </div>
 
               <div className="w-full h-1.5 bg-slate-200 dark:bg-[#0F0E14] rounded-full overflow-hidden border border-slate-300/60 dark:border-[#1E1B26]">
                 <div
                   className="h-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-emerald-400 rounded-full transition-all duration-500"
-                  style={{ width: `${milestoneProgress}%` }}
+                  style={{ width: `${milestoneProgressWidth}%` }}
                 />
               </div>
             </div>

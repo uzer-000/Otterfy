@@ -37,35 +37,7 @@ function ensureFiles() {
   }
 
   if (!fs.existsSync(WITHDRAWALS_FILE)) {
-    const initialWithdrawals: WithdrawalRecord[] = [
-      {
-        id: 'w-init-1',
-        recipientName: 'Conta Principal M-Pesa',
-        method: 'MPESA',
-        destination: '+258 84 901 2345',
-        amount: 25000,
-        fee: 0,
-        netAmount: 25000,
-        status: 'COMPLETED',
-        submittedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-        processedAt: new Date(Date.now() - 86400000 * 3 + 120000).toISOString(),
-        reference: 'SAQ-MP-98124',
-      },
-      {
-        id: 'w-init-2',
-        recipientName: 'Millennium BIM Empresa',
-        method: 'BANK',
-        destination: '0001 0000 1234 5678 9012 3',
-        bankName: 'Millennium BIM',
-        amount: 50000,
-        fee: 0,
-        netAmount: 50000,
-        status: 'COMPLETED',
-        submittedAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-        processedAt: new Date(Date.now() - 86400000 * 7 + 3600000).toISOString(),
-        reference: 'SAQ-BIM-44321',
-      },
-    ];
+    const initialWithdrawals: WithdrawalRecord[] = [];
     fs.writeFileSync(WITHDRAWALS_FILE, JSON.stringify(initialWithdrawals, null, 2), 'utf8');
   }
 
@@ -95,7 +67,13 @@ function getWithdrawals(): WithdrawalRecord[] {
   try {
     ensureFiles();
     const data = fs.readFileSync(WITHDRAWALS_FILE, 'utf8');
-    return JSON.parse(data);
+    const parsed: WithdrawalRecord[] = JSON.parse(data);
+    // Filter out any legacy demo seed withdrawals ('w-init-1', 'w-init-2')
+    const cleaned = parsed.filter((w) => w.id !== 'w-init-1' && w.id !== 'w-init-2');
+    if (cleaned.length !== parsed.length) {
+      fs.writeFileSync(WITHDRAWALS_FILE, JSON.stringify(cleaned, null, 2), 'utf8');
+    }
+    return cleaned;
   } catch {
     return [];
   }
@@ -163,6 +141,13 @@ export async function GET() {
       },
       withdrawals,
       accounts,
+      approvedOrders: approvedOrders.slice(0, 50).map((o) => ({
+        id: o.id,
+        amount: o.amount,
+        createdAt: o.createdAt,
+        productName: o.product?.name || 'Produto Otterfy',
+        method: o.transaction?.method || 'MPESA',
+      })),
     });
   } catch (err: unknown) {
     console.error('Error fetching balance & withdrawals:', err);

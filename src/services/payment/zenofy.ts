@@ -400,19 +400,19 @@ export const zenofyProvider = {
           rawStatus === 'COMPLETED' ||
           rawStatus === 'APPROVED' ||
           rawStatus === 'SUCCESS';
+        const isExpired = rawStatus === 'EXPIRED';
         const isFailed =
           data.isFailed === true ||
           rawStatus === 'FAILED' ||
           rawStatus === 'CANCELLED' ||
           rawStatus === 'DECLINED' ||
-          rawStatus === 'EXPIRED' ||
           rawStatus === 'REFUNDED';
 
-        if (isPaid || isFailed) {
+        if (isPaid || isExpired || isFailed) {
           return {
             success: Boolean(data.success ?? true),
             orderId: data.orderId || checkoutId,
-            status: isPaid ? 'PAID' : 'FAILED',
+            status: isPaid ? 'PAID' : isExpired ? 'EXPIRED' : 'FAILED',
             totalAmountMzn: data.totalAmount ?? data.totalAmountMzn,
             customer: data.customer,
           };
@@ -452,17 +452,17 @@ export const zenofyProvider = {
         rawStatus === 'COMPLETED' ||
         rawStatus === 'APPROVED' ||
         rawStatus === 'SUCCESS';
+      const isExpired = rawStatus === 'EXPIRED';
       const isFailed =
         data.isFailed === true ||
         rawStatus === 'FAILED' ||
         rawStatus === 'CANCELLED' ||
-        rawStatus === 'DECLINED' ||
-        rawStatus === 'EXPIRED';
+        rawStatus === 'DECLINED';
 
       return {
         success: Boolean(data.success ?? true),
         orderId: data.orderId || checkoutId,
-        status: isPaid ? 'PAID' : isFailed ? 'FAILED' : 'PENDING',
+        status: isPaid ? 'PAID' : isExpired ? 'EXPIRED' : isFailed ? 'FAILED' : 'PENDING',
         totalAmountMzn: data.totalAmountMzn,
         customer: data.customer,
       };

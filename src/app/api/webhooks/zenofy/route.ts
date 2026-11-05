@@ -129,6 +129,8 @@ export async function POST(req: Request) {
             ? ('APPROVED' as const)
             : evt === 'order_refunded' || st === 'REFUNDED'
             ? ('REFUNDED' as const)
+            : evt === 'order_expired' || st === 'EXPIRED'
+            ? ('EXPIRED' as const)
             : evt === 'order_cancelled' || st === 'CANCELLED'
             ? ('DECLINED' as const)
             : undefined;
@@ -155,7 +157,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true, note: 'Transação não encontrada' });
     }
 
-    let newStatus: 'APPROVED' | 'REFUNDED' | 'CHARGEBACK' | 'DECLINED' | undefined;
+    let newStatus: 'APPROVED' | 'REFUNDED' | 'CHARGEBACK' | 'DECLINED' | 'EXPIRED' | undefined;
 
     if (
       resolvedEvent === 'order_paid' ||
@@ -170,6 +172,8 @@ export async function POST(req: Request) {
       newStatus = 'REFUNDED';
     } else if (resolvedEvent === 'payment.chargeback' || rawStatus === 'CHARGEBACK') {
       newStatus = 'CHARGEBACK';
+    } else if (resolvedEvent === 'order_expired' || resolvedEvent === 'order.expired' || rawStatus === 'EXPIRED') {
+      newStatus = 'EXPIRED';
     } else if (
       resolvedEvent === 'order_cancelled' ||
       resolvedEvent === 'payment.failed' ||

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { formatMZN } from '@/lib/utils';
+import { formatMZN, formatProgressPercent, getProgressBarWidth } from '@/lib/utils';
 
 // Lazy-loaded 3D WebGL Three.js Inspector (ultra lightweight until clicked)
 const PlaqueViewer3D = dynamic(() => import('@/components/dashboard/PlaqueViewer3D'), {
@@ -300,30 +300,40 @@ export default function AwardsPage() {
   const [claimSuccess, setClaimSuccess] = useState(false);
 
   useEffect(() => {
-    fetch('/api/payments?status=APPROVED')
-      .then((res) => res.json())
-      .then((json) => {
-        const list = json.data || [];
-        const sum = list.reduce((acc: number, o: any) => acc + (Number(o.amount) || 0), 0);
-        setTotalRevenue(sum > 0 ? sum : 0);
-      })
-      .catch(() => {
-        setTotalRevenue(0);
-      });
+    const loadRevenue = () => {
+      fetch('/api/payments?status=APPROVED', { cache: 'no-store' })
+        .then((res) => res.json())
+        .then((json) => {
+          const list = json.data || [];
+          const sum =
+            typeof json.summary?.totalApprovedRevenue === 'number'
+              ? json.summary.totalApprovedRevenue
+              : list.reduce((acc: number, o: any) => acc + (Number(o.amount) || 0), 0);
+          setTotalRevenue(sum > 0 ? sum : 0);
+        })
+        .catch(() => {
+          setTotalRevenue(0);
+        });
+    };
+
+    loadRevenue();
+    window.addEventListener('orders_updated', loadRevenue);
+    return () => window.removeEventListener('orders_updated', loadRevenue);
   }, []);
 
-  // Filtered milestones excluding starter for progress counting
+  // Filtered milestones excluding starter for progress counting; primary physical award target starts at 50K
   const progressiveMilestones = MILESTONES.filter((m) => m.target > 0);
+  const physicalAwardMilestones = MILESTONES.filter((m) => m.target >= 50000);
   const conqueredCount = progressiveMilestones.filter((m) => totalRevenue >= m.target).length;
   const nextMilestone =
-    progressiveMilestones.find((m) => totalRevenue < m.target) ||
-    progressiveMilestones[progressiveMilestones.length - 1];
+    physicalAwardMilestones.find((m) => totalRevenue < m.target) ||
+    physicalAwardMilestones[physicalAwardMilestones.length - 1];
 
   const remainingAmount = Math.max(0, nextMilestone.target - totalRevenue);
-  const progressToNext =
-    nextMilestone.target > 0
-      ? Math.min(100, Math.round((totalRevenue / nextMilestone.target) * 100))
-      : 100;
+  const progressToNextLabel =
+    nextMilestone.target > 0 ? formatProgressPercent(totalRevenue, nextMilestone.target) : '100%';
+  const progressToNextWidth =
+    nextMilestone.target > 0 ? getProgressBarWidth(totalRevenue, nextMilestone.target) : 100;
 
   const handleClaimSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -360,14 +370,20 @@ export default function AwardsPage() {
             <div className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-[#F8FAFC] font-mono">
               {formatMZN(totalRevenue)}
             </div>
-            <div className="text-xs text-slate-600 dark:text-[#94A3B8] flex items-center gap-2 pt-0.5">
+            <div className="text-xs text-slate-600 dark:text-[#94A3B8] flex items-center gap-2 pt-0.5 flex-wrap">
               <span>
-                Faltam <strong className="text-slate-800 dark:text-slate-200 font-mono">{formatMZN(remainingAmount)}</strong> para {nextMilestone.name}
+                Faltam <strong className="text-slate-800 dark:text-slate-200 font-mono">{formatMZN(remainingAmount)}</strong> para {nextMilestone.name} ({formatMZN(nextMilestone.target)})
               </span>
               <span>•</span>
               <span className="font-mono text-violet-600 dark:text-violet-400 font-bold">
-                {progressToNext}% do caminho
+                {progressToNextLabel} do caminho
               </span>
+            </div>
+            <div className="w-full max-w-md h-2 bg-slate-200 dark:bg-[#12101A] rounded-full overflow-hidden border border-slate-300/60 dark:border-[#1E1B26] mt-2">
+              <div
+                className="h-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-emerald-400 rounded-full transition-all duration-500"
+                style={{ width: `${progressToNextWidth}%` }}
+              />
             </div>
           </div>
 
@@ -406,7 +422,8 @@ export default function AwardsPage() {
           const isConquered = milestone.target === 0 || totalRevenue >= milestone.target;
           const isCurrentTarget = nextMilestone.id === milestone.id && !isConquered;
           const needed = Math.max(0, milestone.target - totalRevenue);
-          const percent = milestone.target > 0 ? Math.min(100, Math.round((totalRevenue / milestone.target) * 100)) : 100;
+          const percentLabel =
+            milestone.target > 0 ? formatProgressPercent(totalRevenue, milestone.target) : '100%';
 
           return (
             <div key={milestone.id} className="relative group">
@@ -564,7 +581,7 @@ export default function AwardsPage() {
                         {formatMZN(needed)}
                       </div>
                       <div className="text-[11px] text-slate-500 dark:text-[#64748B]">
-                        {percent}% concluído
+                        {percentLabel} concluído
                       </div>
                     </div>
                   )}

@@ -81,6 +81,9 @@ export default function BalancePage() {
   const [settlementMode, setSettlementMode] = useState<'WALLET' | 'DIRECT'>('WALLET');
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [accounts, setAccounts] = useState<PayoutAccount[]>([]);
+  const [approvedSales, setApprovedSales] = useState<
+    { id: string; amount: number; createdAt: string; productName: string; method: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
@@ -129,6 +132,7 @@ export default function BalancePage() {
         const json = await res.json();
         if (json.balance) setBalance(json.balance);
         if (json.withdrawals) setWithdrawals(json.withdrawals);
+        if (Array.isArray(json.approvedOrders)) setApprovedSales(json.approvedOrders);
         if (json.accounts) {
           setAccounts(json.accounts);
           // Set default recipient and phone from default account
@@ -176,58 +180,38 @@ export default function BalancePage() {
       });
     });
 
-    // Mock sales ledger items matching approved volume
-    if (balance.grossRevenue > 0) {
+    // Real approved sales ledger items from database
+    approvedSales.forEach((sale) => {
+      const feeAmount = Math.round(sale.amount * 0.07 * 100) / 100;
       list.push({
-        id: 'sale-recent-1',
-        date: new Date(Date.now() - 3600000 * 2).toISOString(),
-        reference: 'ORD-MP-84192',
+        id: `sale-${sale.id}`,
+        date: sale.createdAt,
+        reference: sale.id,
         type: 'SALE',
-        description: 'Venda Aprovada Checkout - M-Pesa STK Push',
-        method: 'MPESA',
+        description: `Venda Aprovada: ${sale.productName}`,
+        method: sale.method || 'MPESA',
         status: 'COMPLETED',
-        amount: Math.round(balance.grossRevenue * 0.4),
+        amount: sale.amount,
         isCredit: true,
       });
-      list.push({
-        id: 'fee-recent-1',
-        date: new Date(Date.now() - 3600000 * 2).toISOString(),
-        reference: 'FEE-OTF-84192',
-        type: 'FEE',
-        description: 'Comissão Payzeno / Otterfy (7%) sobre venda confirmada',
-        method: 'INTERNAL',
-        status: 'COMPLETED',
-        amount: Math.round(balance.grossRevenue * 0.4 * 0.07),
-        isCredit: false,
-      });
-
-      list.push({
-        id: 'sale-recent-2',
-        date: new Date(Date.now() - 86400000).toISOString(),
-        reference: 'ORD-EM-32910',
-        type: 'SALE',
-        description: 'Venda Aprovada Checkout - e-Mola Direct API',
-        method: 'EMOLA',
-        status: 'COMPLETED',
-        amount: Math.round(balance.grossRevenue * 0.35),
-        isCredit: true,
-      });
-      list.push({
-        id: 'fee-recent-2',
-        date: new Date(Date.now() - 86400000).toISOString(),
-        reference: 'FEE-OTF-32910',
-        type: 'FEE',
-        description: 'Comissão Payzeno / Otterfy (7%) sobre venda confirmada',
-        method: 'INTERNAL',
-        status: 'COMPLETED',
-        amount: Math.round(balance.grossRevenue * 0.35 * 0.07),
-        isCredit: false,
-      });
-    }
+      if (feeAmount > 0) {
+        list.push({
+          id: `fee-${sale.id}`,
+          date: sale.createdAt,
+          reference: `FEE-${sale.id}`,
+          type: 'FEE',
+          description: `Comissão Otterfy (7%) — ${sale.productName}`,
+          method: 'INTERNAL',
+          status: 'COMPLETED',
+          amount: feeAmount,
+          isCredit: false,
+        });
+      }
+    });
 
     // Sort by date descending
     return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [withdrawals, balance.grossRevenue]);
+  }, [withdrawals, approvedSales]);
 
   // Filtered ledger
   const filteredLedger = useMemo(() => {

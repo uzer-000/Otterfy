@@ -131,6 +131,7 @@ export default function PaymentsPage() {
               <option value="ALL">Todos os Status</option>
               <option value="APPROVED">Aprovado</option>
               <option value="PENDING">Pendente</option>
+              <option value="EXPIRED">Expirado</option>
               <option value="DECLINED">Recusado</option>
               <option value="REFUNDED">Reembolsado</option>
             </select>
