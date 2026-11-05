@@ -399,7 +399,6 @@ export default function DashboardTopNav() {
                   method: order.transaction?.method || 'M-Pesa',
                   icon: '/logo.png',
                 });
-                window.NotifStack.open();
               }
               sendSystemPushNotification(SALE_NOTIFICATION_TITLE, saleMsg, `sale-${order.id}`);
             });
@@ -429,7 +428,6 @@ export default function DashboardTopNav() {
                   method: order.transaction?.method || 'M-Pesa',
                   icon: '/logo.png',
                 });
-                window.NotifStack.open();
               }
 
               // Mobile / Desktop Native Push Notification
@@ -547,7 +545,7 @@ export default function DashboardTopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#08070C]/90 backdrop-blur-md border-b border-slate-200 dark:border-[#1E1B26] px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 transition-colors w-full max-w-full">
+      <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#08070C]/90 border-b border-slate-200 dark:border-[#1E1B26] px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 transition-colors w-full max-w-full">
         <div className="w-full max-w-[2000px] 2xl:max-w-full mx-auto flex items-center justify-between gap-2.5 sm:gap-3 min-w-0">
           {/* Milestone Progress Bar (Visible in ALL TABS, direct link to /dashboard/awards) */}
           <Link

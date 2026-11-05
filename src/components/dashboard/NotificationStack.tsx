@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { formatMZN, formatSaleNotificationMessage, SALE_NOTIFICATION_TITLE } from '@/lib/utils';
+import React, { useEffect, useRef } from 'react';
+import { formatSaleNotificationMessage, SALE_NOTIFICATION_TITLE } from '@/lib/utils';
 
 export interface NotifItem {
   id?: string;
@@ -17,7 +17,16 @@ export interface NotifItem {
 declare global {
   interface Window {
     NotifStack?: {
-      push: (n: { title?: string; message?: string; icon?: string; id?: string; amount?: number; customerName?: string; method?: string }) => void;
+      push: (n: {
+        id?: string;
+        title?: string;
+        message?: string;
+        amount?: number;
+        customerName?: string;
+        method?: string;
+        icon?: string;
+        ts?: number;
+      }) => void;
       clear: () => void;
       open: () => void;
       close: () => void;
@@ -26,110 +35,224 @@ declare global {
 }
 
 const STORAGE_KEY = 'notif_stack_v1';
-const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+const CLEARED_AT_KEY = 'notif_stack_cleared_at_v1';
+const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 dias
 const MAX_ITEMS = 100;
-const CARD_H = 64;
+const CARD_H = 60; // altura aprox. de cada card
 const GAP = 8;
-const PEEK_VISIBLE = 3;
+const PEEK_VISIBLE = 3; // quantos cards aparecem na fileira (peek)
 
-function timeAgo(ts: number): string {
-  const s = Math.floor((Date.now() - ts) / 1000);
-  if (s < 60) return 'agora';
-  if (s < 3600) return `${Math.floor(s / 60)}min`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86400)}d`;
-}
-
-function loadFromStorage(): NotifItem[] {
-  try {
-    const raw: NotifItem[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    const now = Date.now();
-    const fresh = raw
-      .filter((n) => now - n.ts < MAX_AGE_MS && !n.id?.startsWith('seed-'))
-      .map((n) => ({
-        ...n,
-        title: SALE_NOTIFICATION_TITLE,
-        message: formatSaleNotificationMessage(n.amount),
-      }));
-    return fresh;
-  } catch {
-    return [];
-  }
-}
-
-function saveToStorage(list: NotifItem[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {}
+function escapeHtml(str: string): string {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 export default function NotificationStack() {
-  const [items, setItems] = useState<NotifItem[]>([]);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [rowOpen, setRowOpen] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('light');
-
   const widgetRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLButtonElement>(null);
+  const badgeRef = useRef<HTMLSpanElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
+  const countRef = useRef<HTMLSpanElement>(null);
+  const emptyRef = useRef<HTMLDivElement>(null);
 
-  /* ── theme sync imediato ── */
   useEffect(() => {
-    const readTheme = (): 'dark' | 'light' => {
-      const docTheme = document.documentElement.getAttribute('data-theme') as 'dark' | 'light' | null;
-      if (docTheme) return docTheme;
-      const stored = localStorage.getItem('otterfy-theme') as 'dark' | 'light' | null;
-      return stored || 'light';
-    };
+    const widget = widgetRef.current;
+    const bell = bellRef.current;
+    const badge = badgeRef.current;
+    const stackEl = stackRef.current;
+    const countEl = countRef.current;
+    const emptyEl = emptyRef.current;
 
-    const update = () => setTheme(readTheme());
-    update();
+    if (!widget || !bell || !badge || !stackEl || !countEl || !emptyEl) return;
 
-    const obs = new MutationObserver(update);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    window.addEventListener('storage', update);
-    window.addEventListener('themechange', update);
+    let panelOpen = false; // sino clicado -> mostra a fileira (peek)
+    let rowOpen = false;   // fileira clicada -> lista scrollável
 
-    return () => {
-      obs.disconnect();
-      window.removeEventListener('storage', update);
-      window.removeEventListener('themechange', update);
-    };
-  }, []);
-
-  const isLight = theme === 'light';
-
-  const computeHeight = useCallback((): number => {
-    if (rowOpen) {
-      const fullH = items.length * (CARD_H + GAP);
-      if (stackRef.current) {
-        const top = stackRef.current.getBoundingClientRect().top;
-        const available = window.innerHeight - top - 16;
-        return Math.max(120, Math.min(fullH, available));
-      }
-      return Math.max(120, Math.min(fullH, 500));
+    function save(list: NotifItem[]) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      } catch {}
     }
-    return CARD_H + PEEK_VISIBLE * 10;
-  }, [rowOpen, items.length]);
 
-  const [stackHeight, setStackHeight] = useState<number>(CARD_H + PEEK_VISIBLE * 10);
+    function load(): NotifItem[] {
+      try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        if (!Array.isArray(raw)) return [];
+        const now = Date.now();
+        const fresh: NotifItem[] = raw
+          .filter(
+            (n: any) =>
+              n &&
+              typeof n.ts === 'number' &&
+              now - n.ts < MAX_AGE_MS &&
+              !String(n.id || '').startsWith('seed-')
+          )
+          .slice(0, MAX_ITEMS)
+          .map((n: any) => ({
+            ...n,
+            title: SALE_NOTIFICATION_TITLE,
+            message:
+              n.amount !== undefined
+                ? formatSaleNotificationMessage(n.amount)
+                : n.message || formatSaleNotificationMessage(0),
+            icon: n.icon || '/logo.png',
+            ts: n.ts,
+          }));
+        if (fresh.length !== raw.length) save(fresh);
+        return fresh;
+      } catch {
+        return [];
+      }
+    }
 
-  /* ── carregamento inicial: apenas notificações reais (sem seed fake) ── */
-  useEffect(() => {
+    let items: NotifItem[] = load();
+
+    function timeAgo(ts: number): string {
+      const s = Math.floor((Date.now() - ts) / 1000);
+      if (s < 60) return 'agora';
+      if (s < 3600) return Math.floor(s / 60) + 'min';
+      if (s < 86400) return Math.floor(s / 3600) + 'h';
+      return Math.floor(s / 86400) + 'd';
+    }
+
+    function buildCard(n: NotifItem): HTMLDivElement {
+      const card = document.createElement('div');
+      card.className = 'notif-card';
+      const iconStr = n.icon || '/logo.png';
+      const isImageIcon = iconStr.startsWith('/') || iconStr.startsWith('http');
+      const iconHtml = isImageIcon
+        ? `<img src="${escapeHtml(iconStr)}" alt="Otterfy" class="notif-icon-img" />`
+        : escapeHtml(iconStr);
+
+      card.innerHTML = `
+        <div class="notif-icon">${iconHtml}</div>
+        <div class="notif-body">
+          <div class="notif-title"><span>${escapeHtml(n.title || SALE_NOTIFICATION_TITLE)}</span><span class="notif-time">${escapeHtml(timeAgo(n.ts))}</span></div>
+          <div class="notif-msg">${escapeHtml(n.message || '')}</div>
+        </div>`;
+      return card;
+    }
+
+    function updateBadge() {
+      if (!countEl || !badge || !emptyEl) return;
+      countEl.textContent =
+        items.length + (items.length === 1 ? ' notificação' : ' notificações');
+      badge.style.display = items.length ? 'flex' : 'none';
+      badge.textContent = items.length > 99 ? '99+' : String(items.length);
+      emptyEl.style.display = items.length ? 'none' : 'block';
+    }
+
+    // peek = empilhados com profundidade | row-open = lista vertical scrollável
+    function layout() {
+      if (!stackEl) return;
+      const cards = Array.from(stackEl.children) as HTMLElement[];
+      stackEl.classList.toggle('row-open', rowOpen);
+
+      if (rowOpen) {
+        let y = 0;
+        cards.forEach((card, i) => {
+          card.style.transform = `translateY(${y}px) scale(1)`;
+          card.style.opacity = '1';
+          card.classList.remove('behind');
+          card.style.zIndex = String(cards.length - i);
+          y += CARD_H + GAP;
+        });
+        const top = stackEl.getBoundingClientRect().top;
+        const available = window.innerHeight - top - 16;
+        stackEl.style.height = Math.max(120, Math.min(y, available)) + 'px';
+      } else {
+        cards.forEach((card, i) => {
+          card.style.zIndex = String(cards.length - i); // mais novo SEMPRE por cima
+          card.classList.toggle('behind', i > 0);
+          if (i < PEEK_VISIBLE) {
+            card.style.transform = `translateY(${i * 10}px) scale(${1 - i * 0.045})`;
+            card.style.opacity = String(1 - i * 0.28);
+          } else {
+            card.style.transform = `translateY(${PEEK_VISIBLE * 10}px) scale(${1 - PEEK_VISIBLE * 0.045})`;
+            card.style.opacity = '0';
+          }
+        });
+        stackEl.style.height =
+          cards.length > 0 ? CARD_H + PEEK_VISIBLE * 10 + 'px' : '0px';
+      }
+    }
+
+    function renderAll() {
+      if (!stackEl) return;
+      stackEl.innerHTML = '';
+      items.forEach((n) => stackEl.appendChild(buildCard(n)));
+      layout();
+      requestAnimationFrame(() => {
+        Array.from(stackEl.children).forEach((card, i) => {
+          setTimeout(() => card.classList.add('in'), 10 + Math.min(i * 25, 200));
+        });
+      });
+    }
+
+    function openPanel() {
+      if (!widget) return;
+      panelOpen = true;
+      rowOpen = false;
+      widget.classList.add('panel-open');
+      renderAll();
+    }
+
+    function closePanel() {
+      if (!widget) return;
+      panelOpen = false;
+      rowOpen = false;
+      widget.classList.remove('panel-open');
+    }
+
+    function openRow() {
+      if (!panelOpen || rowOpen) return;
+      rowOpen = true;
+      layout();
+    }
+
+    const onBellClick = (e: MouseEvent) => {
+      e.stopPropagation();
+      panelOpen ? closePanel() : openPanel();
+    };
+
+    const onStackClick = (e: MouseEvent) => {
+      e.stopPropagation();
+      if (!rowOpen) openRow();
+    };
+
+    const onDocClick = (e: MouseEvent) => {
+      if (panelOpen && widget && !widget.contains(e.target as Node)) {
+        closePanel();
+      }
+    };
+
+    const onResize = () => {
+      if (rowOpen) layout();
+    };
+
+    bell.addEventListener('click', onBellClick);
+    stackEl.addEventListener('click', onStackClick);
+    document.addEventListener('click', onDocClick);
+    window.addEventListener('resize', onResize);
+
+    // Carregar vendas aprovadas reais
     async function loadApprovedSales() {
       try {
-        const stored = loadFromStorage();
-        if (stored.length > 0) {
-          setItems(stored);
-        }
-
         const res = await fetch('/api/payments?status=APPROVED&limit=100', {
-          signal: AbortSignal.timeout(6000),
           cache: 'no-store',
         });
-        if (res.ok) {
-          const json = await res.json();
-          const list = json.data || [];
-          const mapped: NotifItem[] = list.map((s: any) => ({
+        if (!res.ok) return;
+        const json = await res.json();
+        const list = Array.isArray(json.data) ? json.data : [];
+        const now = Date.now();
+        const clearedAt = Number(localStorage.getItem(CLEARED_AT_KEY) || '0') || 0;
+
+        const mapped: NotifItem[] = list
+          .map((s: any) => ({
             id: s.id,
             title: SALE_NOTIFICATION_TITLE,
             message: formatSaleNotificationMessage(s.amount),
@@ -137,247 +260,340 @@ export default function NotificationStack() {
             customerName: s.customerName || 'Cliente',
             method: s.transaction?.method || 'M-Pesa',
             icon: '/logo.png',
-            ts: s.createdAt ? new Date(s.createdAt).getTime() : Date.now(),
-          }));
+            ts: s.createdAt ? new Date(s.createdAt).getTime() : now,
+          }))
+          .filter((n: NotifItem) => now - n.ts < MAX_AGE_MS && n.ts > clearedAt);
 
-          mapped.sort((a, b) => b.ts - a.ts);
-          setItems(mapped);
-          saveToStorage(mapped);
-        }
-      } catch (err) {
-        // Silently ignore temporary fetch glitches
+        mapped.sort((a, b) => b.ts - a.ts);
+        items = mapped.slice(0, MAX_ITEMS);
+        save(items);
+        updateBadge();
+        if (panelOpen) renderAll();
+      } catch {
+        // Ignore temporary fetch glitches
       }
     }
 
-    loadApprovedSales();
-    window.addEventListener('orders_updated', loadApprovedSales);
-    return () => {
-      window.removeEventListener('orders_updated', loadApprovedSales);
-    };
-  }, []);
-
-  /* API pública */
-  useEffect(() => {
+    // ---- API pública ----
     window.NotifStack = {
       push(n) {
-        setItems((prev) => {
-          if (n.id && prev.some((it) => it.id === n.id)) return prev;
-          const entry: NotifItem = {
-            id: n.id,
-            title: n.title || SALE_NOTIFICATION_TITLE,
-            message: n.message || formatSaleNotificationMessage(n.amount),
-            amount: n.amount,
-            customerName: n.customerName,
-            method: n.method,
-            icon: n.icon || '/logo.png',
-            ts: Date.now(),
-          };
-          const next = [entry, ...prev].slice(0, MAX_ITEMS);
-          saveToStorage(next);
-          return next;
-        });
+        if (n.id && items.some((it) => it.id === n.id)) return;
+        const entry: NotifItem = {
+          id: n.id,
+          title: n.title || SALE_NOTIFICATION_TITLE,
+          message: n.message || formatSaleNotificationMessage(n.amount),
+          amount: n.amount,
+          customerName: n.customerName,
+          method: n.method,
+          icon: n.icon || '/logo.png',
+          ts: typeof n.ts === 'number' ? n.ts : Date.now(),
+        };
+        items.unshift(entry);
+        if (items.length > MAX_ITEMS) items = items.slice(0, MAX_ITEMS);
+        save(items);
+        updateBadge();
+
+        if (panelOpen && stackEl) {
+          // insere no topo sem recriar a lista: preserva scroll e estado (peek ou row-open)
+          const card = buildCard(entry);
+          card.style.transform = 'translateY(-10px) scale(.97)';
+          stackEl.insertBefore(card, stackEl.firstChild);
+          layout();
+          requestAnimationFrame(() =>
+            setTimeout(() => card.classList.add('in'), 10)
+          );
+        }
       },
       clear() {
-        setItems([]);
-        saveToStorage([]);
+        items = [];
+        save(items);
+        try {
+          localStorage.setItem(CLEARED_AT_KEY, String(Date.now()));
+        } catch {}
+        updateBadge();
+        if (panelOpen) renderAll();
       },
       open() {
-        setPanelOpen(true);
-        setRowOpen(false);
+        openPanel();
       },
       close() {
-        setPanelOpen(false);
-        setRowOpen(false);
+        closePanel();
       },
     };
+
+    updateBadge();
+    void loadApprovedSales();
+    window.addEventListener('orders_updated', loadApprovedSales);
+
     return () => {
+      bell.removeEventListener('click', onBellClick);
+      stackEl.removeEventListener('click', onStackClick);
+      document.removeEventListener('click', onDocClick);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orders_updated', loadApprovedSales);
       delete window.NotifStack;
     };
   }, []);
 
-  /* fechar ao clicar fora + resize */
-  useEffect(() => {
-    const outside = (e: MouseEvent) => {
-      if (widgetRef.current && !widgetRef.current.contains(e.target as Node)) {
-        setPanelOpen(false);
-        setRowOpen(false);
-      }
-    };
-    const resize = () => {
-      if (rowOpen) setStackHeight(computeHeight());
-    };
-    document.addEventListener('mousedown', outside);
-    window.addEventListener('resize', resize);
-    return () => {
-      document.removeEventListener('mousedown', outside);
-      window.removeEventListener('resize', resize);
-    };
-  }, [rowOpen, computeHeight]);
-
-  useEffect(() => {
-    requestAnimationFrame(() => setStackHeight(computeHeight()));
-  }, [rowOpen, items.length, computeHeight]);
-
   return (
-    <div ref={widgetRef} className="relative inline-flex flex-col items-end z-50">
-      {/* ─ SINO (Adapta 100% Dark e Light) ─ */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setPanelOpen((prev) => !prev);
-          setRowOpen(false);
-        }}
-        aria-label="Notificações"
-        className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm group ${
-          isLight
-            ? 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 shadow-slate-100'
-            : 'bg-[#121016] hover:bg-[#1A1820] border-[#1E1B26] text-[#94A3B8] hover:text-[#F8FAFC]'
-        }`}
-        title="Notificações de vendas aprovadas"
-      >
-        <svg
-          className={`w-4 h-4 transition-colors ${
-            isLight ? 'text-slate-600 group-hover:text-violet-600' : 'text-violet-400 group-hover:text-violet-300'
-          }`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.85}
+    <>
+      <style>{`
+        .notif-widget {
+          --glass: rgba(255, 255, 255, .14);
+          --glass-border: rgba(255, 255, 255, .22);
+          --radius: 24px;
+          --radius-icon: 10px;
+          --text: #f2f2f3;
+          --sub: rgba(255, 255, 255, .6);
+          --toolbar-sub: rgba(255, 255, 255, .6);
+          --toolbar-hover: #f2f2f3;
+          --accent: #3ddc84;
+          position: relative;
+          z-index: 999;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Segoe UI, Roboto, sans-serif;
+        }
+
+        [data-theme="light"] .notif-widget {
+          --glass: rgba(15, 18, 28, .52);
+          --glass-border: rgba(255, 255, 255, .26);
+          --toolbar-sub: rgba(15, 23, 42, .65);
+          --toolbar-hover: #0f172a;
+        }
+
+        .notif-bell {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: var(--glass);
+          border: 1px solid var(--glass-border);
+          -webkit-backdrop-filter: blur(28px) saturate(180%);
+          backdrop-filter: blur(28px) saturate(180%);
+          color: var(--text);
+          font-size: 19px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          box-shadow: 0 6px 12px -6px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .28);
+          flex-shrink: 0;
+        }
+
+        .notif-badge {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 4px;
+          background: var(--accent);
+          color: #08210f;
+          border-radius: 9px;
+          font-size: 10.5px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+        }
+
+        .notif-panel {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          margin-top: 10px;
+          margin-right: -12px;
+          width: min(364px, 96vw);
+          transform-origin: top right;
+          transform: translateY(-8px) scale(.96);
+          opacity: 0;
+          pointer-events: none;
+          transition: transform .28s cubic-bezier(.2, .8, .2, 1), opacity .22s ease;
+        }
+
+        .notif-widget.panel-open .notif-panel {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .notif-toolbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+          padding: 0 16px;
+        }
+
+        .notif-toolbar span {
+          font-size: 12px;
+          color: var(--toolbar-sub);
+          font-weight: 600;
+        }
+
+        .notif-toolbar button {
+          background: none;
+          border: none;
+          color: var(--toolbar-sub);
+          font-size: 12px;
+          cursor: pointer;
+          font-weight: 600;
+        }
+
+        .notif-toolbar button:hover {
+          color: var(--toolbar-hover);
+        }
+
+        .notif-stack {
+          position: relative;
+          transition: height .35s cubic-bezier(.2, .8, .3, 1);
+          scrollbar-width: none;
+        }
+
+        .notif-stack.row-open {
+          overflow-y: auto;
+          overflow-x: hidden;
+          cursor: default;
+        }
+
+        .notif-stack:not(.row-open) {
+          cursor: pointer;
+        }
+
+        .notif-stack::-webkit-scrollbar {
+          display: none;
+        }
+
+        .notif-card {
+          position: absolute;
+          left: 12px;
+          right: 12px;
+          top: 0;
+          background: var(--glass);
+          border: 1px solid var(--glass-border);
+          border-radius: var(--radius);
+          padding: 13px 15px;
+          display: flex;
+          gap: 11px;
+          box-shadow: 0 6px 12px -6px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .28);
+          -webkit-backdrop-filter: blur(28px) saturate(180%);
+          backdrop-filter: blur(28px) saturate(180%);
+          color: var(--text);
+          opacity: 0;
+          transition: transform .38s cubic-bezier(.2, .8, .2, 1), opacity .3s ease;
+        }
+
+        .notif-card.in {
+          opacity: 1;
+        }
+
+        .notif-card > * {
+          transition: opacity .25s ease;
+        }
+
+        .notif-stack:not(.row-open) .notif-card.behind > * {
+          opacity: 0;
+        }
+
+        .notif-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: var(--radius-icon);
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--accent);
+          font-size: 17px;
+          overflow: hidden;
+          padding: 4px;
+        }
+
+        .notif-icon-img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+
+        .notif-body {
+          min-width: 0;
+          flex: 1;
+        }
+
+        .notif-title {
+          font-size: 13.5px;
+          font-weight: 600;
+          color: var(--text);
+          display: flex;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .notif-time {
+          font-size: 11px;
+          color: var(--sub);
+          font-weight: 400;
+          flex-shrink: 0;
+        }
+
+        .notif-msg {
+          font-size: 12.5px;
+          color: rgba(255, 255, 255, .72);
+          margin-top: 2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .notif-stack.row-open .notif-msg {
+          white-space: normal;
+        }
+
+        .notif-empty {
+          text-align: center;
+          color: var(--toolbar-sub);
+          font-size: 13px;
+          padding: 16px 0;
+          display: none;
+        }
+      `}</style>
+
+      <div className="notif-widget otter-keep-colors" id="notifWidget" ref={widgetRef}>
+        <button
+          type="button"
+          className="notif-bell"
+          id="notifBell"
+          ref={bellRef}
+          aria-label="Notificações"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-          />
-        </svg>
-        {items.length > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center shadow-lg shadow-emerald-500/30 leading-none">
-            {items.length > 99 ? '99+' : items.length}
+          🔔
+          <span
+            className="notif-badge"
+            id="notifBadge"
+            ref={badgeRef}
+            style={{ display: 'none' }}
+          >
+            0
           </span>
-        )}
-      </button>
-
-      {/* ─ PAINEL FLUTUANTE ─ */}
-      <div
-        className={`fixed top-[60px] sm:top-[66px] right-3 sm:right-6 md:right-8 w-[calc(100vw-24px)] sm:w-[360px] max-w-[360px] transition-all duration-200 ${
-          panelOpen
-            ? 'opacity-100 visible scale-100 pointer-events-auto translate-y-0'
-            : 'opacity-0 invisible scale-95 pointer-events-none -translate-y-2'
-        } origin-top-right`}
-        style={{ zIndex: 9999 }}
-      >
-        <div
-          className={`backdrop-blur-2xl border rounded-2xl p-3.5 space-y-2.5 shadow-2xl transition-colors duration-200 ${
-            isLight
-              ? 'bg-white/98 border-slate-200 shadow-xl shadow-slate-300/40 text-slate-900'
-              : 'bg-[#121016]/98 border-[#1E1B26] shadow-[0_20px_60px_rgba(0,0,0,.65)] text-[#F8FAFC]'
-          }`}
-        >
-          {/* Toolbar */}
-          <div className="flex items-center justify-between px-1 text-xs font-bold">
-            <span className={isLight ? 'text-slate-600' : 'text-[#94A3B8]'}>
-              {items.length} {items.length === 1 ? 'venda aprovada' : 'vendas aprovadas'}
+        </button>
+        <div className="notif-panel" id="notifPanel">
+          <div className="notif-toolbar">
+            <span id="notifCount" ref={countRef}>
+              0 notificações
             </span>
-            {items.length > 0 && (
-              <button
-                type="button"
-                onClick={() => window.NotifStack?.clear()}
-                className={`text-xs font-semibold transition-colors cursor-pointer ${
-                  isLight ? 'text-slate-500 hover:text-slate-900' : 'text-[#94A3B8] hover:text-[#F8FAFC]'
-                }`}
-              >
-                Limpar tudo
-              </button>
-            )}
+            <button type="button" onClick={() => window.NotifStack?.clear()}>
+              Limpar tudo
+            </button>
           </div>
-
-          {/* Empty */}
-          {items.length === 0 ? (
-            <div className={`py-10 text-center text-xs ${isLight ? 'text-slate-400' : 'text-[#94A3B8]'}`}>
-              Sem notificações recentes
-            </div>
-          ) : (
-            /* ─ STACK / LIST (UMA ATRÁS DA OUTRA) ─ */
-            <div
-              ref={stackRef}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!rowOpen) setRowOpen(true);
-              }}
-              style={{ height: `${stackHeight}px` }}
-              className={`relative transition-[height] duration-[350ms] ease-[cubic-bezier(.2,.8,.3,1)] ${
-                rowOpen ? 'overflow-y-auto overflow-x-hidden cursor-default pr-1' : 'cursor-pointer overflow-hidden'
-              }`}
-            >
-              {items.map((n, i) => {
-                const zIdx = items.length - i;
-                let tx: string;
-                let op: number;
-
-                if (rowOpen) {
-                  tx = `translateY(${i * (CARD_H + GAP)}px) scale(1)`;
-                  op = 1;
-                } else if (i < PEEK_VISIBLE) {
-                  tx = `translateY(${i * 10}px) scale(${1 - i * 0.045})`;
-                  op = 1 - i * 0.28;
-                } else {
-                  tx = `translateY(${PEEK_VISIBLE * 10}px) scale(${1 - PEEK_VISIBLE * 0.045})`;
-                  op = 0;
-                }
-
-                return (
-                  <div
-                    key={`${n.ts}-${n.id || i}`}
-                    style={{
-                      transform: tx,
-                      opacity: op,
-                      zIndex: zIdx,
-                      height: `${CARD_H}px`,
-                    }}
-                    className={`absolute inset-x-0 top-0 border rounded-2xl px-3 py-2.5 flex items-center gap-3 transition-all duration-[350ms] ease-[cubic-bezier(.2,.8,.2,1)] ${
-                      isLight
-                        ? 'bg-white border-slate-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.06)]'
-                        : 'bg-[#181522] border-[#2A2538] shadow-[0_8px_24px_rgba(0,0,0,0.4)]'
-                    }`}
-                  >
-                    {/* Logo Otterfy Oficial */}
-                    <div
-                      className={`w-[36px] h-[36px] rounded-xl flex items-center justify-center shrink-0 p-1 shadow-sm transition-colors ${
-                        isLight
-                          ? 'bg-violet-50 border border-violet-200'
-                          : 'bg-violet-950/40 border border-violet-500/30'
-                      }`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="/logo.png"
-                        alt="Otterfy"
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-
-                    {/* Conteúdo do Card */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`text-[13px] font-bold truncate ${isLight ? 'text-slate-900' : 'text-[#F8FAFC]'}`}>
-                          {n.title}
-                        </span>
-                        <span className={`text-[10.5px] font-semibold shrink-0 ${isLight ? 'text-slate-400' : 'text-[#94A3B8]'}`}>
-                          {timeAgo(n.ts)}
-                        </span>
-                      </div>
-                      <p className={`text-[11.5px] font-medium mt-0.5 ${rowOpen ? 'whitespace-normal' : 'truncate'} ${isLight ? 'text-slate-600' : 'text-[#94A3B8]'}`}>
-                        {n.message}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="notif-stack" id="notifStack" ref={stackRef} />
+          <div className="notif-empty" id="notifEmpty" ref={emptyRef}>
+            Sem notificações
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
