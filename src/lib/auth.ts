@@ -4,6 +4,7 @@ import { z } from 'zod';
 import bcryptjs from 'bcryptjs';
 import { prisma } from './prisma';
 import { getUserApprovalStatus, ADMIN_EMAIL } from './adminState';
+import { authConfig } from './auth.config';
 
 export { ADMIN_EMAIL };
 
@@ -13,8 +14,7 @@ const loginSchema = z.object({
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET || 'otterfy-super-secret-key-2024-jwt-prod',
-  trustHost: true,
+  ...authConfig,
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -61,35 +61,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  session: {
-    strategy: 'jwt',
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-        token.id = user.id;
-        token.email = user.email?.toLowerCase();
-        token.name = user.name;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        if (token.sub || token.id) {
-          session.user.id = (token.id || token.sub) as string;
-        }
-        if (token.email) {
-          session.user.email = (token.email as string).toLowerCase();
-        }
-        if (token.name) {
-          session.user.name = token.name as string;
-        }
-      }
-      return session;
-    },
-  },
-  pages: {
-    signIn: '/auth/login',
-  },
 });

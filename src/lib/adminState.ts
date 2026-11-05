@@ -1,6 +1,7 @@
 import prisma from './prisma';
+import { ADMIN_EMAIL } from './adminEmail';
 
-export const ADMIN_EMAIL = 'nhacossfilipe@gmail.com';
+export { ADMIN_EMAIL };
 const SYSTEM_ADMIN_STATE_EMAIL = '__system_admin_state__@otterfy.internal';
 
 export type UserApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'BLOCKED';

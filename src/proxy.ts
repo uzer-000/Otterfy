@@ -1,5 +1,10 @@
-import { auth, ADMIN_EMAIL } from '@/lib/auth';
+import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
+import { authConfig } from '@/lib/auth.config';
+import { ADMIN_EMAIL } from '@/lib/adminEmail';
+
+// Prisma-free auth instance: only decodes the JWT session cookie.
+const { auth } = NextAuth(authConfig);
 
 export const proxy = auth((req) => {
   const { nextUrl } = req;
