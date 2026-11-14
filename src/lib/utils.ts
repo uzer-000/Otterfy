@@ -45,18 +45,24 @@ export function getProgressBarWidth(current: number, target: number): number {
   return Math.min(100, Math.max(2.5, Number(((current / target) * 100).toFixed(2))));
 }
 
-export const SALE_NOTIFICATION_TITLE = 'Venda Aprovada - Otterfy';
+export const SALE_NOTIFICATION_TITLE = 'Venda Aprovada';
 
-export function formatSaleNotificationMessage(amount?: number | string | null): string {
-  if (amount === undefined || amount === null || isNaN(Number(amount))) {
-    return 'Valor : MT 0,00';
-  }
-  const num = Number(amount);
+export function formatSaleNotificationMessage(
+  amount?: number | string | null,
+  orderId?: string | null
+): string {
+  const numeric = amount === undefined || amount === null || isNaN(Number(amount)) ? 0 : Number(amount);
   const formatted = new Intl.NumberFormat('pt-MZ', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(num);
-  return `Valor : MT ${formatted}`;
+  }).format(numeric);
+
+  if (orderId && String(orderId).trim()) {
+    const cleanRef = String(orderId).trim().replace(/^#+/, '');
+    return `Pedido #${cleanRef} — MT ${formatted}`;
+  }
+
+  return `MT ${formatted}`;
 }
 
 export function toMinorUnits(amount: number): number {

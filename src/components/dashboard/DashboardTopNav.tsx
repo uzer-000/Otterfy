@@ -391,16 +391,13 @@ export default function DashboardTopNav() {
               if (typeof window !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate([200, 100, 300]); } catch {}
               }
-              const saleMsg = formatSaleNotificationMessage(order.amount);
+              const saleMsg = formatSaleNotificationMessage(order.amount, order.id);
               if (window.NotifStack) {
                 window.NotifStack.push({
                   id: order.id,
                   title: SALE_NOTIFICATION_TITLE,
                   message: saleMsg,
-                  amount: Number(order.amount) || 0,
-                  customerName: order.customerName || 'Cliente',
-                  method: order.transaction?.method || 'M-Pesa',
-                  icon: '/logo.png',
+                  icon: '✅',
                 });
               }
               sendSystemPushNotification(SALE_NOTIFICATION_TITLE, saleMsg, `sale-${order.id}`);
@@ -418,7 +415,7 @@ export default function DashboardTopNav() {
                 try { navigator.vibrate([200, 100, 300]); } catch {}
               }
 
-              const saleMsg = formatSaleNotificationMessage(order.amount);
+              const saleMsg = formatSaleNotificationMessage(order.amount, order.id);
 
               // Feed visual notification stack with real approved sale
               if (window.NotifStack) {
@@ -426,10 +423,7 @@ export default function DashboardTopNav() {
                   id: order.id,
                   title: SALE_NOTIFICATION_TITLE,
                   message: saleMsg,
-                  amount: Number(order.amount) || 0,
-                  customerName: order.customerName || 'Cliente',
-                  method: order.transaction?.method || 'M-Pesa',
-                  icon: '/logo.png',
+                  icon: '✅',
                 });
               }
 
@@ -596,7 +590,7 @@ export default function DashboardTopNav() {
           </Link>
 
           {/* Right: Notification Stack + Theme Switcher + Profile */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 pr-[56px] sm:pr-[60px]">
             {/* Notification Stack (histórico de vendas aprovadas reais) */}
             <NotificationStack />
 
