@@ -103,7 +103,7 @@ export function buildWebhookPayload(
     timestamp: new Date().toISOString(),
     notification: {
       title: event === 'order.approved' ? SALE_NOTIFICATION_TITLE : `Pedido (${event})`,
-      message: formatSaleNotificationMessage(numAmount, order.id),
+      message: formatSaleNotificationMessage(numAmount),
     },
     productId: product.id,
     productName: product.name,
@@ -352,7 +352,7 @@ export async function dispatchSaleWebPush(order: OrderData, product?: { id?: str
     const amount = Number(order.amount) || 0;
     const pushPayload = JSON.stringify({
       title: SALE_NOTIFICATION_TITLE,
-      body: formatSaleNotificationMessage(amount, order.id),
+      body: formatSaleNotificationMessage(amount),
       icon: '/icon-192.png',
       badge: '/logo.png',
       tag: `sale-${order.id}`,

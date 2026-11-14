@@ -25,7 +25,7 @@ function formatMznBody(amount) {
 // Receive Web Push messages from Otterfy server even when the app/browser is completely closed!
 self.addEventListener('push', (event) => {
   let payload = {
-    title: 'Venda Aprovada',
+    title: 'Venda Aprovada - Otterfy',
     body: 'Valor : MT 0,00',
     icon: '/icon-192.png',
     badge: '/logo.png',
@@ -39,7 +39,7 @@ self.addEventListener('push', (event) => {
       payload = {
         ...payload,
         ...parsed,
-        title: parsed.title || 'Venda Aprovada',
+        title: parsed.title || 'Venda Aprovada - Otterfy',
       };
       if (parsed.amount !== undefined && !parsed.body) {
         payload.body = formatMznBody(parsed.amount);
