@@ -303,6 +303,13 @@ const ICONS = {
       <path d="m9 12 2 2 4-4" />
     </>
   ),
+  // Pin / Fixar Menu
+  pin: (
+    <>
+      <line x1="12" y1="17" x2="12" y2="22" />
+      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 type IconName = keyof typeof ICONS;
@@ -451,6 +458,54 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
   const [pending, setPending] = useState<{ href: string; from: string } | null>(null);
   const [groupOverrides, setGroupOverrides] = useState<Record<string, boolean>>({});
 
+  // Modo lowkey & hover-to-expand ("rowable")
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('otterfy_sidebar_pinned');
+      if (saved === 'true') {
+        setIsPinned(true);
+      }
+    } catch {}
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (isPinned) return;
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    // 120ms debounce para evitar recolhimento acidental no movimento do cursor
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 120);
+  };
+
+  const togglePin = () => {
+    setIsPinned((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('otterfy_sidebar_pinned', String(next));
+      } catch {}
+      if (!next) {
+        setIsHovered(false);
+      }
+      return next;
+    });
+  };
+
+  const isExpanded = isPinned || isHovered;
+
   const listRef = useRef<HTMLDivElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef(new Map<string, HTMLElement>());
@@ -540,6 +595,12 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
   useLayoutEffect(() => {
     measure();
   }, [measure]);
+
+  useEffect(() => {
+    measure();
+    const t = setTimeout(measure, 310);
+    return () => clearTimeout(t);
+  }, [isExpanded, isPinned, measure]);
 
   useEffect(() => {
     const list = listRef.current;
@@ -655,10 +716,13 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
         data-active={isActive ? 'true' : 'false'}
         aria-current={isActive ? 'page' : undefined}
         prefetch={true}
+        title={!isExpanded ? leaf.name : undefined}
         className={`otter-sb-item ${sub ? 'otter-sb-item--sub' : ''}`}
       >
-        <Icon name={leaf.icon} />
-        <span className="truncate">{leaf.name}</span>
+        <div className="otter-sb-icon-wrapper">
+          <Icon name={leaf.icon} />
+        </div>
+        <span className="otter-sb-text truncate">{leaf.name}</span>
         {leaf.badge && (
           <span className="otter-sb-badge otter-sb-badge--soon ml-auto shrink-0">
             {leaf.badge}
@@ -706,19 +770,28 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
         aria-hidden="true"
       />
 
-      {/* Sidebar Principal (Design exato da foto do usuário) */}
+      {/* Desktop spacer: mantém o layout e gráficos estáveis sem nenhum reflow brusco */}
+      <div
+        className="hidden md:block shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        style={{ width: isPinned ? 260 : 70 }}
+        aria-hidden="true"
+      />
+
+      {/* Sidebar Principal (Design Otterfy com modo rowable / hover-to-expand) */}
       <aside
         ref={asideRef}
-        className="otter-sidebar md:w-[260px] md:min-w-[260px] md:shrink-0 flex flex-col h-full md:h-auto"
         data-open={mobileOpen ? 'true' : 'false'}
+        data-expanded={isExpanded ? 'true' : 'false'}
+        data-pinned={isPinned ? 'true' : 'false'}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="otter-sidebar flex flex-col h-full md:h-dvh"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
         aria-label="Menu lateral"
       >
-
-
         {/* Topo no Mobile: Logo + Botão Fechar */}
         <div className="md:hidden flex items-center justify-between px-4 pt-3.5 pb-1 relative z-10">
           <div className="flex items-center gap-2">
@@ -740,20 +813,26 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
           </button>
         </div>
 
-        {/* Topo: Card "Vendedor" (como na primeira linha da foto) */}
-        <div className={`relative px-3.5 pt-3 pb-2 transition-all ${modeMenuOpen ? 'z-50' : 'z-20'}`}>
+        {/* Topo: Card "Vendedor" / "Afiliado" */}
+        <div className={`relative px-3 pt-3 pb-2 transition-all ${modeMenuOpen ? 'z-50' : 'z-20'}`}>
           <div ref={modeRef} className="relative z-50">
             <button
               type="button"
               className="otter-sb-control"
-              onClick={() => setModeMenuOpen((o) => !o)}
+              onClick={() => {
+                if (!isExpanded) setIsHovered(true);
+                setModeMenuOpen((o) => !o);
+              }}
               aria-haspopup="listbox"
               aria-expanded={modeMenuOpen}
+              title={!isExpanded ? (panelMode === 'seller' ? 'Vendedor' : 'Afiliado') : undefined}
             >
-              <Icon name={panelMode === 'seller' ? 'store' : 'affiliates'} />
-              <span className="flex-1 text-left">{panelMode === 'seller' ? 'Vendedor' : 'Afiliado'}</span>
+              <div className="otter-sb-icon-wrapper">
+                <Icon name={panelMode === 'seller' ? 'store' : 'affiliates'} />
+              </div>
+              <span className="otter-sb-text flex-1 text-left">{panelMode === 'seller' ? 'Vendedor' : 'Afiliado'}</span>
               <svg
-                className="w-4 h-4 text-[#94A3B8] transition-transform duration-300"
+                className="otter-sb-chevron w-4 h-4 text-[#94A3B8] transition-transform duration-300"
                 style={{ transform: modeMenuOpen ? 'rotate(180deg)' : undefined }}
                 viewBox="0 0 24 24"
                 fill="none"
@@ -766,7 +845,7 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
               </svg>
             </button>
 
-            {/* Menu suspenso de alternância de painel (Opaco, z-50, sem transparência) */}
+            {/* Menu suspenso de alternância de painel */}
             <div
               className="otter-sb-menu z-50 shadow-2xl"
               data-open={modeMenuOpen ? 'true' : 'false'}
@@ -790,7 +869,9 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
                       : 'hover:bg-black/5 dark:hover:bg-white/5'
                   }`}
                 >
-                  <Icon name={opt.icon} />
+                  <div className="otter-sb-icon-wrapper">
+                    <Icon name={opt.icon} />
+                  </div>
                   <span className="flex flex-col leading-tight">
                     <span className="font-semibold text-gray-900 dark:text-gray-100">{opt.label}</span>
                     <span className="text-[11.5px] font-normal text-gray-500 dark:text-gray-400">{opt.hint}</span>
@@ -807,15 +888,17 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
         </div>
 
         {/* Lista de Navegação com Pill Deslizante Fluido */}
-        <nav className="otter-sb-scroll relative z-10 flex-1 min-h-0 overflow-y-auto px-3 pb-6">
+        <nav className="otter-sb-scroll relative z-10 flex-1 min-h-0 overflow-y-auto px-3 pb-3">
           <div ref={listRef} className="relative">
             {/* Pill indicador suave */}
             <div ref={highlightRef} className="otter-sb-highlight" aria-hidden="true" data-ready="false" />
 
             {sections.map((section, si) => (
-              <div key={section.title} className={si === 0 ? 'pt-2' : 'pt-5'}>
+              <div key={section.title} className={si === 0 ? 'pt-1' : 'pt-3'}>
                 {/* Cabeçalho da Secção: MENU / GERAL */}
-                <p className="otter-sb-label px-3 pb-2">{section.title}</p>
+                <div className="otter-sb-section-header px-3 pb-1">
+                  <p className="otter-sb-label">{section.title}</p>
+                </div>
 
                 <div className="flex flex-col gap-0.5">
                   {section.entries.map((entry) => {
@@ -829,13 +912,19 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
                         <button
                           type="button"
                           ref={setItemRef(`group:${entry.id}`)}
-                          onClick={() => toggleGroup(entry)}
+                          onClick={() => {
+                            if (!isExpanded) setIsHovered(true);
+                            toggleGroup(entry);
+                          }}
                           aria-expanded={open}
                           data-active={containsActive && !open ? 'true' : 'false'}
+                          title={!isExpanded ? entry.name : undefined}
                           className="otter-sb-item"
                         >
-                          <Icon name={entry.icon} />
-                          <span className="truncate">{entry.name}</span>
+                          <div className="otter-sb-icon-wrapper">
+                            <Icon name={entry.icon} />
+                          </div>
+                          <span className="otter-sb-text truncate">{entry.name}</span>
                           <svg
                             className="otter-sb-chevron"
                             style={{ transform: open ? 'rotate(90deg)' : undefined }}
@@ -852,9 +941,9 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
                         </button>
 
                         {/* Accordion suave */}
-                        <div className="otter-collapse" data-open={open ? 'true' : 'false'}>
+                        <div className="otter-collapse" data-open={isExpanded && open ? 'true' : 'false'}>
                           <div>
-                            <div className="flex flex-col gap-0.5 pt-1 pl-4" inert={!open}>
+                            <div className="flex flex-col gap-0.5 pt-1 pl-3" inert={!open || !isExpanded}>
                               {entry.children.map((child) => renderLeaf(child, true))}
                             </div>
                           </div>
@@ -866,9 +955,15 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
                   {/* Botão Sair na secção GERAL */}
                   {section.title === 'GERAL' && (
                     <form action={logoutAction}>
-                      <button type="submit" className="otter-sb-item" title={`Terminar sessão (${userEmail})`}>
-                        <Icon name="logout" />
-                        <span>Sair</span>
+                      <button
+                        type="submit"
+                        className="otter-sb-item"
+                        title={!isExpanded ? `Terminar sessão (${userEmail})` : undefined}
+                      >
+                        <div className="otter-sb-icon-wrapper">
+                          <Icon name="logout" />
+                        </div>
+                        <span className="otter-sb-text truncate">Sair</span>
                       </button>
                     </form>
                   )}
@@ -877,6 +972,34 @@ export default function Sidebar({ userEmail = 'admin@otterfy.co.mz' }: { userEma
             ))}
           </div>
         </nav>
+
+        {/* Rodapé: Botão de Fixar / Desafixar Menu (Pin) - Design idêntico aos prints */}
+        <div className="hidden md:flex items-center px-3 py-3 border-t border-[var(--sb-border)] mt-auto relative z-10 shrink-0">
+          <button
+            type="button"
+            onClick={togglePin}
+            className={`otter-sb-pin-btn flex items-center w-full h-10 px-3 rounded-xl transition-all duration-200 cursor-pointer ${
+              isPinned
+                ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30 font-medium'
+                : 'text-[var(--sb-text-muted)] hover:text-[var(--sb-text)] hover:bg-[var(--sb-hover)] border border-transparent'
+            }`}
+            title={isPinned ? 'Desafixar menu (modo flutuante/recolhido)' : 'Fixar menu aberto'}
+            aria-label={isPinned ? 'Desafixar menu' : 'Fixar menu'}
+          >
+            <div className="otter-sb-icon-wrapper shrink-0 flex items-center justify-center">
+              <Icon
+                name="pin"
+                className={`transition-transform duration-300 ${isPinned ? 'rotate-[-45deg] text-violet-400' : 'text-current'}`}
+              />
+            </div>
+            <span className="otter-sb-text truncate text-xs font-medium">
+              {isPinned ? 'Menu fixado' : 'Fixar menu'}
+            </span>
+            {isPinned && (
+              <span className="otter-sb-badge ml-auto w-1.5 h-1.5 rounded-full bg-violet-400 shadow-[0_0_6px_rgba(124,58,237,0.8)] shrink-0" />
+            )}
+          </button>
+        </div>
       </aside>
     </>
   );

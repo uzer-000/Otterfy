@@ -1200,6 +1200,15 @@ body {
 }
 
 /* Ícones padrão sempre com tamanho fixo de 18px */
+.otter-sb-icon-wrapper {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 svg.otter-sb-icon {
   width: 18px !important;
   height: 18px !important;
@@ -1213,6 +1222,12 @@ svg.otter-sb-icon {
   transition: color var(--dur-fast) ease, transform var(--dur-base) var(--ease-out-quint);
 }
 
+.otter-sb-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Linha de item do menu */
 .otter-sb-item {
   position: relative;
@@ -1221,8 +1236,8 @@ svg.otter-sb-icon {
   align-items: center;
   gap: 12px;
   width: 100%;
-  height: 38px;
-  padding: 0 12px;
+  height: 40px;
+  padding: 0 13px;
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
@@ -1429,19 +1444,32 @@ svg.otter-sb-icon {
 .otter-sb-control {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  height: 46px;
-  padding: 0 12px;
+  height: 44px;
+  padding: 0 13px;
   border-radius: 13px;
   background: var(--sb-control-bg);
   border: 1px solid var(--sb-control-border);
   color: var(--sb-text);
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out-quint);
+}
+
+.otter-sb-pin-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 38px;
+  padding: 0 13px;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 
 .otter-sb-control:hover {
@@ -1491,21 +1519,127 @@ svg.otter-sb-icon {
 /* Scroll interno do menu */
 .otter-sb-scroll {
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--sb-control-border) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .otter-sb-scroll::-webkit-scrollbar {
-  width: 4px;
+  display: none;
 }
 
-.otter-sb-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* ==========================================================================
+   DESKTOP ROWABLE / HOVER-TO-EXPAND SIDEBAR
+   Transições fluidas sem jitter, 0ms lag, foco em performance e elegância
+   ========================================================================== */
+@media (min-width: 768px) {
+  .otter-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    height: 100dvh;
+    z-index: 40;
+    width: 70px;
+    min-width: 70px;
+    transition:
+      width 300ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 300ms ease;
+    will-change: width;
+    overflow-x: hidden;
+  }
 
-.otter-sb-scroll::-webkit-scrollbar-thumb {
-  background: var(--sb-control-border);
-  border-radius: 999px;
+  .otter-sidebar[data-expanded="true"] {
+    width: 260px;
+    min-width: 260px;
+  }
+
+  /* Quando aberto e não-fixado, projeta uma sombra ultra suave flutuante sobre o dashboard */
+  .otter-sidebar[data-expanded="true"]:not([data-pinned="true"]) {
+    box-shadow: 18px 0 50px -12px rgba(0, 0, 0, 0.75);
+    border-right-color: rgba(139, 92, 246, 0.35);
+  }
+
+  [data-theme="light"] .otter-sidebar[data-expanded="true"]:not([data-pinned="true"]) {
+    box-shadow: 18px 0 50px -12px rgba(0, 0, 0, 0.14);
+    border-right-color: rgba(124, 58, 237, 0.22);
+  }
+
+  /* Textos do menu: fade & slide horizontal suave */
+  .otter-sidebar[data-expanded="false"] .otter-sb-text {
+    opacity: 0;
+    max-width: 0;
+    margin-left: 0 !important;
+    transform: translateX(-10px);
+    pointer-events: none;
+    transition:
+      opacity 160ms ease,
+      transform 160ms ease,
+      max-width 160ms ease,
+      margin 160ms ease;
+  }
+
+  .otter-sidebar[data-expanded="true"] .otter-sb-text {
+    opacity: 1;
+    max-width: 170px;
+    margin-left: 0;
+    transform: translateX(0);
+    transition:
+      opacity 280ms ease 45ms,
+      transform 280ms cubic-bezier(0.16, 1, 0.3, 1) 45ms;
+  }
+
+  /* Badges, chevrons e status pendente */
+  .otter-sidebar[data-expanded="false"] .otter-sb-badge,
+  .otter-sidebar[data-expanded="false"] .otter-sb-chevron,
+  .otter-sidebar[data-expanded="false"] .otter-sb-pending {
+    opacity: 0;
+    transform: scale(0.6);
+    pointer-events: none;
+    max-width: 0;
+    padding: 0;
+    margin: 0;
+    border-width: 0;
+    transition: opacity 140ms ease, transform 140ms ease;
+  }
+
+  .otter-sidebar[data-expanded="true"] .otter-sb-badge,
+  .otter-sidebar[data-expanded="true"] .otter-sb-chevron,
+  .otter-sidebar[data-expanded="true"] .otter-sb-pending {
+    opacity: 1;
+    transform: scale(1);
+    transition:
+      opacity 260ms ease 70ms,
+      transform 260ms cubic-bezier(0.16, 1, 0.3, 1) 70ms;
+  }
+
+  /* Cabeçalhos de secções (MENU / GERAL) */
+  .otter-sb-section-header {
+    overflow: hidden;
+    transition:
+      opacity 220ms ease,
+      height 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      margin 280ms ease;
+  }
+
+  .otter-sidebar[data-expanded="false"] .otter-sb-section-header {
+    opacity: 0;
+    height: 10px;
+    margin: 0;
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .otter-sidebar[data-expanded="true"] .otter-sb-section-header {
+    opacity: 1;
+    height: 24px;
+  }
+
+  /* Fechar acordeão com elegância em modo recolhido */
+  .otter-sidebar[data-expanded="false"] .otter-collapse {
+    grid-template-rows: 0fr !important;
+    opacity: 0 !important;
+  }
 }
 
 /* ---------- Mobile drawer (Ultra smooth iOS spring physics) ---------- */
