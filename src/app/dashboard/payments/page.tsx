@@ -1,39 +1,64 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import PaymentsTable from '@/components/dashboard/PaymentsTable';
 import { Download, RefreshCw, Search } from 'lucide-react';
 import type { OrderItem } from '@/lib/store';
 
-export default function PaymentsPage() {
+const VALID_STATUS_FILTERS = new Set([
+  'ALL',
+  'APPROVED',
+  'PENDING',
+  'LOST',
+  'EXPIRED',
+  'DECLINED',
+  'CANCELLED',
+  'REFUNDED',
+]);
+
+function PaymentsPageContent({ initialStatus }: { initialStatus: string }) {
   const [payments, setPayments] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [gatewayFilter, setGatewayFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const loadPayments = useCallback(async () => {
-    setLoading(true);
+  const fetchPayments = useCallback(async (targetStatus: string) => {
     try {
       const url =
-        statusFilter === 'ALL'
+        targetStatus === 'ALL'
           ? '/api/payments?limit=100'
-          : `/api/payments?status=${statusFilter}&limit=100`;
-      const res = await fetch(url);
+          : `/api/payments?status=${targetStatus}&limit=100`;
+      const res = await fetch(url, { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
-        setPayments(Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : []);
+        return Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
       }
     } catch (err) {
       console.error('Erro ao buscar pagamentos:', err);
-    } finally {
-      setLoading(false);
     }
-  }, [statusFilter]);
+    return null;
+  }, []);
+
+  const loadPayments = useCallback(async () => {
+    setLoading(true);
+    const list = await fetchPayments(statusFilter);
+    if (list) setPayments(list);
+    setLoading(false);
+  }, [fetchPayments, statusFilter]);
 
   useEffect(() => {
-    loadPayments();
-  }, [loadPayments]);
+    let active = true;
+    fetchPayments(statusFilter).then((list) => {
+      if (!active) return;
+      if (list) setPayments(list);
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [fetchPayments, statusFilter]);
 
   const filteredPayments = payments.filter((p) => {
     const method = p.transaction?.method || '';
@@ -130,9 +155,11 @@ export default function PaymentsPage() {
             >
               <option value="ALL">Todos os Status</option>
               <option value="APPROVED">Aprovado</option>
-              <option value="PENDING">Pendente</option>
+              <option value="PENDING">Pendente (até 72h)</option>
+              <option value="LOST">Expiradas / Perdidas</option>
               <option value="EXPIRED">Expirado</option>
               <option value="DECLINED">Recusado</option>
+              <option value="CANCELLED">Cancelado</option>
               <option value="REFUNDED">Reembolsado</option>
             </select>
           </div>
@@ -163,5 +190,20 @@ export default function PaymentsPage() {
         <PaymentsTable payments={filteredPayments} loading={loading} />
       </div>
     </div>
+  );
+}
+
+function PaymentsPageQueryBridge() {
+  const searchParams = useSearchParams();
+  const rawQueryStatus = (searchParams.get('status') || '').toUpperCase();
+  const initialStatus = VALID_STATUS_FILTERS.has(rawQueryStatus) ? rawQueryStatus : 'ALL';
+  return <PaymentsPageContent key={initialStatus} initialStatus={initialStatus} />;
+}
+
+export default function PaymentsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-slate-500 dark:text-[#94A3B8]">A carregar pagamentos...</div>}>
+      <PaymentsPageQueryBridge />
+    </Suspense>
   );
 }

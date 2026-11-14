@@ -1,6 +1,8 @@
 import CustomizableWidgets from '@/components/dashboard/CustomizableWidgets';
 import DashboardGreetingBanner from '@/components/dashboard/DashboardGreetingBanner';
 import dbStore from '@/lib/store';
+import { syncPendingOrdersLifecycle } from '@/lib/orderSync';
+import { isLostOrderStatus } from '@/lib/orderLifecycle';
 import {
   getMozambiqueDate,
   getMozambiqueHour,
@@ -11,6 +13,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
+  await syncPendingOrdersLifecycle();
   const allOrders = await dbStore.getOrders();
   const data = await dbStore.getKPIs(allOrders);
 
@@ -259,9 +262,7 @@ export default async function DashboardPage() {
     const prevApproved = ordersInPrevPeriod.filter((o) => o.status === 'APPROVED');
     const pending = ordersInPeriod.filter((o) => o.status === 'PENDING');
     const prevPending = ordersInPrevPeriod.filter((o) => o.status === 'PENDING');
-    const expired = ordersInPeriod.filter(
-      (o) => o.status === 'DECLINED' || o.status === 'CANCELLED' || (o.status as string) === 'EXPIRED'
-    );
+    const expired = ordersInPeriod.filter((o) => isLostOrderStatus(o.status));
 
     const salesCount = approved.length;
     const prevSalesCount = prevApproved.length;
@@ -310,7 +311,9 @@ export default async function DashboardPage() {
       salesCount,
       revenue,
       pendingCount: pending.length,
+      pendingAmount: pending.reduce((sum, o) => sum + o.amount, 0),
       expiredCount: expired.length,
+      expiredAmount: expired.reduce((sum, o) => sum + o.amount, 0),
       salesTrend: calcTrend(salesCount, prevSalesCount),
       revenueTrend: calcTrend(revenue, prevRevenue),
       pendingTrend: calcTrend(pending.length, prevPending.length),
@@ -427,6 +430,7 @@ export default async function DashboardPage() {
       status: o.status,
       productName: o.product?.name || 'Produto Digital',
       createdAt: o.createdAt,
+      updatedAt: o.updatedAt,
       method,
     };
   });

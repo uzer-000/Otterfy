@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { formatMZN, getMozambiqueDate, getMozambiqueDateString } from '@/lib/utils';
+import { getEffectiveLostTimestampMs, isLostOrderStatus, isPendingExpired } from '@/lib/orderLifecycle';
 import HourlyCartsLineChart from '@/components/dashboard/HourlyCartsLineChart';
 import WeeklySalesBarChart from '@/components/dashboard/WeeklySalesBarChart';
 import ApprovalsVsVolumeLineChart from '@/components/dashboard/ApprovalsVsVolumeLineChart';
@@ -49,6 +50,7 @@ interface OrderItem {
   amount: number;
   status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'REFUNDED' | 'CHARGEBACK' | 'CANCELLED' | 'EXPIRED';
   createdAt: string;
+  updatedAt?: string;
   product?: {
     name: string;
     price: number;
@@ -178,14 +180,52 @@ export default function MetricsPage() {
   }, [orders, period, referenceDateStr]);
 
   // Aggregated calculations based on period
+  const normalizedOrders = useMemo(
+    () =>
+      orders.map((o) =>
+        o.status === 'PENDING' && isPendingExpired(o.createdAt) ? { ...o, status: 'EXPIRED' as const } : o
+      ),
+    [orders]
+  );
+
+  const periodBounds = useMemo(() => {
+    const { year, month, day } = parseMozDateParts(referenceDateStr);
+    const refDayStartShifted = Date.UTC(year, month, day, 0, 0, 0, 0);
+    const refDayEndShifted = refDayStartShifted + 86400_000 - 1;
+    const dow = new Date(refDayStartShifted).getUTCDay();
+    const diffToMonday = dow === 0 ? -6 : 1 - dow;
+    const mStart = refDayStartShifted + diffToMonday * 86400_000;
+    const sEnd = mStart + 7 * 86400_000 - 1;
+    const monthStart = Date.UTC(year, month, 1, 0, 0, 0, 0);
+    const monthEnd = Date.UTC(year, month + 1, 1, 0, 0, 0, 0) - 1;
+    if (period === 'today') return { start: refDayStartShifted, end: refDayEndShifted };
+    if (period === '7d') return { start: mStart, end: sEnd };
+    if (period === '30d') return { start: refDayEndShifted - 30 * 86400_000 + 1, end: refDayEndShifted };
+    if (period === 'month') return { start: monthStart, end: monthEnd };
+    return { start: 0, end: Number.MAX_SAFE_INTEGER };
+  }, [period, referenceDateStr]);
+
   const approvedOrders = useMemo(() => filteredByPeriodOrders.filter((o) => o.status === 'APPROVED'), [filteredByPeriodOrders]);
-  const pendingOrders = useMemo(() => filteredByPeriodOrders.filter((o) => o.status === 'PENDING'), [filteredByPeriodOrders]);
+  const pendingOrders = useMemo(() => {
+    const nowShifted = Date.now() + CAT_OFFSET_MS;
+    if (periodBounds.end >= nowShifted || period === 'all') {
+      return normalizedOrders.filter((o) => o.status === 'PENDING');
+    }
+    return filteredByPeriodOrders.filter((o) => o.status === 'PENDING');
+  }, [normalizedOrders, filteredByPeriodOrders, periodBounds, period]);
+
   const lostOrders = useMemo(
     () =>
-      filteredByPeriodOrders.filter(
-        (o) => o.status === 'DECLINED' || o.status === 'CANCELLED' || o.status === 'EXPIRED'
-      ),
-    [filteredByPeriodOrders]
+      normalizedOrders.filter((o) => {
+        if (!isLostOrderStatus(o.status)) return false;
+        const createdShifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+        const lostShifted = getEffectiveLostTimestampMs(o) + CAT_OFFSET_MS;
+        return (
+          (createdShifted >= periodBounds.start && createdShifted <= periodBounds.end) ||
+          (lostShifted >= periodBounds.start && lostShifted <= periodBounds.end)
+        );
+      }),
+    [normalizedOrders, periodBounds]
   );
   const refundOrders = useMemo(() => filteredByPeriodOrders.filter((o) => o.status === 'REFUNDED'), [filteredByPeriodOrders]);
 

@@ -57,7 +57,8 @@ export async function GET(req: Request) {
     const endOfMonth = createMozambiqueDateUtc(queryMonthYear, queryMonth, daysInMonth, 23, 59, 59, 999);
 
     const cacheKey = `${dateParam || 'default'}_${monthParam || 'default'}`;
-    const cached = hourlyMemoryCache.get(cacheKey);
+    const forceFresh = searchParams.get('fresh') === '1';
+    const cached = forceFresh ? undefined : hourlyMemoryCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return NextResponse.json(cached.data);
     }

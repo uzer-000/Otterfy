@@ -10,6 +10,11 @@ import ConversionAndMethods from './ConversionAndMethods';
 import CensoredTransactionsTable from './CensoredTransactionsTable';
 import AwardsModal from './AwardsModal';
 import { formatMZN, formatProgressPercent, getMozambiqueDate, getMozambiqueDateString } from '@/lib/utils';
+import {
+  getEffectiveLostTimestampMs,
+  isLostOrderStatus,
+  isPendingExpired,
+} from '@/lib/orderLifecycle';
 
 export interface DashboardBlock {
   id: string;
@@ -30,7 +35,11 @@ export interface PeriodMetric {
   salesCount: number;
   revenue: number;
   pendingCount: number;
+  pendingAmount?: number;
   expiredCount: number;
+  expiredAmount?: number;
+  totalExpiredCount?: number;
+  totalExpiredAmount?: number;
   salesTrend: string;
   revenueTrend: string;
   pendingTrend: string;
@@ -94,6 +103,7 @@ export interface ClientOrder {
   status: string;
   productName: string;
   createdAt: string;
+  updatedAt?: string;
   method?: string;
 }
 
@@ -214,7 +224,9 @@ export default function CustomizableWidgets({
     monthRevenue?: number;
     monthSalesCount?: number;
     pendingCount?: number;
+    pendingAmount?: number;
     expiredCount?: number;
+    expiredAmount?: number;
   } | null>(null);
 
   useEffect(() => {
@@ -240,6 +252,7 @@ export default function CustomizableWidgets({
                 amount: number;
                 status: string;
                 createdAt: string;
+                updatedAt?: string;
                 product?: { name?: string };
                 transaction?: { id?: string; method?: string | null } | null;
               }) => ({
@@ -249,9 +262,19 @@ export default function CustomizableWidgets({
                 status: o.status,
                 productName: o.product?.name || 'Produto Digital',
                 createdAt: o.createdAt,
+                updatedAt: o.updatedAt,
                 method: o.transaction?.method || 'MPESA',
               }))
             );
+          }
+        })
+        .catch(() => {});
+
+      fetch('/api/analytics/hourly?fresh=1', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((jsonToday) => {
+          if (jsonToday?.success && Array.isArray(jsonToday.data)) {
+            setLiveHourlyToday(jsonToday.data);
           }
         })
         .catch(() => {});
@@ -656,7 +679,18 @@ export default function CustomizableWidgets({
       lineChartSubtitle = 'Volume aprovado vs. iniciado de Segunda a Domingo';
     }
 
-    const inPeriod = ordersList.filter((o) => {
+    const nowMs = Date.now();
+    const nowShifted = nowMs + CAT_OFFSET_MS;
+    const isCurrentOrOpenPeriod = pEndShifted >= nowShifted || selectedPeriod === 'all';
+
+    // Normalize effective status on client in case a PENDING order just crossed the 72h cutoff
+    const normalizedOrders = ordersList.map((o) =>
+      o.status === 'PENDING' && isPendingExpired(o.createdAt, nowMs)
+        ? { ...o, status: 'EXPIRED' }
+        : o
+    );
+
+    const inPeriod = normalizedOrders.filter((o) => {
       const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
       return shifted >= pStartShifted && shifted <= pEndShifted;
     });
@@ -664,7 +698,7 @@ export default function CustomizableWidgets({
     const inPrevPeriod =
       selectedPeriod === 'all'
         ? []
-        : ordersList.filter((o) => {
+        : normalizedOrders.filter((o) => {
             const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
             return shifted >= prevStartShifted && shifted <= prevEndShifted;
           });
@@ -672,12 +706,27 @@ export default function CustomizableWidgets({
     const approvedInPeriod = inPeriod.filter((o) => o.status === 'APPROVED');
     const approvedInPrev = inPrevPeriod.filter((o) => o.status === 'APPROVED');
 
-    const pendingInPeriod = inPeriod.filter((o) => o.status === 'PENDING');
+    // Active PENDING orders last up to 72 hours; on live periods show all active <=72h pending orders
+    const pendingInPeriod = isCurrentOrOpenPeriod
+      ? normalizedOrders.filter((o) => o.status === 'PENDING')
+      : inPeriod.filter((o) => o.status === 'PENDING');
     const pendingInPrev = inPrevPeriod.filter((o) => o.status === 'PENDING');
 
-    const expiredInPeriod = inPeriod.filter(
-      (o) => o.status === 'EXPIRED' || o.status === 'CANCELLED' || o.status === 'DECLINED'
-    );
+    // Lost/Expired orders belong to a period if created OR finalized (cancelled/declined/expired at 72h) in it
+    const allExpiredOrders = normalizedOrders.filter((o) => isLostOrderStatus(o.status));
+    const expiredInPeriod = allExpiredOrders.filter((o) => {
+      const createdShifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
+      const lostShifted = getEffectiveLostTimestampMs(o) + CAT_OFFSET_MS;
+      return (
+        (createdShifted >= pStartShifted && createdShifted <= pEndShifted) ||
+        (lostShifted >= pStartShifted && lostShifted <= pEndShifted)
+      );
+    });
+
+    const pendingAmountInPeriod = pendingInPeriod.reduce((s, o) => s + o.amount, 0);
+    const expiredAmountInPeriod = expiredInPeriod.reduce((s, o) => s + o.amount, 0);
+    const totalExpiredAllCount = allExpiredOrders.length;
+    const totalExpiredAllAmount = allExpiredOrders.reduce((s, o) => s + o.amount, 0);
 
     const revInPeriod = approvedInPeriod.reduce((s, o) => s + o.amount, 0);
     const revInPrev = approvedInPrev.reduce((s, o) => s + o.amount, 0);
@@ -705,7 +754,7 @@ export default function CustomizableWidgets({
       selectedPeriod === 'week' || selectedPeriod === 'today' || selectedPeriod === 'yesterday';
 
     const sourceForWeeklyChart = useSpecificWeekWindow
-      ? ordersList.filter((o) => {
+      ? normalizedOrders.filter((o) => {
           const shifted = new Date(o.createdAt).getTime() + CAT_OFFSET_MS;
           return shifted >= mondayStartShifted && shifted <= sundayEndShifted;
         })
@@ -795,7 +844,11 @@ export default function CustomizableWidgets({
       salesCount: approvedInPeriod.length,
       revenue: revInPeriod,
       pendingCount: pendingInPeriod.length,
+      pendingAmount: pendingAmountInPeriod,
       expiredCount: expiredInPeriod.length,
+      expiredAmount: expiredAmountInPeriod,
+      totalExpiredCount: totalExpiredAllCount,
+      totalExpiredAmount: totalExpiredAllAmount,
       salesTrend: selectedPeriod === 'all' ? '+100.0%' : calcTrendStr(approvedInPeriod.length, approvedInPrev.length),
       revenueTrend: selectedPeriod === 'all' ? '+100.0%' : calcTrendStr(revInPeriod, revInPrev),
       pendingTrend: selectedPeriod === 'all' ? '+0.0%' : calcTrendStr(pendingInPeriod.length, pendingInPrev.length),
@@ -1054,6 +1107,11 @@ export default function CustomizableWidgets({
               <span className="text-3xl sm:text-[32px] font-bold text-white tracking-tight leading-none">
                 {activeStats.pendingCount}
               </span>
+              {(activeStats.pendingAmount ?? pendingAmount) > 0 && (
+                <p className="text-xs font-semibold text-white/90 mt-1">
+                  {formatMZN(activeStats.pendingAmount ?? pendingAmount)} em aberto
+                </p>
+              )}
             </div>
 
             <div className="space-y-0.5 pt-1">
@@ -1064,17 +1122,22 @@ export default function CustomizableWidgets({
                 <span>{activeStats.pendingTrend}</span>
               </div>
               <p className="text-[11px] text-white/80 font-normal">
-                aguardando pagamento
+                aguardando pagamento (máx. 72h)
               </p>
             </div>
           </Link>
         );
 
-      case 'expiredSales':
+      case 'expiredSales': {
+        const periodExpCount = activeStats.expiredCount ?? 0;
+        const periodExpAmount = activeStats.expiredAmount ?? 0;
+        const totalAccCount = activeStats.totalExpiredCount ?? lostCount;
+        const totalAccAmount = activeStats.totalExpiredAmount ?? lostAmount;
         return (
-          <div
+          <Link
             key={id}
-            className="otter-stat-card otter-stat-card--crimson otter-keep-colors p-5 sm:p-6 min-h-[168px] flex flex-col justify-between"
+            href="/dashboard/payments?status=LOST"
+            className="otter-stat-card otter-stat-card--crimson otter-keep-colors p-5 sm:p-6 min-h-[168px] flex flex-col justify-between block"
           >
             <div className="flex items-start justify-between gap-3">
               <span className="text-[13px] font-medium text-white/95 tracking-tight">
@@ -1089,17 +1152,28 @@ export default function CustomizableWidgets({
 
             <div className="my-2">
               <span className="text-3xl sm:text-[32px] font-bold text-white tracking-tight leading-none">
-                {activeStats.expiredCount}
+                {periodExpCount}
               </span>
+              {periodExpAmount > 0 && (
+                <p className="text-xs font-semibold text-white/90 mt-1">
+                  {formatMZN(periodExpAmount)} perdido
+                </p>
+              )}
             </div>
 
-            <div className="pt-4">
+            <div className="space-y-0.5 pt-1">
               <p className="text-[11px] text-white/80 font-normal">
                 {activeStats.expiredLabel}
               </p>
+              {totalAccCount > periodExpCount && (
+                <p className="text-[11px] font-semibold text-white/95">
+                  Total acumulado: {totalAccCount} ({formatMZN(totalAccAmount)})
+                </p>
+              )}
             </div>
-          </div>
+          </Link>
         );
+      }
 
       default:
         return null;

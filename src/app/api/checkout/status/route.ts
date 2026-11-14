@@ -4,6 +4,7 @@ import dbStore from '@/lib/store';
 import { zenofyProvider } from '@/services/payment/zenofy';
 import { dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
 import { clientIp, enforceRateLimit, rateLimitResponse } from '@/lib/security';
+import { isPendingExpired, USSD_RETRY_GRACE_MS } from '@/lib/orderLifecycle';
 
 export async function GET(req: Request) {
   try {
@@ -64,9 +65,65 @@ export async function GET(req: Request) {
             upsellUrl,
           });
         }
+
+        const ageMs = Date.now() - new Date(order.createdAt).getTime();
+        if (zenofyStatus.status === 'FAILED' && ageMs > USSD_RETRY_GRACE_MS) {
+          await dbStore.updateOrderTransaction(order.id, { status: 'DECLINED' }).catch(() => {});
+          try {
+            await prisma.$transaction([
+              prisma.order.update({
+                where: { id: order.id },
+                data: { status: 'DECLINED' },
+              }),
+              prisma.transaction.update({
+                where: { id: transaction.id },
+                data: { status: 'DECLINED' },
+              }),
+            ]);
+          } catch {}
+          return NextResponse.json({
+            status: 'DECLINED',
+            transactionId: transaction.id,
+            orderId: order.id,
+            upsellUrl,
+          });
+        }
+
+        if (isPendingExpired(order.createdAt)) {
+          await dbStore.updateOrderTransaction(order.id, { status: 'EXPIRED' }).catch(() => {});
+          try {
+            await prisma.$transaction([
+              prisma.order.update({
+                where: { id: order.id },
+                data: { status: 'EXPIRED' },
+              }),
+              prisma.transaction.update({
+                where: { id: transaction.id },
+                data: { status: 'EXPIRED' },
+              }),
+            ]);
+          } catch {}
+          return NextResponse.json({
+            status: 'EXPIRED',
+            transactionId: transaction.id,
+            orderId: order.id,
+            upsellUrl,
+          });
+        }
       } catch (error) {
         console.error('Erro ao verificar status no Zenofy como fallback', error);
       }
+    } else if (order.status === 'PENDING' && isPendingExpired(order.createdAt)) {
+      await dbStore.updateOrderTransaction(order.id, { status: 'EXPIRED' }).catch(() => {});
+      try {
+        await prisma.order.update({ where: { id: order.id }, data: { status: 'EXPIRED' } });
+      } catch {}
+      return NextResponse.json({
+        status: 'EXPIRED',
+        transactionId: transaction?.id,
+        orderId: order.id,
+        upsellUrl,
+      });
     }
 
     return NextResponse.json({

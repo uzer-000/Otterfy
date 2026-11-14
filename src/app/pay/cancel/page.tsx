@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
+import dbStore from '@/lib/store';
 import { LegalFooter } from '@/components/legal/LegalFooter';
 import { BUSINESS_INFO } from '@/lib/legal';
 
@@ -16,10 +17,43 @@ async function CancelContent({ orderId }: { orderId?: string }) {
   if (orderId) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { productId: true }
+      select: { productId: true, status: true, transaction: { select: { id: true } } },
     });
     if (order) {
       productId = order.productId;
+      // Record explicit checkout cancellation if order is still PENDING (never downgrade APPROVED)
+      if (order.status === 'PENDING') {
+        if (order.transaction?.id) {
+          await prisma
+            .$transaction([
+              prisma.order.update({
+                where: { id: orderId },
+                data: { status: 'CANCELLED' },
+              }),
+              prisma.transaction.update({
+                where: { id: order.transaction.id },
+                data: { status: 'CANCELLED' },
+              }),
+            ])
+            .catch(() => {});
+        } else {
+          await prisma.order
+            .update({
+              where: { id: orderId },
+              data: { status: 'CANCELLED' },
+            })
+            .catch(() => {});
+        }
+        await dbStore.updateOrderTransaction(orderId, { status: 'CANCELLED' }).catch(() => {});
+      }
+    } else {
+      const localOrder = await dbStore.getOrderById(orderId);
+      if (localOrder) {
+        productId = localOrder.productId;
+        if (localOrder.status === 'PENDING') {
+          await dbStore.updateOrderTransaction(orderId, { status: 'CANCELLED' }).catch(() => {});
+        }
+      }
     }
   }
 

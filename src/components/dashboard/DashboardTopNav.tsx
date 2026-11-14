@@ -310,6 +310,7 @@ export default function DashboardTopNav() {
   const initialLoadedRef = useRef(false);
 
   const isFetchingRef = useRef(false);
+  const lastSummarySignatureRef = useRef<string | null>(null);
 
   // Fetch approved orders & handle real-time push alerts with auto-sync
   useEffect(() => {
@@ -353,17 +354,19 @@ export default function DashboardTopNav() {
           localStorage.setItem('otterfy_cached_total_revenue', String(sum));
         } catch {}
 
-        setTotalRevenue((prev) => {
-          if (prev !== sum) {
-            if (typeof window !== 'undefined') {
-              setTimeout(() => {
-                window.dispatchEvent(new CustomEvent('orders_updated', { detail: json }));
-              }, 0);
-            }
-            return sum;
+        setTotalRevenue((prev) => (prev !== sum ? sum : prev));
+
+        if (json.summary) {
+          const s = json.summary;
+          const sig = `${s.totalApprovedCount ?? 0}|${s.totalApprovedRevenue ?? 0}|${s.pendingCount ?? 0}|${s.pendingAmount ?? 0}|${s.expiredCount ?? 0}|${s.expiredAmount ?? 0}|${s.refundedCount ?? 0}|${s.todaySalesCount ?? 0}|${s.weekSalesCount ?? 0}`;
+          const prevSig = lastSummarySignatureRef.current;
+          lastSummarySignatureRef.current = sig;
+          if (prevSig !== null && prevSig !== sig && typeof window !== 'undefined') {
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('orders_updated', { detail: json }));
+            }, 0);
           }
-          return prev;
-        });
+        }
 
         // Track already notified IDs in localStorage
         const storedNotified = JSON.parse(localStorage.getItem('otterfy_notified_orders') || '[]');

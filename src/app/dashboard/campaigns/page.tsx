@@ -42,7 +42,7 @@ export default function CampaignsAndAbandonedCartsPage() {
       .catch(console.error);
   }, []);
 
-  const abandonedOrders = orders.filter((o) => o.status !== 'PAID');
+  const abandonedOrders = orders.filter((o) => o.status !== 'PAID' && o.status !== 'REFUNDED');
   const recoverableValue = abandonedOrders.reduce((acc, o) => acc + o.amount, 0);
 
   const buildUtmUrl = () => {

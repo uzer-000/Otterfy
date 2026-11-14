@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import dbStore from '@/lib/store';
 import { zenofyProvider } from '@/services/payment/zenofy';
 import { dispatchProductWebhook, dispatchAllApprovedOrderEvents } from '@/services/tracking/dispatcher';
+import { isPendingExpired } from '@/lib/orderLifecycle';
 
 export async function POST(req: Request) {
   try {
@@ -124,7 +125,7 @@ export async function POST(req: Request) {
       if (matchedOrder) {
         const evt = String(payload.event || '').toLowerCase();
         const st = String(payload.status || '').toUpperCase();
-        const localStatus =
+        const rawLocalStatus =
           evt === 'order_paid' || st === 'PAID'
             ? ('APPROVED' as const)
             : evt === 'order_refunded' || st === 'REFUNDED'
@@ -132,8 +133,16 @@ export async function POST(req: Request) {
             : evt === 'order_expired' || st === 'EXPIRED'
             ? ('EXPIRED' as const)
             : evt === 'order_cancelled' || st === 'CANCELLED'
+            ? ('CANCELLED' as const)
+            : evt === 'payment.failed' || st === 'FAILED' || st === 'DECLINED'
             ? ('DECLINED' as const)
             : undefined;
+
+        // Keep PENDING orders active up to 72 hours for checkout recovery even if the gateway link session timed out early
+        const localStatus =
+          rawLocalStatus === 'EXPIRED' && !isPendingExpired(matchedOrder.createdAt)
+            ? undefined
+            : rawLocalStatus;
 
         if (!localStatus) {
           return NextResponse.json({ received: true, source: 'local_store', note: 'Evento ignorado' });
@@ -157,7 +166,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true, note: 'Transação não encontrada' });
     }
 
-    let newStatus: 'APPROVED' | 'REFUNDED' | 'CHARGEBACK' | 'DECLINED' | 'EXPIRED' | undefined;
+    let newStatus: 'APPROVED' | 'REFUNDED' | 'CHARGEBACK' | 'DECLINED' | 'CANCELLED' | 'EXPIRED' | undefined;
 
     if (
       resolvedEvent === 'order_paid' ||
@@ -173,13 +182,16 @@ export async function POST(req: Request) {
     } else if (resolvedEvent === 'payment.chargeback' || rawStatus === 'CHARGEBACK') {
       newStatus = 'CHARGEBACK';
     } else if (resolvedEvent === 'order_expired' || resolvedEvent === 'order.expired' || rawStatus === 'EXPIRED') {
-      newStatus = 'EXPIRED';
+      // Only finalize as EXPIRED once the 72-hour pending recovery window has elapsed
+      if (!transaction.order || isPendingExpired(transaction.order.createdAt)) {
+        newStatus = 'EXPIRED';
+      }
+    } else if (resolvedEvent === 'order_cancelled' || rawStatus === 'CANCELLED') {
+      newStatus = 'CANCELLED';
     } else if (
-      resolvedEvent === 'order_cancelled' ||
       resolvedEvent === 'payment.failed' ||
       rawStatus === 'FAILED' ||
-      rawStatus === 'DECLINED' ||
-      rawStatus === 'CANCELLED'
+      rawStatus === 'DECLINED'
     ) {
       newStatus = 'DECLINED';
     }

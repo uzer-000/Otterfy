@@ -30,6 +30,12 @@ export function normalizeTransactions(payload: unknown): Transaction[] {
         ? 'PAID'
         : rawStatus === 'DECLINED' || rawStatus === 'FAILED'
         ? 'FAILED'
+        : rawStatus === 'EXPIRED'
+        ? 'EXPIRED'
+        : rawStatus === 'CANCELLED'
+        ? 'CANCELLED'
+        : rawStatus === 'REFUNDED' || rawStatus === 'CHARGEBACK'
+        ? 'REFUNDED'
         : 'PENDING';
 
     const gateway =
